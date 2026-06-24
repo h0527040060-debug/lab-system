@@ -1,0 +1,181 @@
+import { createContext, useContext, useReducer, useEffect, useCallback, useRef } from 'react';
+import { storageKeys, loadFromStorage, saveToStorage } from './storage';
+import {
+  SEED_TECHNICIANS, SEED_SUPPLIERS, SEED_WORK_CATALOG,
+  SEED_SERVICES, SEED_PARTS, SEED_STOCK_BATCHES, SEED_SETTINGS,
+} from '../data/seedData';
+
+// ============================================================
+// STATE INITIAL
+// ============================================================
+const buildInitialState = () => ({
+  customers:        loadFromStorage(storageKeys.CUSTOMERS, []),
+  devices:          loadFromStorage(storageKeys.DEVICES, []),
+  repairs:          loadFromStorage(storageKeys.REPAIRS, []),
+  parts:            loadFromStorage(storageKeys.PARTS, SEED_PARTS),
+  stockBatches:     loadFromStorage(storageKeys.STOCK_BATCHES, SEED_STOCK_BATCHES),
+  suppliers:        loadFromStorage(storageKeys.SUPPLIERS, SEED_SUPPLIERS),
+  purchaseOrders:   loadFromStorage(storageKeys.PURCHASE_ORDERS, []),
+  generalExpenses:  loadFromStorage(storageKeys.GENERAL_EXPENSES, []),
+  workCatalog:      loadFromStorage(storageKeys.WORK_CATALOG, SEED_WORK_CATALOG),
+  services:         loadFromStorage(storageKeys.SERVICES, SEED_SERVICES),
+  technicians:      loadFromStorage(storageKeys.TECHNICIANS, SEED_TECHNICIANS),
+  warrantyAppeals:  loadFromStorage(storageKeys.WARRANTY_APPEALS, []),
+  settings:         loadFromStorage(storageKeys.SETTINGS, SEED_SETTINGS),
+  currentUser:      loadFromStorage(storageKeys.CURRENT_USER, null),
+});
+
+// ============================================================
+// REDUCER
+// ============================================================
+const appReducer = (state, action) => {
+  switch (action.type) {
+    // --- לקוחות ---
+    case 'ADD_CUSTOMER':
+      return { ...state, customers: [...state.customers, action.payload] };
+    case 'UPDATE_CUSTOMER':
+      return { ...state, customers: state.customers.map(c => c.id === action.payload.id ? { ...c, ...action.payload } : c) };
+    case 'DELETE_CUSTOMER':
+      return { ...state, customers: state.customers.filter(c => c.id !== action.payload) };
+
+    // --- מכשירים ---
+    case 'ADD_DEVICE':
+      return { ...state, devices: [...state.devices, action.payload] };
+    case 'UPDATE_DEVICE':
+      return { ...state, devices: state.devices.map(d => d.id === action.payload.id ? { ...d, ...action.payload } : d) };
+
+    // --- תיקונים ---
+    case 'ADD_REPAIR':
+      return { ...state, repairs: [...state.repairs, action.payload] };
+    case 'UPDATE_REPAIR':
+      return { ...state, repairs: state.repairs.map(r => r.id === action.payload.id ? { ...r, ...action.payload } : r) };
+    case 'DELETE_REPAIR':
+      return { ...state, repairs: state.repairs.filter(r => r.id !== action.payload) };
+
+    // --- חלקים ---
+    case 'ADD_PART':
+      return { ...state, parts: [...state.parts, action.payload] };
+    case 'UPDATE_PART':
+      return { ...state, parts: state.parts.map(p => p.id === action.payload.id ? { ...p, ...action.payload } : p) };
+    case 'DELETE_PART':
+      return { ...state, parts: state.parts.filter(p => p.id !== action.payload) };
+
+    // --- אצוות מלאי ---
+    case 'ADD_STOCK_BATCH':
+      return { ...state, stockBatches: [...state.stockBatches, action.payload] };
+    case 'UPDATE_STOCK_BATCH':
+      return { ...state, stockBatches: state.stockBatches.map(b => b.id === action.payload.id ? { ...b, ...action.payload } : b) };
+
+    // --- ספקים ---
+    case 'ADD_SUPPLIER':
+      return { ...state, suppliers: [...state.suppliers, action.payload] };
+    case 'UPDATE_SUPPLIER':
+      return { ...state, suppliers: state.suppliers.map(s => s.id === action.payload.id ? { ...s, ...action.payload } : s) };
+    case 'DELETE_SUPPLIER':
+      return { ...state, suppliers: state.suppliers.filter(s => s.id !== action.payload) };
+
+    // --- הזמנות רכש ---
+    case 'ADD_PURCHASE_ORDER':
+      return { ...state, purchaseOrders: [...state.purchaseOrders, action.payload] };
+    case 'UPDATE_PURCHASE_ORDER':
+      return { ...state, purchaseOrders: state.purchaseOrders.map(po => po.id === action.payload.id ? { ...po, ...action.payload } : po) };
+
+    // --- הוצאות כלליות ---
+    case 'ADD_GENERAL_EXPENSE':
+      return { ...state, generalExpenses: [...state.generalExpenses, action.payload] };
+    case 'UPDATE_GENERAL_EXPENSE':
+      return { ...state, generalExpenses: state.generalExpenses.map(e => e.id === action.payload.id ? { ...e, ...action.payload } : e) };
+    case 'DELETE_GENERAL_EXPENSE':
+      return { ...state, generalExpenses: state.generalExpenses.filter(e => e.id !== action.payload) };
+
+    // --- קטלוג עבודות ---
+    case 'ADD_WORK_ITEM':
+      return { ...state, workCatalog: [...state.workCatalog, action.payload] };
+    case 'UPDATE_WORK_ITEM':
+      return { ...state, workCatalog: state.workCatalog.map(w => w.id === action.payload.id ? { ...w, ...action.payload } : w) };
+    case 'DELETE_WORK_ITEM':
+      return { ...state, workCatalog: state.workCatalog.filter(w => w.id !== action.payload) };
+
+    // --- שירותים ---
+    case 'ADD_SERVICE':
+      return { ...state, services: [...state.services, action.payload] };
+    case 'UPDATE_SERVICE':
+      return { ...state, services: state.services.map(s => s.id === action.payload.id ? { ...s, ...action.payload } : s) };
+
+    // --- טכנאים ---
+    case 'ADD_TECHNICIAN':
+      return { ...state, technicians: [...state.technicians, action.payload] };
+    case 'UPDATE_TECHNICIAN':
+      return { ...state, technicians: state.technicians.map(t => t.id === action.payload.id ? { ...t, ...action.payload } : t) };
+
+    // --- ערעורי אחריות ---
+    case 'ADD_WARRANTY_APPEAL':
+      return { ...state, warrantyAppeals: [...state.warrantyAppeals, action.payload] };
+    case 'UPDATE_WARRANTY_APPEAL':
+      return { ...state, warrantyAppeals: state.warrantyAppeals.map(a => a.id === action.payload.id ? { ...a, ...action.payload } : a) };
+
+    // --- הגדרות ---
+    case 'UPDATE_SETTINGS':
+      return { ...state, settings: { ...state.settings, ...action.payload } };
+
+    // --- משתמש נוכחי ---
+    case 'SET_CURRENT_USER':
+      return { ...state, currentUser: action.payload };
+    case 'LOGOUT':
+      return { ...state, currentUser: null };
+
+    default:
+      return state;
+  }
+};
+
+// ============================================================
+// CONTEXT
+// ============================================================
+const AppContext = createContext(null);
+
+// ============================================================
+// PROVIDER
+// ============================================================
+export const AppProvider = ({ children }) => {
+  const [state, dispatch] = useReducer(appReducer, null, buildInitialState);
+  const saveTimers = useRef({});
+
+  // שמירה אוטומטית עם debounce של 500ms לכל מפתח
+  const scheduleSave = useCallback((key, value) => {
+    if (saveTimers.current[key]) clearTimeout(saveTimers.current[key]);
+    saveTimers.current[key] = setTimeout(() => {
+      saveToStorage(key, value);
+    }, 500);
+  }, []);
+
+  useEffect(() => { scheduleSave(storageKeys.CUSTOMERS, state.customers); }, [state.customers, scheduleSave]);
+  useEffect(() => { scheduleSave(storageKeys.DEVICES, state.devices); }, [state.devices, scheduleSave]);
+  useEffect(() => { scheduleSave(storageKeys.REPAIRS, state.repairs); }, [state.repairs, scheduleSave]);
+  useEffect(() => { scheduleSave(storageKeys.PARTS, state.parts); }, [state.parts, scheduleSave]);
+  useEffect(() => { scheduleSave(storageKeys.STOCK_BATCHES, state.stockBatches); }, [state.stockBatches, scheduleSave]);
+  useEffect(() => { scheduleSave(storageKeys.SUPPLIERS, state.suppliers); }, [state.suppliers, scheduleSave]);
+  useEffect(() => { scheduleSave(storageKeys.PURCHASE_ORDERS, state.purchaseOrders); }, [state.purchaseOrders, scheduleSave]);
+  useEffect(() => { scheduleSave(storageKeys.GENERAL_EXPENSES, state.generalExpenses); }, [state.generalExpenses, scheduleSave]);
+  useEffect(() => { scheduleSave(storageKeys.WORK_CATALOG, state.workCatalog); }, [state.workCatalog, scheduleSave]);
+  useEffect(() => { scheduleSave(storageKeys.SERVICES, state.services); }, [state.services, scheduleSave]);
+  useEffect(() => { scheduleSave(storageKeys.TECHNICIANS, state.technicians); }, [state.technicians, scheduleSave]);
+  useEffect(() => { scheduleSave(storageKeys.WARRANTY_APPEALS, state.warrantyAppeals); }, [state.warrantyAppeals, scheduleSave]);
+  useEffect(() => { scheduleSave(storageKeys.SETTINGS, state.settings); }, [state.settings, scheduleSave]);
+  useEffect(() => { scheduleSave(storageKeys.CURRENT_USER, state.currentUser); }, [state.currentUser, scheduleSave]);
+
+  return (
+    <AppContext.Provider value={{ state, dispatch }}>
+      {children}
+    </AppContext.Provider>
+  );
+};
+
+// ============================================================
+// HOOK
+// ============================================================
+export const useAppContext = () => {
+  const ctx = useContext(AppContext);
+  if (!ctx) throw new Error('useAppContext חייב להיות בתוך AppProvider');
+  return ctx;
+};
