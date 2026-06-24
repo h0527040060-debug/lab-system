@@ -342,18 +342,18 @@
     <div class="login-logo">🔧</div>
     <div class="login-title">מעבדת תיקונים</div>
     <div class="login-sub">כניסה למערכת ניהול</div>
-    <div class="login-fields">
+    <form class="login-fields" id="loginForm" autocomplete="on" onsubmit="return false;">
       <div class="form-group">
         <label for="loginUser">שם משתמש</label>
-        <input type="text" id="loginUser" placeholder="שם משתמש" autocomplete="username" />
+        <input type="text" id="loginUser" name="username" placeholder="שם משתמש" autocomplete="username" />
       </div>
       <div class="form-group">
         <label for="loginPass">סיסמה</label>
-        <input type="password" id="loginPass" placeholder="סיסמה" autocomplete="current-password" />
+        <input type="password" id="loginPass" name="password" placeholder="סיסמה" autocomplete="current-password" />
       </div>
       <div class="login-error" id="loginError">שם משתמש או סיסמה שגויים</div>
-      <button class="btn-login" id="loginBtn">כניסה למערכת</button>
-    </div>
+      <button type="submit" class="btn-login" id="loginBtn">כניסה למערכת</button>
+    </form>
     <div class="login-hint">
       ברירת מחדל: <strong>admin</strong> / 1234 (משרד) &nbsp;|&nbsp; <strong>tech</strong> / 1234 (טכנאי)
     </div>
@@ -633,15 +633,15 @@
   // ── Auth ──────────────────────────────────────────────────
   function getUsers()       { try { return JSON.parse(localStorage.getItem(USERS_KEY))   || []; } catch { return []; } }
   function saveUsers(l)     { localStorage.setItem(USERS_KEY, JSON.stringify(l)); }
-  function getCurrentUser() { try { return JSON.parse(sessionStorage.getItem(SESSION_KEY)) || null; } catch { return null; } }
-  function setCurrentUser(u){ sessionStorage.setItem(SESSION_KEY, JSON.stringify(u)); }
+  function getCurrentUser() { try { return JSON.parse(localStorage.getItem(SESSION_KEY)) || null; } catch { return null; } }
+  function setCurrentUser(u){ localStorage.setItem(SESSION_KEY, JSON.stringify(u)); }
   function login(u, p) {
     const found = getUsers().find(x => x.username === u && x.password === p);
     if (!found) return false;
     setCurrentUser({ username: found.username, displayName: found.displayName, role: found.role });
     return true;
   }
-  function logout() { sessionStorage.removeItem(SESSION_KEY); renderApp(); }
+  function logout() { localStorage.removeItem(SESSION_KEY); renderApp(); }
 
   // ── Repairs ───────────────────────────────────────────────
   function loadRepairs() { try { return JSON.parse(localStorage.getItem(REPAIRS_KEY)) || []; } catch { return []; } }
@@ -1090,6 +1090,7 @@
     err.classList.remove('show'); renderApp();
   }
   document.getElementById('loginBtn').addEventListener('click', doLogin);
+  document.getElementById('loginForm').addEventListener('submit', doLogin);
   document.getElementById('loginPass').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
   document.getElementById('loginUser').addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('loginPass').focus(); });
   ['loginUser','loginPass'].forEach(id=>document.getElementById(id).addEventListener('input',()=>document.getElementById('loginError').classList.remove('show')));
