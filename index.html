@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>מעבדת תיקונים</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; color: #1a1a2e; min-height: 100vh; }
+
+    /* ── LOGIN ── */
+    #loginScreen {
+      min-height: 100vh; display: flex; align-items: center;
+      justify-content: center; padding: 20px;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%);
+    }
+    .login-card {
+      background: #fff; border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.4);
+      padding: 44px 48px; width: 100%; max-width: 380px; text-align: center;
+    }
+    .login-logo  { font-size: 48px; margin-bottom: 10px; }
+    .login-title { font-size: 22px; font-weight: 700; color: #1a1a2e; margin-bottom: 4px; }
+    .login-sub   { font-size: 13px; color: #8892b0; margin-bottom: 28px; }
+    .login-fields { display: flex; flex-direction: column; gap: 14px; text-align: right; }
+    .login-error { background: #ffebee; border: 1.5px solid #ef9a9a; color: #c62828; border-radius: 7px; padding: 8px 14px; font-size: 13px; font-weight: 600; display: none; }
+    .login-error.show { display: block; }
+    .btn-login { background: #1a1a2e; color: #fff; border: none; border-radius: 8px; padding: 12px; font-size: 15px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 6px; transition: background .18s; font-family: inherit; }
+    .btn-login:hover { background: #2d2d50; }
+    .login-hint { margin-top: 20px; padding-top: 16px; border-top: 1px solid #f0f0f0; font-size: 11px; color: #b0b0c0; line-height: 1.9; }
+
+    /* ── APP SHELL ── */
+    #app { display: none; min-height: 100vh; }
+
+    /* ── SIDEBAR ── */
+    #sidebar {
+      position: fixed; top: 0; right: 0; bottom: 0; width: 240px;
+      background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+      display: flex; flex-direction: column; z-index: 300;
+      transition: transform .25s cubic-bezier(.4,0,.2,1);
+      box-shadow: -2px 0 12px rgba(0,0,0,.3);
+    }
+    body.sidebar-closed #sidebar { transform: translateX(240px); }
+
+    .sidebar-header {
+      padding: 0 16px; height: 56px;
+      display: flex; align-items: center; gap: 10px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      flex-shrink: 0;
+    }
+    .sidebar-logo { font-size: 20px; }
+    .sidebar-brand { font-size: 14px; font-weight: 700; color: #fff; flex: 1; }
+    .sidebar-brand small { display: block; font-size: 10px; color: #6b7280; font-weight: 400; }
+
+    .sidebar-user {
+      padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,.08); flex-shrink: 0;
+    }
+    .sb-user-name  { font-size: 13px; font-weight: 600; color: #e0e6f0; margin-bottom: 5px; }
+    .role-badge { font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 12px; white-space: nowrap; display: inline-block; }
+    .role-office      { background: #e8f5e9; color: #2e7d32; }
+    .role-technician  { background: #e3f0ff; color: #1565c0; }
+
+    .sidebar-nav { flex: 1; padding: 12px 10px; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }
+
+    .btn-new-repair {
+      display: flex; align-items: center; gap: 9px; padding: 11px 13px;
+      background: #0f3460; border: 1px solid rgba(255,255,255,.18); border-radius: 8px;
+      color: #fff; font-size: 13px; font-weight: 700; cursor: pointer;
+      width: 100%; font-family: inherit; transition: background .15s; margin-bottom: 8px;
+    }
+    .btn-new-repair:hover { background: #1a4a7a; }
+    .btn-new-repair .btn-icon-lg { font-size: 16px; }
+
+    .nav-item {
+      display: flex; align-items: center; gap: 10px; padding: 9px 12px;
+      border-radius: 7px; font-size: 13px; font-weight: 500; color: #8892b0;
+      cursor: pointer; border: none; background: none; transition: background .15s, color .15s;
+      text-align: right; width: 100%; font-family: inherit;
+    }
+    .nav-item:hover { background: rgba(255,255,255,.07); color: #ccd0de; }
+    .nav-item .ni { font-size: 15px; width: 18px; text-align: center; }
+    .nav-sep { height: 1px; background: rgba(255,255,255,.07); margin: 6px 0; }
+
+    .sidebar-footer { padding: 10px; border-top: 1px solid rgba(255,255,255,.08); flex-shrink: 0; }
+    .btn-logout {
+      display: flex; align-items: center; gap: 9px; padding: 9px 12px;
+      border-radius: 7px; font-size: 13px; color: #6b7280;
+      cursor: pointer; border: none; background: none; transition: background .15s, color .15s;
+      width: 100%; font-family: inherit; font-weight: 500;
+    }
+    .btn-logout:hover { background: rgba(255,80,80,.1); color: #ff6b6b; }
+
+    /* ── MAIN ── */
+    #main {
+      margin-right: 240px; min-height: 100vh;
+      display: flex; flex-direction: column;
+      transition: margin-right .25s cubic-bezier(.4,0,.2,1);
+    }
+    body.sidebar-closed #main { margin-right: 0; }
+
+    /* ── TOPBAR ── */
+    #topBar {
+      background: #fff; border-bottom: 1px solid #e8eaf0;
+      height: 56px; padding: 0 20px;
+      display: flex; align-items: center; gap: 14px;
+      position: sticky; top: 0; z-index: 200;
+      box-shadow: 0 1px 4px rgba(0,0,0,.06); flex-shrink: 0;
+    }
+    .hamburger {
+      background: none; border: none; cursor: pointer; padding: 7px;
+      border-radius: 7px; display: flex; flex-direction: column; gap: 4px;
+      transition: background .15s;
+    }
+    .hamburger:hover { background: #f0f2f5; }
+    .hamburger span { display: block; width: 18px; height: 2px; background: #4a4a6a; border-radius: 2px; }
+    .topbar-title { font-size: 15px; font-weight: 700; color: #1a1a2e; white-space: nowrap; }
+
+    .search-wrap { position: relative; flex: 1; max-width: 380px; margin-right: auto; }
+    .search-wrap .si { position: absolute; right: 11px; top: 50%; transform: translateY(-50%); font-size: 13px; color: #9a9ab0; pointer-events: none; }
+    .search-wrap input {
+      width: 100%; padding: 8px 32px 8px 30px; border: 1.5px solid #dde1ea;
+      border-radius: 20px; font-size: 13px; font-family: inherit; color: #1a1a2e;
+      background: #f7f8fa; direction: rtl; transition: border-color .18s, box-shadow .18s;
+    }
+    .search-wrap input:focus { outline: none; border-color: #4a90d9; box-shadow: 0 0 0 3px rgba(74,144,217,.1); background: #fff; }
+    .search-wrap .sc { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; font-size: 13px; color: #aaa; cursor: pointer; display: none; line-height: 1; }
+    .search-wrap .sc.on { display: block; }
+
+    .topbar-count { font-size: 12px; color: #9a9ab0; white-space: nowrap; }
+
+    /* ── KANBAN BOARD ── */
+    #kanbanBoard {
+      display: flex; gap: 14px; padding: 20px;
+      overflow-x: auto; flex: 1; align-items: flex-start;
+    }
+    #kanbanBoard::-webkit-scrollbar { height: 6px; }
+    #kanbanBoard::-webkit-scrollbar-track { background: #e8eaf0; border-radius: 3px; }
+    #kanbanBoard::-webkit-scrollbar-thumb { background: #b0b8c8; border-radius: 3px; }
+
+    /* ── KANBAN COLUMN ── */
+    .k-col {
+      min-width: 262px; width: 262px; display: flex; flex-direction: column;
+      background: #e8eaed; border-radius: 10px; overflow: hidden; flex-shrink: 0;
+    }
+    .col-hdr {
+      padding: 11px 13px; display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+    }
+    .col-hdr-title { font-size: 13px; font-weight: 700; flex: 1; }
+    .col-hdr-count { font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 10px; background: rgba(0,0,0,.12); }
+    .col-intake    .col-hdr { background: #5c5c73; color: #fff; }
+    .col-diagnosis .col-hdr { background: #1565c0; color: #fff; }
+    .col-approved  .col-hdr { background: #2e7d32; color: #fff; }
+    .col-completed .col-hdr { background: #00695c; color: #fff; }
+    .col-paid      .col-hdr { background: #6a1b9a; color: #fff; }
+    .col-rejected  .col-hdr { background: #b71c1c; color: #fff; }
+
+    .col-body {
+      display: flex; flex-direction: column; gap: 8px;
+      padding: 8px; min-height: 100px; flex: 1; overflow-y: auto;
+    }
+    .col-body::-webkit-scrollbar { width: 4px; }
+    .col-body::-webkit-scrollbar-thumb { background: #c0c4cc; border-radius: 2px; }
+    .col-empty { text-align: center; padding: 24px 0; color: #a0a8b8; font-size: 12px; }
+    .col-empty .ce { font-size: 20px; margin-bottom: 4px; }
+
+    /* ── CARD ── */
+    .k-card {
+      background: #fff; border-radius: 8px; padding: 12px 13px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.08);
+      border-right: 3px solid #ccc;
+      transition: box-shadow .15s, transform .12s;
+    }
+    .k-card:hover { box-shadow: 0 3px 10px rgba(0,0,0,.13); transform: translateY(-1px); }
+    .col-intake    .k-card { border-right-color: #7a7a8c; }
+    .col-diagnosis .k-card { border-right-color: #1565c0; }
+    .col-approved  .k-card { border-right-color: #2e7d32; }
+    .col-completed .k-card { border-right-color: #00695c; }
+    .col-paid      .k-card { border-right-color: #6a1b9a; }
+    .col-rejected  .k-card { border-right-color: #c62828; opacity: .8; }
+
+    .k-num      { font-size: 10px; font-weight: 700; color: #9a9ab0; letter-spacing: .4px; margin-bottom: 5px; }
+    .k-customer { font-size: 14px; font-weight: 700; color: #1a1a2e; margin-bottom: 1px; }
+    .k-phone    { font-size: 11px; color: #6b6b8a; margin-bottom: 4px; }
+    .k-device   { font-size: 12px; color: #4a4a6a; font-weight: 600; margin-bottom: 3px; }
+    .k-fault    { font-size: 11px; color: #9a9ab0; margin-bottom: 6px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.5; }
+    .k-date     { font-size: 10px; color: #b8bcc8; margin-bottom: 8px; }
+    .k-detail   { font-size: 11px; color: #5a6070; background: #f4f6f9; border-radius: 6px; padding: 7px 9px; margin-bottom: 8px; line-height: 1.65; }
+    .k-detail strong { color: #3a4255; }
+
+    .k-actions  { display: flex; align-items: center; gap: 6px; }
+    .btn-kact {
+      flex: 1; padding: 7px 4px; border-radius: 6px; font-size: 12px; font-weight: 700;
+      cursor: pointer; border: none; transition: filter .15s; font-family: inherit; text-align: center;
+    }
+    .btn-kact:hover { filter: brightness(1.08); }
+    .bka-blue   { background: #e3f0ff; color: #1565c0; border: 1.5px solid #90caf9; }
+    .bka-green  { background: #e8f5e9; color: #2e7d32; border: 1.5px solid #a5d6a7; }
+    .bka-teal   { background: #e0f2f1; color: #00695c; border: 1.5px solid #80cbc4; }
+    .bka-purple { background: #f3e5f5; color: #6a1b9a; border: 1.5px solid #ce93d8; }
+    .btn-ki {
+      background: none; border: none; font-size: 14px; cursor: pointer; padding: 4px 5px;
+      border-radius: 5px; color: #c8ccd8; transition: color .15s, background .15s; flex-shrink: 0;
+    }
+    .btn-ki.edit:hover   { color: #1565c0; background: #eef4ff; }
+    .btn-ki.del:hover    { color: #e53935; background: #fff0f0; }
+
+    .del-strip {
+      background: #fff5f5; border: 1.5px solid #ef9a9a; border-radius: 6px;
+      padding: 8px 10px; font-size: 11px; color: #c62828; font-weight: 600; margin-top: 6px;
+    }
+    .del-strip .ds-btns { display: flex; gap: 6px; margin-top: 6px; }
+    .btn-ds-y { background: #c62828; color: #fff; border: none; border-radius: 5px; padding: 4px 10px; font-size: 11px; cursor: pointer; font-family: inherit; font-weight: 700; }
+    .btn-ds-y:hover { background: #b71c1c; }
+    .btn-ds-n { background: none; border: 1.5px solid #ef9a9a; border-radius: 5px; padding: 3px 8px; font-size: 11px; cursor: pointer; color: #c62828; font-family: inherit; }
+
+    /* ── MODAL BASE ── */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 500; align-items: center; justify-content: center; padding: 20px; }
+    .modal-overlay.open { display: flex; animation: fadeIn .18s ease; }
+    .modal { background: #fff; border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,.22); width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; direction: rtl; }
+    .modal-header { padding: 22px 28px 16px; border-bottom: 2px solid #f0f0f0; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .modal-title    { font-size: 16px; font-weight: 700; color: #1a1a2e; }
+    .modal-subtitle { font-size: 12px; color: #6b6b8a; margin-top: 3px; }
+    .btn-close { background: none; border: none; font-size: 20px; color: #9a9ab0; cursor: pointer; line-height: 1; padding: 2px 6px; border-radius: 4px; flex-shrink: 0; transition: color .15s, background .15s; }
+    .btn-close:hover { color: #333; background: #f0f0f5; }
+    .modal-info-box { margin: 18px 28px 0; padding: 13px 16px; background: #fafbfc; border: 1.5px solid #e8eaf0; border-radius: 8px; font-size: 13px; color: #4a4a6a; line-height: 1.7; }
+    .modal-info-box strong { color: #1a1a2e; }
+    .modal-info-box.blue-box { background: #f0f6ff; border-color: #c5d8f5; }
+    .modal-info-box.teal-box { background: #f0faf8; border-color: #80cbc4; }
+    .modal-body   { padding: 20px 28px 0; display: flex; flex-direction: column; gap: 16px; }
+    .modal-footer { padding: 20px 28px 24px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: none; } }
+
+    /* ── FORMS ── */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 24px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group.full { grid-column: 1 / -1; }
+    label { font-size: 13px; font-weight: 600; color: #4a4a6a; }
+    label .req { color: #e74c3c; margin-right: 2px; }
+    input, textarea, select {
+      border: 1.5px solid #dde1ea; border-radius: 7px; padding: 10px 13px;
+      font-size: 14px; font-family: inherit; color: #1a1a2e;
+      background: #fafbfc; transition: border-color .18s, box-shadow .18s; direction: rtl;
+    }
+    input:focus, textarea:focus, select:focus { outline: none; border-color: #4a90d9; box-shadow: 0 0 0 3px rgba(74,144,217,.12); background: #fff; }
+    input.error, textarea.error { border-color: #e74c3c; }
+    textarea { resize: vertical; min-height: 90px; line-height: 1.5; }
+    .form-error { color: #e74c3c; font-size: 12px; margin-top: 4px; display: none; }
+    .form-error.show { display: block; }
+
+    /* ── BUTTONS ── */
+    .btn { border: none; border-radius: 7px; padding: 11px 26px; font-size: 14px; font-weight: 600; cursor: pointer; transition: filter .15s, transform .1s; white-space: nowrap; font-family: inherit; }
+    .btn:active { transform: scale(.97); }
+    .btn-dark   { background: #1a1a2e; color: #fff; } .btn-dark:hover   { filter: brightness(1.3); }
+    .btn-blue   { background: #1565c0; color: #fff; } .btn-blue:hover   { filter: brightness(1.15); }
+    .btn-teal   { background: #00695c; color: #fff; } .btn-teal:hover   { filter: brightness(1.15); }
+    .btn-purple { background: #6a1b9a; color: #fff; } .btn-purple:hover { filter: brightness(1.15); }
+    .btn-ghost  { background: none; border: 1.5px solid #dde1ea; border-radius: 7px; padding: 10px 20px; font-size: 13px; color: #6b6b8a; cursor: pointer; transition: border-color .18s, color .18s; white-space: nowrap; font-family: inherit; }
+    .btn-ghost:hover { border-color: #aaa; color: #333; }
+
+    /* ── TOAST ── */
+    .toast { display: none; align-items: center; gap: 8px; border-radius: 7px; padding: 9px 16px; font-size: 13px; font-weight: 600; }
+    .toast.show { display: flex; animation: fadeIn .2s ease; }
+    .toast-green  { background: #e8f5e9; border: 1.5px solid #a5d6a7; color: #2e7d32; }
+    .toast-blue   { background: #e3f0ff; border: 1.5px solid #90caf9; color: #1565c0; }
+    .toast-teal   { background: #e0f2f1; border: 1.5px solid #80cbc4; color: #00695c; }
+    .toast-purple { background: #f3e5f5; border: 1.5px solid #ce93d8; color: #6a1b9a; }
+
+    /* ── DECISION TOGGLE ── */
+    .decision-group  { display: flex; gap: 12px; }
+    .decision-option { display: none; }
+    .decision-label  { flex: 1; text-align: center; padding: 12px 10px; border: 2px solid #dde1ea; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; transition: border-color .18s, background .18s, color .18s; user-select: none; }
+    .decision-label:hover { border-color: #aaa; }
+    .decision-option:checked + .decision-label.approve-lbl { border-color: #2e7d32; background: #e8f5e9; color: #2e7d32; }
+    .decision-option:checked + .decision-label.reject-lbl  { border-color: #c62828; background: #ffebee; color: #c62828; }
+
+    /* ── PAYMENT / DELIVERY ── */
+    .payment-methods, .delivery-methods { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .payment-option, .delivery-option { display: none; }
+    .payment-label, .delivery-label { display: flex; align-items: center; gap: 9px; padding: 10px 14px; border: 2px solid #dde1ea; border-radius: 8px; font-size: 13px; font-weight: 600; color: #4a4a6a; cursor: pointer; transition: border-color .18s, background .18s, color .18s; user-select: none; }
+    .payment-label .pm-icon, .delivery-label .pm-icon { font-size: 18px; }
+    .payment-label:hover { border-color: #9c27b0; }
+    .delivery-label:hover { border-color: #00695c; }
+    .payment-option:checked + .payment-label  { border-color: #6a1b9a; background: #f3e5f5; color: #6a1b9a; }
+    .delivery-option:checked + .delivery-label { border-color: #00695c; background: #e0f2f1; color: #00695c; }
+    #shippingFields { display: none; margin-top: 4px; animation: fadeIn .15s ease; }
+
+    /* ── USER MANAGEMENT ── */
+    .user-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+    .user-row { display: flex; align-items: center; gap: 12px; padding: 10px 16px; background: #fafbfc; border: 1.5px solid #e8eaf0; border-radius: 8px; }
+    .user-row-info  { flex: 1; min-width: 0; }
+    .user-row-name  { font-size: 13px; font-weight: 700; color: #1a1a2e; }
+    .user-row-uname { font-size: 11px; color: #9a9ab0; }
+    .user-form-sep  { border-top: 2px solid #f0f0f0; padding-top: 16px; margin-top: 4px; }
+    .user-form-label { font-size: 13px; font-weight: 700; color: #1a1a2e; margin-bottom: 14px; }
+    .btn-del-user { background: none; border: none; font-size: 15px; cursor: pointer; padding: 4px 6px; border-radius: 5px; color: #d0d0da; transition: color .15s, background .15s; }
+    .btn-del-user:hover { color: #e53935; background: #fff0f0; }
+  </style>
+</head>
+<body>
+
+<!-- ════ Login ════ -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">🔧</div>
+    <div class="login-title">מעבדת תיקונים</div>
+    <div class="login-sub">כניסה למערכת ניהול</div>
+    <div class="login-fields">
+      <div class="form-group">
+        <label for="loginUser">שם משתמש</label>
+        <input type="text" id="loginUser" placeholder="שם משתמש" autocomplete="username" />
+      </div>
+      <div class="form-group">
+        <label for="loginPass">סיסמה</label>
+        <input type="password" id="loginPass" placeholder="סיסמה" autocomplete="current-password" />
+      </div>
+      <div class="login-error" id="loginError">שם משתמש או סיסמה שגויים</div>
+      <button class="btn-login" id="loginBtn">כניסה למערכת</button>
+    </div>
+    <div class="login-hint">
+      ברירת מחדל: <strong>admin</strong> / 1234 (משרד) &nbsp;|&nbsp; <strong>tech</strong> / 1234 (טכנאי)
+    </div>
+  </div>
+</div>
+
+<!-- ════ App ════ -->
+<div id="app">
+
+  <!-- Sidebar (right, default open) -->
+  <div id="sidebar">
+    <div class="sidebar-header">
+      <span class="sidebar-logo">🔧</span>
+      <div class="sidebar-brand">מעבדת תיקונים<small>מערכת ניהול</small></div>
+    </div>
+    <div class="sidebar-user">
+      <div class="sb-user-name" id="sbName"></div>
+      <span class="role-badge" id="sbRole"></span>
+    </div>
+    <div class="sidebar-nav">
+      <button class="btn-new-repair" id="newRepairBtn" style="display:none;">
+        <span class="btn-icon-lg">➕</span> תיקון חדש
+      </button>
+      <div class="nav-sep"></div>
+      <button class="nav-item" id="userMgmtBtn" style="display:none;">
+        <span class="ni">👥</span> ניהול משתמשים
+      </button>
+    </div>
+    <div class="sidebar-footer">
+      <button class="btn-logout" id="logoutBtn"><span>⏏</span> יציאה מהמערכת</button>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div id="main">
+    <div id="topBar">
+      <button class="hamburger" id="hamburgerBtn" aria-label="תפריט">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="topbar-title">לוח תיקונים</div>
+      <div class="search-wrap">
+        <span class="si">🔍</span>
+        <input type="text" id="searchInput" placeholder="חיפוש — שם, טלפון, מותג, ממצאים..." />
+        <button class="sc" id="clearSearch">✕</button>
+      </div>
+      <div class="topbar-count" id="totalCount"></div>
+    </div>
+    <div id="kanbanBoard"></div>
+  </div>
+</div>
+
+<!-- ════ Intake Modal ════ -->
+<div class="modal-overlay" id="intakeOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div><div class="modal-title">קליטת תיקון חדש</div></div>
+      <button class="btn-close" data-close="intakeOverlay">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid" style="gap:16px 24px;">
+        <div class="form-group"><label for="customerName">שם לקוח <span class="req">*</span></label><input type="text" id="customerName" placeholder="ישראל ישראלי" /></div>
+        <div class="form-group"><label for="phone">טלפון <span class="req">*</span></label><input type="tel" id="phone" placeholder="050-0000000" /></div>
+        <div class="form-group"><label for="brand">מותג <span class="req">*</span></label><input type="text" id="brand" placeholder="Samsung, LG..." /></div>
+        <div class="form-group"><label for="model">דגם</label><input type="text" id="model" placeholder="WF45T6000AW" /></div>
+        <div class="form-group full"><label for="faultDesc">תיאור התקלה <span class="req">*</span></label><textarea id="faultDesc" placeholder="פרט את התקלה כפי שתואר על-ידי הלקוח..."></textarea></div>
+        <div class="form-group"><label for="intakeDate">תאריך קליטה <span class="req">*</span></label><input type="date" id="intakeDate" /></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-dark" id="saveIntakeBtn">💾 שמור תיקון</button>
+      <button class="btn-ghost" data-close="intakeOverlay">ביטול</button>
+      <div class="toast toast-green" id="toastIntake">✓ התיקון נשמר</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ Edit Modal ════ -->
+<div class="modal-overlay" id="editOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div><div class="modal-title" id="editTitle">עריכת תיקון</div><div class="modal-subtitle" id="editSubtitle"></div></div>
+      <button class="btn-close" data-close="editOverlay">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid" style="gap:16px 24px;">
+        <div class="form-group"><label for="editCustomerName">שם לקוח <span class="req">*</span></label><input type="text" id="editCustomerName" /></div>
+        <div class="form-group"><label for="editPhone">טלפון <span class="req">*</span></label><input type="tel" id="editPhone" /></div>
+        <div class="form-group"><label for="editBrand">מותג <span class="req">*</span></label><input type="text" id="editBrand" /></div>
+        <div class="form-group"><label for="editModel">דגם</label><input type="text" id="editModel" /></div>
+        <div class="form-group full"><label for="editFaultDesc">תיאור התקלה <span class="req">*</span></label><textarea id="editFaultDesc"></textarea></div>
+        <div class="form-group"><label for="editIntakeDate">תאריך קליטה <span class="req">*</span></label><input type="date" id="editIntakeDate" /></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-dark" id="saveEditBtn">💾 שמור שינויים</button>
+      <button class="btn-ghost" data-close="editOverlay">ביטול</button>
+      <div class="toast toast-green" id="toastEdit">✓ עודכן</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ Diagnosis Modal ════ -->
+<div class="modal-overlay" id="diagnosisOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div><div class="modal-title" id="diagTitle">אבחון ראשוני</div><div class="modal-subtitle" id="diagSubtitle"></div></div>
+      <button class="btn-close" data-close="diagnosisOverlay">✕</button>
+    </div>
+    <div class="modal-info-box" id="diagRepairInfo"></div>
+    <div class="modal-body">
+      <div class="form-group"><label for="diagFindings">ממצאי הטכנאי <span class="req">*</span></label><textarea id="diagFindings" placeholder="תאר את הממצאים הטכניים..."></textarea></div>
+      <div class="form-group"><label for="diagParts">המלצת חלקים</label><textarea id="diagParts" placeholder="רכיבים / חלקים מומלצים..." style="min-height:64px;"></textarea></div>
+      <div class="form-group"><label for="diagTech">שם הטכנאי</label><input type="text" id="diagTech" placeholder="שם הטכנאי המאבחן" /></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-blue" id="saveDiagBtn">🔍 שמור אבחון</button>
+      <button class="btn-ghost" data-close="diagnosisOverlay">ביטול</button>
+      <div class="toast toast-blue" id="toastDiag">✓ האבחון נשמר</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ Approval Modal ════ -->
+<div class="modal-overlay" id="approvalOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div><div class="modal-title" id="apprTitle">הצעת מחיר ואישור לקוח</div><div class="modal-subtitle" id="apprSubtitle"></div></div>
+      <button class="btn-close" data-close="approvalOverlay">✕</button>
+    </div>
+    <div class="modal-info-box blue-box" id="apprDiagSummary"></div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label for="apprQuoteCost">מחיר הצעה ללקוח (₪) <span class="req">*</span></label>
+        <input type="number" id="apprQuoteCost" placeholder="0" min="0" step="1" style="direction:ltr;text-align:right;" />
+      </div>
+      <div class="form-group">
+        <label>החלטת לקוח <span class="req">*</span></label>
+        <div class="decision-group">
+          <input type="radio" name="apprDecision" id="decApprove" value="approved" class="decision-option" />
+          <label for="decApprove" class="decision-label approve-lbl">✓ הלקוח אישר</label>
+          <input type="radio" name="apprDecision" id="decReject" value="rejected" class="decision-option" />
+          <label for="decReject" class="decision-label reject-lbl">✕ הלקוח סירב</label>
+        </div>
+        <div id="decisionError" class="form-error">יש לבחור החלטה</div>
+      </div>
+      <div class="form-group"><label for="apprNotes">הערות</label><textarea id="apprNotes" placeholder="הערות (אופציה)..." style="min-height:64px;"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-dark" id="saveApprBtn">💬 שמור החלטה</button>
+      <button class="btn-ghost" data-close="approvalOverlay">ביטול</button>
+      <div class="toast toast-green" id="toastAppr">✓ ההחלטה נשמרה</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ Execution Modal ════ -->
+<div class="modal-overlay" id="executionOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div><div class="modal-title" id="execTitle">ביצוע תיקון</div><div class="modal-subtitle" id="execSubtitle"></div></div>
+      <button class="btn-close" data-close="executionOverlay">✕</button>
+    </div>
+    <div class="modal-info-box blue-box" id="execSummary"></div>
+    <div class="modal-body">
+      <div class="form-group"><label for="execWork">עבודה שבוצעה <span class="req">*</span></label><textarea id="execWork" placeholder="תאר את העבודה שבוצעה בפועל..."></textarea></div>
+      <div class="form-group"><label for="execParts">רכיבים שהוחלפו בפועל</label><textarea id="execParts" placeholder="רכיבים שהוחלפו (אופציה)..." style="min-height:64px;"></textarea></div>
+      <div class="form-grid" style="gap:16px 24px;">
+        <div class="form-group"><label for="execCost">עלות סופית (₪) <span class="req">*</span></label><input type="number" id="execCost" placeholder="0" min="0" step="1" style="direction:ltr;text-align:right;" /></div>
+        <div class="form-group"><label for="execDate">תאריך השלמה</label><input type="date" id="execDate" /></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-teal" id="saveExecBtn">✔ סיים תיקון</button>
+      <button class="btn-ghost" data-close="executionOverlay">ביטול</button>
+      <div class="toast toast-teal" id="toastExec">✓ התיקון הושלם</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ Payment Modal ════ -->
+<div class="modal-overlay" id="paymentOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div><div class="modal-title" id="payTitle">תשלום ומסירה</div><div class="modal-subtitle" id="paySubtitle"></div></div>
+      <button class="btn-close" data-close="paymentOverlay">✕</button>
+    </div>
+    <div class="modal-info-box teal-box" id="paySummary"></div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>אמצעי תשלום <span class="req">*</span></label>
+        <div class="payment-methods">
+          <input type="radio" name="payMethod" id="pmCash"     value="מזומן"        class="payment-option" /><label for="pmCash"     class="payment-label"><span class="pm-icon">💵</span> מזומן</label>
+          <input type="radio" name="payMethod" id="pmCredit"   value="כרטיס אשראי"  class="payment-option" /><label for="pmCredit"   class="payment-label"><span class="pm-icon">💳</span> כרטיס אשראי</label>
+          <input type="radio" name="payMethod" id="pmTransfer" value="העברה בנקאית" class="payment-option" /><label for="pmTransfer" class="payment-label"><span class="pm-icon">🏦</span> העברה בנקאית</label>
+          <input type="radio" name="payMethod" id="pmCheck"    value="צ׳ק"          class="payment-option" /><label for="pmCheck"    class="payment-label"><span class="pm-icon">📄</span> צ׳ק</label>
+        </div>
+        <div id="payMethodError" class="form-error">יש לבחור אמצעי תשלום</div>
+      </div>
+      <div class="form-grid" style="gap:16px 24px;">
+        <div class="form-group"><label for="payAmount">סכום ששולם (₪) <span class="req">*</span></label><input type="number" id="payAmount" placeholder="0" min="0" step="1" style="direction:ltr;text-align:right;" /></div>
+        <div class="form-group"><label for="payReceipt">מספר קבלה</label><input type="text" id="payReceipt" placeholder="אופציה" /></div>
+      </div>
+      <div class="form-group">
+        <label>אמצעי מסירה <span class="req">*</span></label>
+        <div class="delivery-methods">
+          <input type="radio" name="delivMethod" id="dlvPickup" value="pickup" class="delivery-option" /><label for="dlvPickup" class="delivery-label"><span class="pm-icon">🏪</span> איסוף עצמי</label>
+          <input type="radio" name="delivMethod" id="dlvShip"   value="ship"   class="delivery-option" /><label for="dlvShip"   class="delivery-label"><span class="pm-icon">🚚</span> שליחה</label>
+        </div>
+        <div id="delivMethodError" class="form-error">יש לבחור אמצעי מסירה</div>
+      </div>
+      <div id="shippingFields">
+        <div class="form-grid" style="gap:14px 24px;">
+          <div class="form-group full"><label for="shipAddress">כתובת למשלוח <span class="req">*</span></label><input type="text" id="shipAddress" placeholder="רחוב, מספר, עיר" /></div>
+          <div class="form-group"><label for="shipTracking">מספר מעקב</label><input type="text" id="shipTracking" placeholder="אופציה" /></div>
+        </div>
+      </div>
+      <div class="form-group"><label for="payNotes">הערות</label><textarea id="payNotes" placeholder="הערות (אופציה)..." style="min-height:56px;"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-purple" id="savePayBtn">✔ אשר תשלום ומסירה</button>
+      <button class="btn-ghost" data-close="paymentOverlay">ביטול</button>
+      <div class="toast toast-purple" id="toastPay">✓ הושלם</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ User Management Modal ════ -->
+<div class="modal-overlay" id="userMgmtOverlay">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-header">
+      <div class="modal-title">ניהול משתמשים</div>
+      <button class="btn-close" data-close="userMgmtOverlay">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="user-list" id="userList"></div>
+      <div class="user-form-sep">
+        <div class="user-form-label">הוספת משתמש חדש</div>
+        <div class="form-grid" style="gap:14px 20px;">
+          <div class="form-group"><label for="newUserDisplay">שם לתצוגה <span class="req">*</span></label><input type="text" id="newUserDisplay" placeholder="שם מלא" /></div>
+          <div class="form-group"><label for="newUsername">שם משתמש <span class="req">*</span></label><input type="text" id="newUsername" placeholder="לכניסה" /></div>
+          <div class="form-group"><label for="newPassword">סיסמה <span class="req">*</span></label><input type="password" id="newPassword" placeholder="סיסמה" /></div>
+          <div class="form-group">
+            <label for="newRole">תפקיד <span class="req">*</span></label>
+            <select id="newRole"><option value="office">משרד</option><option value="technician">טכנאי</option></select>
+          </div>
+        </div>
+        <div class="form-error" id="newUserError" style="margin-top:10px;"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-dark" id="addUserBtn">➕ הוסף משתמש</button>
+      <button class="btn-ghost" data-close="userMgmtOverlay">סגור</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const USERS_KEY   = 'lab_users';
+  const SESSION_KEY = 'lab_session';
+  const REPAIRS_KEY = 'lab_repairs';
+
+  const DEFAULT_USERS = [
+    { username: 'admin', password: '1234', displayName: 'מנהל משרד',  role: 'office'     },
+    { username: 'tech',  password: '1234', displayName: 'טכנאי ראשי', role: 'technician' },
+  ];
+
+  const STATUS = {
+    intake:    { label: 'קליטה' },
+    diagnosis: { label: 'אבחון' },
+    approved:  { label: 'אושר'  },
+    rejected:  { label: 'נדחה'  },
+    completed: { label: 'הושלם' },
+    paid:      { label: 'שולם'  },
+  };
+
+  // ── Auth ──────────────────────────────────────────────────
+  function getUsers()       { try { return JSON.parse(localStorage.getItem(USERS_KEY))   || []; } catch { return []; } }
+  function saveUsers(l)     { localStorage.setItem(USERS_KEY, JSON.stringify(l)); }
+  function getCurrentUser() { try { return JSON.parse(sessionStorage.getItem(SESSION_KEY)) || null; } catch { return null; } }
+  function setCurrentUser(u){ sessionStorage.setItem(SESSION_KEY, JSON.stringify(u)); }
+  function login(u, p) {
+    const found = getUsers().find(x => x.username === u && x.password === p);
+    if (!found) return false;
+    setCurrentUser({ username: found.username, displayName: found.displayName, role: found.role });
+    return true;
+  }
+  function logout() { sessionStorage.removeItem(SESSION_KEY); renderApp(); }
+
+  // ── Repairs ───────────────────────────────────────────────
+  function loadRepairs() { try { return JSON.parse(localStorage.getItem(REPAIRS_KEY)) || []; } catch { return []; } }
+  function saveRepairs(l) { localStorage.setItem(REPAIRS_KEY, JSON.stringify(l)); }
+
+  // ── Helpers ───────────────────────────────────────────────
+  function nextNumber(list) {
+    if (!list.length) return '001';
+    return String(Math.max(...list.map(r => parseInt(r.number, 10))) + 1).padStart(3, '0');
+  }
+  function todayISO()      { return new Date().toISOString().slice(0, 10); }
+  function formatDate(iso) { if (!iso) return ''; const [y,m,d] = iso.split('-'); return `${d}/${m}/${y}`; }
+  function val(id)  { return document.getElementById(id).value.trim(); }
+  function esc(s)   { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function showToast(id) { const t=document.getElementById(id); t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2600); }
+
+  let searchQuery = '';
+
+  // ── renderApp ─────────────────────────────────────────────
+  function renderApp() {
+    const user = getCurrentUser();
+    if (!user) {
+      document.getElementById('loginScreen').style.display = 'flex';
+      document.getElementById('app').style.display = 'none';
+      return;
+    }
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    const isOffice = user.role === 'office';
+    document.getElementById('sbName').textContent = user.displayName;
+    const badge = document.getElementById('sbRole');
+    badge.textContent = isOffice ? 'משרד' : 'טכנאי';
+    badge.className = 'role-badge ' + (isOffice ? 'role-office' : 'role-technician');
+    document.getElementById('newRepairBtn').style.display = isOffice ? 'flex'        : 'none';
+    document.getElementById('userMgmtBtn').style.display = isOffice ? 'inline-flex' : 'none';
+    renderBoard();
+  }
+
+  // ── Card action button ────────────────────────────────────
+  function cardAction(r) {
+    const role = getCurrentUser()?.role;
+    if (role === 'technician') {
+      if (r.status === 'intake')
+        return `<button class="btn-kact bka-blue" data-action="diag" data-num="${esc(r.number)}">▶ אבחון ראשוני</button>`;
+      if (r.status === 'approved')
+        return `<button class="btn-kact bka-teal" data-action="exec" data-num="${esc(r.number)}">🔧 ביצוע תיקון</button>`;
+      return '';
+    }
+    if (r.status === 'diagnosis')
+      return `<button class="btn-kact bka-green" data-action="appr" data-num="${esc(r.number)}">💬 הצעת מחיר</button>`;
+    if (r.status === 'completed')
+      return `<button class="btn-kact bka-purple" data-action="pay" data-num="${esc(r.number)}">💳 תשלום ומסירה</button>`;
+    return '';
+  }
+
+  // ── Card detail snippet ───────────────────────────────────
+  function cardDetail(r) {
+    if (r.status === 'diagnosis' && r.diagnosis)
+      return `<div class="k-detail"><strong>ממצאים:</strong> ${esc(r.diagnosis.findings)}${r.diagnosis.parts?`<br><strong>חלקים:</strong> ${esc(r.diagnosis.parts)}`:''}</div>`;
+    if ((r.status === 'approved' || r.status === 'rejected') && r.approval) {
+      const sign = r.status === 'rejected' ? ' — לקוח סירב' : ' — לקוח אישר ✓';
+      return `<div class="k-detail"><strong>מחיר הוצע:</strong> ₪${Number(r.approval.quotedCost||0).toLocaleString('he-IL')}${sign}</div>`;
+    }
+    if (r.status === 'completed' && r.execution)
+      return `<div class="k-detail"><strong>עבודה:</strong> ${esc(r.execution.work)}<br><strong>עלות:</strong> ₪${Number(r.execution.cost||0).toLocaleString('he-IL')}</div>`;
+    if (r.status === 'paid' && r.payment) {
+      const dlv = r.payment.deliveryMethod === 'ship' ? '🚚 שליחה' : '🏪 איסוף';
+      return `<div class="k-detail"><strong>שולם:</strong> ₪${Number(r.payment.amount||0).toLocaleString('he-IL')} · ${esc(r.payment.method)}<br><strong>מסירה:</strong> ${dlv}${r.payment.address?' — '+esc(r.payment.address):''}</div>`;
+    }
+    return '';
+  }
+
+  // ── Render kanban board ───────────────────────────────────
+  function renderBoard() {
+    const user = getCurrentUser(); if (!user) return;
+    const all = loadRepairs();
+    const isOffice = user.role === 'office';
+    const visible = isOffice ? all
+      : all.filter(r => ['intake','diagnosis','approved','completed'].includes(r.status));
+
+    const q = searchQuery.toLowerCase();
+    const filtered = !q ? visible : visible.filter(r => {
+      const d=r.diagnosis||{}, ap=r.approval||{}, ex=r.execution||{}, py=r.payment||{};
+      return [r.number,r.customerName,r.phone,r.brand,r.model,r.faultDesc,r.intakeDate,
+        d.findings,d.parts,d.technician,ap.notes,ap.quotedCost,
+        ex.work,ex.parts,ex.cost,py.method,py.amount,py.receipt,py.notes,py.address,py.tracking
+      ].some(f => f && String(f).toLowerCase().includes(q));
+    });
+
+    document.getElementById('totalCount').textContent =
+      filtered.length !== visible.length
+        ? `${filtered.length} מתוך ${visible.length} תיקונים`
+        : `${visible.length} תיקונים`;
+
+    const cols = isOffice
+      ? ['intake','diagnosis','approved','completed','paid','rejected']
+      : ['intake','diagnosis','approved','completed'];
+    const colLabels = { intake:'קליטה', diagnosis:'אבחון', approved:'אושר', completed:'הושלם', paid:'שולם', rejected:'נדחה' };
+
+    const board = document.getElementById('kanbanBoard');
+    board.innerHTML = '';
+
+    cols.forEach(status => {
+      const cards = filtered.filter(r => r.status === status).reverse();
+      const col = document.createElement('div');
+      col.className = `k-col col-${status}`;
+      col.innerHTML = `
+        <div class="col-hdr">
+          <span class="col-hdr-title">${colLabels[status]}</span>
+          <span class="col-hdr-count">${cards.length}</span>
+        </div>
+        <div class="col-body" id="cb-${status}"></div>`;
+      board.appendChild(col);
+
+      const body = col.querySelector('.col-body');
+      if (!cards.length) {
+        body.innerHTML = `<div class="col-empty"><div class="ce">📭</div>ריק</div>`;
+        return;
+      }
+
+      cards.forEach(r => {
+        const actHTML  = cardAction(r);
+        const detHTML  = cardDetail(r);
+        const rowAct   = isOffice ? `
+          <button class="btn-ki edit" data-action="edit"   data-num="${esc(r.number)}" title="ערוך">✏️</button>
+          <button class="btn-ki del"  data-action="delete" data-num="${esc(r.number)}" title="מחק">🗑</button>` : '';
+        const card = document.createElement('div');
+        card.className = 'k-card';
+        card.innerHTML = `
+          <div class="k-num">#${esc(r.number)}</div>
+          <div class="k-customer">${hlq(r.customerName, q)}</div>
+          <div class="k-phone">${hlq(r.phone, q)}</div>
+          <div class="k-device">${hlq(r.brand, q)}${r.model ? ' · ' + hlq(r.model, q) : ''}</div>
+          <div class="k-fault">${esc(r.faultDesc)}</div>
+          <div class="k-date">📅 ${formatDate(r.intakeDate)}</div>
+          ${detHTML}
+          <div class="k-actions">${actHTML}${rowAct}</div>`;
+        body.appendChild(card);
+      });
+
+      // Wire actions
+      body.querySelectorAll('[data-action="diag"]').forEach(b =>
+        b.addEventListener('click', e => { e.stopPropagation(); openModal('diagnosis', b.dataset.num); }));
+      body.querySelectorAll('[data-action="appr"]').forEach(b =>
+        b.addEventListener('click', e => { e.stopPropagation(); openModal('approval', b.dataset.num); }));
+      body.querySelectorAll('[data-action="exec"]').forEach(b =>
+        b.addEventListener('click', e => { e.stopPropagation(); openModal('execution', b.dataset.num); }));
+      body.querySelectorAll('[data-action="pay"]').forEach(b =>
+        b.addEventListener('click', e => { e.stopPropagation(); openModal('payment', b.dataset.num); }));
+      body.querySelectorAll('[data-action="edit"]').forEach(b =>
+        b.addEventListener('click', e => { e.stopPropagation(); openModal('edit', b.dataset.num); }));
+      body.querySelectorAll('[data-action="delete"]').forEach(b =>
+        b.addEventListener('click', e => { e.stopPropagation(); askDelete(b); }));
+    });
+  }
+
+  function hlq(text, q) {
+    const s = esc(text); if (!q) return s;
+    return s.replace(new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'gi'),
+      '<mark style="background:#fff3cd;border-radius:2px;padding:0 1px;">$1</mark>');
+  }
+
+  // ── Modal management ──────────────────────────────────────
+  let activeNum = null;
+
+  function openModal(type, number) {
+    const repair = number ? loadRepairs().find(r => r.number === number) : null;
+    if (type !== 'intake' && !repair) return;
+    activeNum = number || null;
+
+    if (type === 'intake') {
+      ['customerName','phone','brand','model','faultDesc'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('intakeDate').value = todayISO();
+      ['customerName','phone','brand','faultDesc','intakeDate'].forEach(id => document.getElementById(id).classList.remove('error'));
+      document.getElementById('intakeOverlay').classList.add('open');
+      document.getElementById('customerName').focus();
+
+    } else if (type === 'edit') {
+      document.getElementById('editTitle').textContent    = `עריכת תיקון #${repair.number}`;
+      document.getElementById('editSubtitle').textContent = `סטטוס: ${STATUS[repair.status]?.label||repair.status}`;
+      document.getElementById('editCustomerName').value = repair.customerName;
+      document.getElementById('editPhone').value        = repair.phone;
+      document.getElementById('editBrand').value        = repair.brand;
+      document.getElementById('editModel').value        = repair.model || '';
+      document.getElementById('editFaultDesc').value    = repair.faultDesc;
+      document.getElementById('editIntakeDate').value   = repair.intakeDate;
+      ['editCustomerName','editPhone','editBrand','editFaultDesc','editIntakeDate']
+        .forEach(id => document.getElementById(id).classList.remove('error'));
+      document.getElementById('editOverlay').classList.add('open');
+      document.getElementById('editCustomerName').focus();
+
+    } else if (type === 'diagnosis') {
+      document.getElementById('diagTitle').textContent    = `אבחון ראשוני — #${repair.number}`;
+      document.getElementById('diagSubtitle').textContent = `${repair.customerName} · ${repair.brand}${repair.model?' '+repair.model:''}`;
+      document.getElementById('diagRepairInfo').innerHTML =
+        `<strong>תקלה שדווחה:</strong> ${esc(repair.faultDesc)}<br>
+         <strong>טלפון:</strong> ${esc(repair.phone)} &nbsp;·&nbsp; <strong>קליטה:</strong> ${formatDate(repair.intakeDate)}`;
+      ['diagFindings','diagParts','diagTech'].forEach(id => { document.getElementById(id).value=''; document.getElementById(id).classList.remove('error'); });
+      document.getElementById('diagnosisOverlay').classList.add('open');
+      document.getElementById('diagFindings').focus();
+
+    } else if (type === 'approval') {
+      const d = repair.diagnosis || {};
+      document.getElementById('apprTitle').textContent    = `הצעת מחיר — #${repair.number}`;
+      document.getElementById('apprSubtitle').textContent = `${repair.customerName} · ${repair.brand}${repair.model?' '+repair.model:''}`;
+      document.getElementById('apprDiagSummary').innerHTML =
+        `<strong>ממצאי הטכנאי:</strong> ${esc(d.findings||'')}<br>
+         ${d.parts?`<strong>המלצת חלקים:</strong> ${esc(d.parts)}<br>`:''}
+         ${d.technician?`<strong>טכנאי:</strong> ${esc(d.technician)}`:''}`;
+      document.getElementById('apprQuoteCost').value = '';
+      document.querySelectorAll('[name="apprDecision"]').forEach(r => r.checked = false);
+      document.getElementById('apprNotes').value = '';
+      document.getElementById('decisionError').classList.remove('show');
+      document.getElementById('apprQuoteCost').classList.remove('error');
+      document.getElementById('approvalOverlay').classList.add('open');
+      document.getElementById('apprQuoteCost').focus();
+
+    } else if (type === 'execution') {
+      const d=repair.diagnosis||{}, ap=repair.approval||{};
+      document.getElementById('execTitle').textContent    = `ביצוע תיקון #${repair.number}`;
+      document.getElementById('execSubtitle').textContent = `${repair.customerName} · ${repair.brand}${repair.model?' '+repair.model:''}`;
+      document.getElementById('execSummary').innerHTML =
+        `<strong>ממצאי הטכנאי:</strong> ${esc(d.findings||'')}<br>
+         ${d.parts?`<strong>המלצת חלקים:</strong> ${esc(d.parts)}<br>`:''}
+         <strong>מחיר שאושר:</strong> ₪${Number(ap.quotedCost||0).toLocaleString('he-IL')}`;
+      document.getElementById('execWork').value  = '';
+      document.getElementById('execParts').value = '';
+      document.getElementById('execCost').value  = ap.quotedCost || '';
+      document.getElementById('execDate').value  = todayISO();
+      ['execWork','execCost'].forEach(id => document.getElementById(id).classList.remove('error'));
+      document.getElementById('executionOverlay').classList.add('open');
+      document.getElementById('execWork').focus();
+
+    } else if (type === 'payment') {
+      const ex = repair.execution || {};
+      document.getElementById('payTitle').textContent    = `תשלום ומסירה — #${repair.number}`;
+      document.getElementById('paySubtitle').textContent = `${repair.customerName} · ${repair.brand}${repair.model?' '+repair.model:''}`;
+      document.getElementById('paySummary').innerHTML =
+        `<strong>עבודה שבוצעה:</strong> ${esc(ex.work||'')}<br>
+         ${ex.parts?`<strong>רכיבים שהוחלפו:</strong> ${esc(ex.parts)}<br>`:''}
+         <strong>עלות סופית:</strong> ₪${Number(ex.cost||0).toLocaleString('he-IL')} &nbsp;·&nbsp; <strong>הושלם:</strong> ${formatDate(ex.execDate)}`;
+      document.querySelectorAll('[name="payMethod"]').forEach(r => r.checked = false);
+      document.querySelectorAll('[name="delivMethod"]').forEach(r => r.checked = false);
+      document.getElementById('payAmount').value   = ex.cost || '';
+      document.getElementById('payReceipt').value  = '';
+      document.getElementById('payNotes').value    = '';
+      document.getElementById('shipAddress').value  = '';
+      document.getElementById('shipTracking').value = '';
+      document.getElementById('shippingFields').style.display = 'none';
+      ['payMethodError','delivMethodError'].forEach(id => document.getElementById(id).classList.remove('show'));
+      document.getElementById('payAmount').classList.remove('error');
+      document.getElementById('shipAddress').classList.remove('error');
+      document.getElementById('paymentOverlay').classList.add('open');
+    }
+  }
+
+  function closeModal(id) {
+    document.getElementById(id).classList.remove('open');
+    if (id !== 'userMgmtOverlay') activeNum = null;
+  }
+
+  const allOverlays = ['intakeOverlay','editOverlay','diagnosisOverlay','approvalOverlay','executionOverlay','paymentOverlay','userMgmtOverlay'];
+  document.querySelectorAll('[data-close]').forEach(btn => btn.addEventListener('click', () => closeModal(btn.dataset.close)));
+  allOverlays.forEach(id => document.getElementById(id).addEventListener('click', e => { if (e.target.id === id) closeModal(id); }));
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') allOverlays.forEach(id => closeModal(id)); });
+
+  // ── Save intake ───────────────────────────────────────────
+  document.getElementById('saveIntakeBtn').addEventListener('click', () => {
+    const req = ['customerName','phone','brand','faultDesc','intakeDate']; let ok = true;
+    req.forEach(id => { const el=document.getElementById(id); if (!el.value.trim()){el.classList.add('error');ok=false;}else el.classList.remove('error'); });
+    if (!ok) return;
+    const repairs = loadRepairs();
+    repairs.push({ number:nextNumber(repairs), customerName:val('customerName'), phone:val('phone'),
+      brand:val('brand'), model:val('model'), faultDesc:val('faultDesc'),
+      intakeDate:val('intakeDate'), status:'intake', createdAt:new Date().toISOString() });
+    saveRepairs(repairs); renderBoard(); showToast('toastIntake'); setTimeout(()=>closeModal('intakeOverlay'),1100);
+  });
+  ['customerName','phone','brand','faultDesc','intakeDate'].forEach(id =>
+    document.getElementById(id).addEventListener('input', function(){ this.classList.remove('error'); }));
+
+  // ── Save edit ─────────────────────────────────────────────
+  document.getElementById('saveEditBtn').addEventListener('click', () => {
+    const req = ['editCustomerName','editPhone','editBrand','editFaultDesc','editIntakeDate']; let ok = true;
+    req.forEach(id => { const el=document.getElementById(id); if (!el.value.trim()){el.classList.add('error');ok=false;}else el.classList.remove('error'); });
+    if (!ok) return;
+    const repairs=loadRepairs(), idx=repairs.findIndex(r=>r.number===activeNum); if (idx===-1) return;
+    repairs[idx].customerName=val('editCustomerName'); repairs[idx].phone=val('editPhone');
+    repairs[idx].brand=val('editBrand'); repairs[idx].model=val('editModel');
+    repairs[idx].faultDesc=val('editFaultDesc'); repairs[idx].intakeDate=document.getElementById('editIntakeDate').value;
+    saveRepairs(repairs); renderBoard(); showToast('toastEdit'); setTimeout(()=>closeModal('editOverlay'),1100);
+  });
+  ['editCustomerName','editPhone','editBrand','editFaultDesc','editIntakeDate'].forEach(id =>
+    document.getElementById(id).addEventListener('input', function(){ this.classList.remove('error'); }));
+
+  // ── Save diagnosis ────────────────────────────────────────
+  document.getElementById('saveDiagBtn').addEventListener('click', () => {
+    const el=document.getElementById('diagFindings'); if (!el.value.trim()){el.classList.add('error');return;} el.classList.remove('error');
+    const repairs=loadRepairs(), idx=repairs.findIndex(r=>r.number===activeNum); if (idx===-1) return;
+    repairs[idx].status = 'diagnosis';
+    repairs[idx].diagnosis = { findings:val('diagFindings'), parts:val('diagParts'), technician:val('diagTech'), diagDate:todayISO() };
+    saveRepairs(repairs); renderBoard(); showToast('toastDiag'); setTimeout(()=>closeModal('diagnosisOverlay'),1100);
+  });
+  document.getElementById('diagFindings').addEventListener('input', function(){ this.classList.remove('error'); });
+
+  // ── Save approval ─────────────────────────────────────────
+  document.getElementById('saveApprBtn').addEventListener('click', () => {
+    const costEl=document.getElementById('apprQuoteCost');
+    if (!costEl.value.trim()){costEl.classList.add('error');return;} costEl.classList.remove('error');
+    const decision=document.querySelector('[name="apprDecision"]:checked')?.value;
+    if (!decision){document.getElementById('decisionError').classList.add('show');return;}
+    document.getElementById('decisionError').classList.remove('show');
+    const repairs=loadRepairs(), idx=repairs.findIndex(r=>r.number===activeNum); if (idx===-1) return;
+    repairs[idx].status = decision;
+    repairs[idx].approval = { decision, quotedCost:val('apprQuoteCost'), notes:val('apprNotes'), apprDate:todayISO() };
+    saveRepairs(repairs); renderBoard(); showToast('toastAppr'); setTimeout(()=>closeModal('approvalOverlay'),1100);
+  });
+  document.getElementById('apprQuoteCost').addEventListener('input', function(){ this.classList.remove('error'); });
+  document.querySelectorAll('[name="apprDecision"]').forEach(r => r.addEventListener('change', ()=>document.getElementById('decisionError').classList.remove('show')));
+
+  // ── Save execution ────────────────────────────────────────
+  document.getElementById('saveExecBtn').addEventListener('click', () => {
+    let ok = true;
+    ['execWork','execCost'].forEach(id=>{ const el=document.getElementById(id); if(!el.value.trim()){el.classList.add('error');ok=false;}else el.classList.remove('error'); });
+    if (!ok) return;
+    const repairs=loadRepairs(), idx=repairs.findIndex(r=>r.number===activeNum); if (idx===-1) return;
+    repairs[idx].status = 'completed';
+    repairs[idx].execution = { work:val('execWork'), parts:val('execParts'), cost:val('execCost'), execDate:document.getElementById('execDate').value||todayISO() };
+    saveRepairs(repairs); renderBoard(); showToast('toastExec'); setTimeout(()=>closeModal('executionOverlay'),1100);
+  });
+  ['execWork','execCost'].forEach(id=>document.getElementById(id).addEventListener('input',function(){this.classList.remove('error');}));
+
+  // ── Delivery toggle ───────────────────────────────────────
+  document.querySelectorAll('[name="delivMethod"]').forEach(r => r.addEventListener('change', function(){
+    document.getElementById('shippingFields').style.display = this.value==='ship' ? 'block' : 'none';
+    document.getElementById('delivMethodError').classList.remove('show');
+  }));
+
+  // ── Save payment ──────────────────────────────────────────
+  document.getElementById('savePayBtn').addEventListener('click', () => {
+    const method=document.querySelector('[name="payMethod"]:checked')?.value;
+    if (!method){document.getElementById('payMethodError').classList.add('show');return;}
+    document.getElementById('payMethodError').classList.remove('show');
+    const amountEl=document.getElementById('payAmount');
+    if (!amountEl.value.trim()){amountEl.classList.add('error');return;} amountEl.classList.remove('error');
+    const delivMethod=document.querySelector('[name="delivMethod"]:checked')?.value;
+    if (!delivMethod){document.getElementById('delivMethodError').classList.add('show');return;}
+    document.getElementById('delivMethodError').classList.remove('show');
+    if (delivMethod==='ship' && !document.getElementById('shipAddress').value.trim()){
+      document.getElementById('shipAddress').classList.add('error');return;
+    }
+    document.getElementById('shipAddress').classList.remove('error');
+    const repairs=loadRepairs(), idx=repairs.findIndex(r=>r.number===activeNum); if (idx===-1) return;
+    repairs[idx].status = 'paid';
+    repairs[idx].payment = { method, amount:val('payAmount'), receipt:val('payReceipt'),
+      deliveryMethod:delivMethod, address:delivMethod==='ship'?val('shipAddress'):'',
+      tracking:delivMethod==='ship'?val('shipTracking'):'', notes:val('payNotes'), payDate:todayISO() };
+    saveRepairs(repairs); renderBoard(); showToast('toastPay'); setTimeout(()=>closeModal('paymentOverlay'),1100);
+  });
+  document.getElementById('payAmount').addEventListener('input', function(){ this.classList.remove('error'); });
+  document.getElementById('shipAddress').addEventListener('input', function(){ this.classList.remove('error'); });
+  document.querySelectorAll('[name="payMethod"]').forEach(r=>r.addEventListener('change',()=>document.getElementById('payMethodError').classList.remove('show')));
+
+  // ── Delete ────────────────────────────────────────────────
+  function askDelete(btn) {
+    const num = btn.dataset.num;
+    document.querySelectorAll('.del-strip').forEach(el => el.remove());
+    const card = btn.closest('.k-card');
+    const strip = document.createElement('div'); strip.className = 'del-strip';
+    strip.innerHTML = `<div>בטוח למחוק תיקון <strong>#${esc(num)}</strong>? הפעולה אינה הפיכה.</div>
+      <div class="ds-btns">
+        <button class="btn-ds-y">מחק</button>
+        <button class="btn-ds-n">ביטול</button>
+      </div>`;
+    card.appendChild(strip);
+    strip.querySelector('.btn-ds-y').addEventListener('click', () => { saveRepairs(loadRepairs().filter(r => r.number !== num)); renderBoard(); });
+    strip.querySelector('.btn-ds-n').addEventListener('click', () => strip.remove());
+  }
+
+  // ── New repair button ─────────────────────────────────────
+  document.getElementById('newRepairBtn').addEventListener('click', () => openModal('intake'));
+
+  // ── User management ───────────────────────────────────────
+  function renderUserList() {
+    const users=getUsers(), cur=getCurrentUser();
+    document.getElementById('userList').innerHTML = users.map(u => `
+      <div class="user-row">
+        <div class="user-row-info">
+          <div class="user-row-name">${esc(u.displayName)}</div>
+          <div class="user-row-uname">@${esc(u.username)}</div>
+        </div>
+        <span class="role-badge ${u.role==='office'?'role-office':'role-technician'}">${u.role==='office'?'משרד':'טכנאי'}</span>
+        ${u.username!==cur.username
+          ? `<button class="btn-del-user" data-del-user="${esc(u.username)}" title="מחק">🗑</button>`
+          : `<span style="font-size:11px;color:#9a9ab0;padding:0 6px;">(אתה)</span>`}
+      </div>`).join('');
+    document.getElementById('userList').querySelectorAll('[data-del-user]').forEach(btn =>
+      btn.addEventListener('click', () => {
+        const uname=btn.dataset.delUser;
+        const remaining=getUsers().filter(u=>u.username!==uname);
+        if (!remaining.some(u=>u.role==='office')){ alert('לא ניתן למחוק את מנהל המשרד האחרון.'); return; }
+        saveUsers(remaining); renderUserList();
+      }));
+  }
+
+  document.getElementById('userMgmtBtn').addEventListener('click', () => {
+    renderUserList();
+    ['newUserDisplay','newUsername','newPassword'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('newRole').value='office';
+    const err=document.getElementById('newUserError'); err.textContent=''; err.classList.remove('show');
+    document.getElementById('userMgmtOverlay').classList.add('open');
+  });
+
+  document.getElementById('addUserBtn').addEventListener('click', () => {
+    const dn=val('newUserDisplay'), un=val('newUsername'), pw=document.getElementById('newPassword').value.trim();
+    const role=document.getElementById('newRole').value;
+    const err=document.getElementById('newUserError');
+    if (!dn||!un||!pw){ err.textContent='יש למלא את כל השדות'; err.classList.add('show'); return; }
+    if (getUsers().some(u=>u.username===un)){ err.textContent='שם המשתמש כבר קיים'; err.classList.add('show'); return; }
+    err.classList.remove('show');
+    const users=getUsers(); users.push({username:un,password:pw,displayName:dn,role}); saveUsers(users);
+    renderUserList();
+    ['newUserDisplay','newUsername','newPassword'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('newRole').value='office';
+  });
+
+  // ── Sidebar toggle ────────────────────────────────────────
+  document.getElementById('hamburgerBtn').addEventListener('click', () => document.body.classList.toggle('sidebar-closed'));
+
+  // ── Search ────────────────────────────────────────────────
+  document.getElementById('searchInput').addEventListener('input', function(){
+    searchQuery = this.value;
+    document.getElementById('clearSearch').classList.toggle('on', !!this.value);
+    renderBoard();
+  });
+  document.getElementById('clearSearch').addEventListener('click', () => {
+    document.getElementById('searchInput').value = ''; searchQuery = '';
+    document.getElementById('clearSearch').classList.remove('on'); renderBoard();
+  });
+
+  // ── Login ─────────────────────────────────────────────────
+  function doLogin() {
+    const u=document.getElementById('loginUser').value.trim(), p=document.getElementById('loginPass').value;
+    const err=document.getElementById('loginError');
+    if (!login(u,p)){ err.classList.add('show'); document.getElementById('loginPass').value=''; document.getElementById('loginPass').focus(); return; }
+    err.classList.remove('show'); renderApp();
+  }
+  document.getElementById('loginBtn').addEventListener('click', doLogin);
+  document.getElementById('loginPass').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
+  document.getElementById('loginUser').addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('loginPass').focus(); });
+  ['loginUser','loginPass'].forEach(id=>document.getElementById(id).addEventListener('input',()=>document.getElementById('loginError').classList.remove('show')));
+  document.getElementById('logoutBtn').addEventListener('click', logout);
+
+  // ── Init ──────────────────────────────────────────────────
+  if (!getUsers().length) saveUsers(DEFAULT_USERS);
+  renderApp();
+</script>
+</body>
+</html>
