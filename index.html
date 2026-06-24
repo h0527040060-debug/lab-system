@@ -284,6 +284,44 @@
     .delivery-option:checked + .delivery-label { border-color: #00695c; background: #e0f2f1; color: #00695c; }
     #shippingFields { display: none; margin-top: 4px; animation: fadeIn .15s ease; }
 
+    /* ── RESPONSIVE ─────────────────────────────────────── */
+    #sidebarBackdrop {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.5); z-index: 250; cursor: pointer;
+    }
+
+    @media (max-width: 768px) {
+      #main { margin-right: 0 !important; }
+      body:not(.sidebar-closed) #sidebarBackdrop { display: block; }
+      .topbar-count { display: none; }
+      .search-wrap { max-width: none; margin-right: 0; }
+      .login-card { padding: 32px 22px; }
+      #kanbanBoard { padding: 12px 10px; gap: 10px; }
+      .k-col { min-width: 235px; width: 235px; }
+      .modal-overlay { align-items: flex-end; padding: 0; }
+      .modal {
+        border-radius: 16px 16px 0 0; max-height: 93vh;
+        max-width: 100%; width: 100%;
+      }
+      .modal-header { padding: 16px 20px 12px; }
+      .modal-body { padding: 14px 20px 0; }
+      .modal-footer { padding: 14px 20px 20px; }
+      .modal-info-box { margin: 12px 20px 0; }
+      .form-grid { grid-template-columns: 1fr !important; gap: 14px !important; }
+    }
+
+    @media (max-width: 480px) {
+      .login-card { padding: 28px 16px; }
+      #topBar { padding: 0 10px; gap: 8px; }
+      .topbar-title { font-size: 13px; }
+      #kanbanBoard { padding: 10px 8px; }
+      .k-col { min-width: 215px; width: 215px; }
+      .k-card { padding: 10px 11px; }
+      .modal-footer { flex-direction: column; align-items: stretch; }
+      .modal-footer .btn, .modal-footer .btn-ghost { width: 100%; text-align: center; }
+      .toast { width: 100%; justify-content: center; }
+    }
+
     /* ── USER MANAGEMENT ── */
     .user-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
     .user-row { display: flex; align-items: center; gap: 12px; padding: 10px 16px; background: #fafbfc; border: 1.5px solid #e8eaf0; border-radius: 8px; }
@@ -324,6 +362,7 @@
 
 <!-- ════ App ════ -->
 <div id="app">
+<div id="sidebarBackdrop"></div>
 
   <!-- Sidebar (right, default open) -->
   <div id="sidebar">
@@ -1030,6 +1069,7 @@
 
   // ── Sidebar toggle ────────────────────────────────────────
   document.getElementById('hamburgerBtn').addEventListener('click', () => document.body.classList.toggle('sidebar-closed'));
+  document.getElementById('sidebarBackdrop').addEventListener('click', () => document.body.classList.add('sidebar-closed'));
 
   // ── Search ────────────────────────────────────────────────
   document.getElementById('searchInput').addEventListener('input', function(){
@@ -1057,7 +1097,9 @@
 
   // ── Init ──────────────────────────────────────────────────
   if (!getUsers().length) saveUsers(DEFAULT_USERS);
+  if (window.innerWidth <= 768) document.body.classList.add('sidebar-closed');
   renderApp();
 </script>
 </body>
 </html>
+
