@@ -16,7 +16,7 @@ export default function StatusPickerPopover({ repair, onClose }) {
 
   const handleSelect = (statusKey) => {
     if (statusKey === repair.status) { onClose(); return; }
-    dispatch({ type: 'UPDATE_REPAIR', payload: { id: repair.id, changes: { status: statusKey } } });
+    dispatch({ type: 'UPDATE_REPAIR', payload: { id: repair.id, status: statusKey } });
     onClose();
   };
 
