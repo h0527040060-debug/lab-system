@@ -3,7 +3,7 @@ import { useAppContext } from '../../store/AppContext';
 import { REPAIR_STATUSES } from '../../constants/statuses';
 import { WARRANTY_TYPES, WARRANTY_LABELS } from '../../constants/warranty';
 import { formatDateTime, formatMoney, formatHours } from '../../utils/formatters';
-import { calculateQuoteBreakdown } from '../../utils/pricing';
+import { calculateInvoiceBreakdown } from '../../utils/pricing';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
 import Modal from '../../components/Modal';
@@ -11,11 +11,13 @@ import InfoCard from '../../components/InfoCard';
 import SignaturePad from '../../components/SignaturePad';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import PriceBreakdown from '../../components/PriceBreakdown';
-import { DollarSign, User, Wrench, Camera, Check, Receipt, FileText } from 'lucide-react';
+import EditInvoiceModal from '../../components/EditInvoiceModal';
+import { DollarSign, User, Wrench, Camera, Check, Receipt, FileText, Pencil } from 'lucide-react';
 
 export default function OfficePayment() {
   const { state } = useAppContext();
   const [selectedRepair, setSelectedRepair] = useState(null);
+  const [editingInvoiceRepair, setEditingInvoiceRepair] = useState(null);
 
   const pendingPayments = state.repairs
     .filter(r => r.status === REPAIR_STATUSES.PENDING_PAYMENT)
@@ -41,7 +43,7 @@ export default function OfficePayment() {
           {pendingPayments.map(r => {
             const customer = state.customers.find(c => c.id === r.customer_id);
             const device = state.devices.find(d => d.id === r.device_id);
-            const breakdown = calculateQuoteBreakdown(r, state);
+            const breakdown = calculateInvoiceBreakdown(r, state);
             const vatPercent = state.settings.vat_percent_display || 17;
             const vatAmount = breakdown.grandTotal * (vatPercent / 100);
             const totalWithVat = breakdown.grandTotal + vatAmount;
@@ -99,7 +101,14 @@ export default function OfficePayment() {
                   )}
                 </div>
 
-                <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-end">
+                <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-between items-center">
+                  <button
+                    onClick={() => setEditingInvoiceRepair(r)}
+                    className="text-sm text-orange-600 hover:text-orange-700 font-semibold flex items-center gap-1"
+                  >
+                    <Pencil size={15} />
+                    ערוך חשבון
+                  </button>
                   <button
                     onClick={() => setSelectedRepair(r)}
                     className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-lg font-bold flex items-center gap-2"
@@ -120,6 +129,13 @@ export default function OfficePayment() {
           onClose={() => setSelectedRepair(null)}
         />
       )}
+
+      {editingInvoiceRepair && (
+        <EditInvoiceModal
+          repair={editingInvoiceRepair}
+          onClose={() => setEditingInvoiceRepair(null)}
+        />
+      )}
     </div>
   );
 }
@@ -129,7 +145,7 @@ function PaymentModal({ repair, onClose }) {
   const customer = state.customers.find(c => c.id === repair.customer_id);
   const device = state.devices.find(d => d.id === repair.device_id);
 
-  const breakdown = calculateQuoteBreakdown(repair, state);
+  const breakdown = calculateInvoiceBreakdown(repair, state);
   const vatPercent = state.settings.vat_percent_display || 17;
   const vatAmount = breakdown.grandTotal * (vatPercent / 100);
   const totalWithVat = breakdown.grandTotal + vatAmount;

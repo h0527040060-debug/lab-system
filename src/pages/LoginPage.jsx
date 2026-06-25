@@ -51,7 +51,9 @@ export default function LoginPage() {
             <label className="block text-sm font-medium text-slate-700 mb-1">כתובת מייל</label>
             <input
               type="email"
-              autoComplete="email"
+              id="email"
+              name="email"
+              autoComplete="username"
               value={email}
               onChange={e => setEmail(e.target.value)}
               required
@@ -65,6 +67,8 @@ export default function LoginPage() {
             <label className="block text-sm font-medium text-slate-700 mb-1">סיסמה</label>
             <input
               type="password"
+              id="password"
+              name="password"
               autoComplete="current-password"
               value={password}
               onChange={e => setPassword(e.target.value)}
