@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { useAppContext } from '../../store/AppContext';
-import { KeyRound, Check, X } from 'lucide-react';
+import { KeyRound, Check, X, Pencil } from 'lucide-react';
 
 const ROLE_OPTIONS = [
-  { value: 'admin',   label: 'אדמין',         color: 'purple' },
-  { value: 'office',  label: 'משרד',           color: 'blue' },
-  { value: 'lab',     label: 'מעבדה',          color: 'amber' },
-  { value: 'pending', label: 'ממתין',          color: 'slate' },
+  { value: 'admin',   label: 'אדמין',   color: 'purple' },
+  { value: 'office',  label: 'משרד',    color: 'blue' },
+  { value: 'lab',     label: 'מעבדה',   color: 'amber' },
+  { value: 'pending', label: 'ממתין',   color: 'slate' },
 ];
 
 const ROLE_BADGE = {
@@ -26,23 +26,24 @@ const formatDate = (iso) => {
 export function OfficeUsers() {
   const { state, dispatch } = useAppContext();
   const currentUserId = state.currentUser?.id;
+
   const [resetUserId, setResetUserId] = useState(null);
   const [newPassword, setNewPassword] = useState('');
   const [resetError, setResetError] = useState('');
 
+  const [editUserId, setEditUserId] = useState(null);
+  const [editForm, setEditForm] = useState({ name: '', phone: '', email: '' });
+  const [editError, setEditError] = useState('');
+
   const handleRoleChange = (userId, newRole) => {
-    const user = state.users.find(u => u.id === userId);
-    if (!user) return;
     dispatch({ type: 'UPDATE_USER', payload: { id: userId, role: newRole } });
-    if (userId === currentUserId) {
-      dispatch({ type: 'SET_CURRENT_USER', payload: { ...user, role: newRole } });
-    }
   };
 
   const startReset = (userId) => {
     setResetUserId(userId);
     setNewPassword('');
     setResetError('');
+    setEditUserId(null);
   };
 
   const handleReset = (userId) => {
@@ -50,6 +51,34 @@ export function OfficeUsers() {
     dispatch({ type: 'UPDATE_USER', payload: { id: userId, password: newPassword } });
     setResetUserId(null);
     setNewPassword('');
+  };
+
+  const startEdit = (user) => {
+    setEditUserId(user.id);
+    setEditForm({ name: user.name || '', phone: user.phone || '', email: user.email || '' });
+    setEditError('');
+    setResetUserId(null);
+  };
+
+  const handleEditSave = (userId) => {
+    if (!editForm.name.trim()) { setEditError('שם הוא שדה חובה'); return; }
+    if (!editForm.email.trim()) { setEditError('מייל הוא שדה חובה'); return; }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(editForm.email.trim())) { setEditError('מייל לא תקין'); return; }
+    const dup = state.users.find(
+      u => u.email.toLowerCase() === editForm.email.trim().toLowerCase() && u.id !== userId
+    );
+    if (dup) { setEditError('מייל זה כבר בשימוש'); return; }
+    dispatch({
+      type: 'UPDATE_USER',
+      payload: {
+        id: userId,
+        name: editForm.name.trim(),
+        phone: editForm.phone.trim(),
+        email: editForm.email.trim().toLowerCase(),
+      },
+    });
+    setEditUserId(null);
   };
 
   return (
@@ -70,6 +99,7 @@ export function OfficeUsers() {
               <tr className="border-b border-slate-200 bg-slate-50 text-right">
                 <th className="px-4 py-3 text-xs font-semibold text-slate-500">משתמש</th>
                 <th className="px-4 py-3 text-xs font-semibold text-slate-500">מייל</th>
+                <th className="px-4 py-3 text-xs font-semibold text-slate-500">טלפון</th>
                 <th className="px-4 py-3 text-xs font-semibold text-slate-500">תפקיד</th>
                 <th className="px-4 py-3 text-xs font-semibold text-slate-500">הצטרף</th>
                 <th className="px-4 py-3 text-xs font-semibold text-slate-500">פעולות</th>
@@ -79,6 +109,7 @@ export function OfficeUsers() {
               {state.users.map((user) => {
                 const isSelf = user.id === currentUserId;
                 const isResetting = resetUserId === user.id;
+                const isEditing = editUserId === user.id;
                 return (
                   <tr key={user.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
                     <td className="px-4 py-3">
@@ -101,6 +132,7 @@ export function OfficeUsers() {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-600">{user.email}</td>
+                    <td className="px-4 py-3 text-sm text-slate-500">{user.phone || '—'}</td>
                     <td className="px-4 py-3">
                       <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${ROLE_BADGE[user.role] || ROLE_BADGE.pending}`}>
                         {ROLE_OPTIONS.find(r => r.value === user.role)?.label || user.role}
@@ -108,8 +140,37 @@ export function OfficeUsers() {
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-500">{formatDate(user.created_at)}</td>
                     <td className="px-4 py-3">
-                      {isSelf ? (
-                        <span className="text-xs text-slate-400">לא ניתן לשנות</span>
+                      {isEditing ? (
+                        <div className="space-y-1.5 min-w-[220px]">
+                          <input
+                            type="text"
+                            value={editForm.name}
+                            onChange={e => { setEditForm(f => ({ ...f, name: e.target.value })); setEditError(''); }}
+                            placeholder="שם מלא"
+                            className="border border-slate-300 rounded px-2 py-1 text-xs w-full"
+                          />
+                          <input
+                            type="tel"
+                            value={editForm.phone}
+                            onChange={e => { setEditForm(f => ({ ...f, phone: e.target.value })); setEditError(''); }}
+                            placeholder="טלפון"
+                            className="border border-slate-300 rounded px-2 py-1 text-xs w-full"
+                            dir="ltr"
+                          />
+                          <input
+                            type="email"
+                            value={editForm.email}
+                            onChange={e => { setEditForm(f => ({ ...f, email: e.target.value })); setEditError(''); }}
+                            placeholder="מייל"
+                            className="border border-slate-300 rounded px-2 py-1 text-xs w-full"
+                            dir="ltr"
+                          />
+                          {editError && <p className="text-xs text-red-600">{editError}</p>}
+                          <div className="flex gap-1">
+                            <button onClick={() => handleEditSave(user.id)} className="text-green-600 hover:text-green-800 p-1"><Check size={15} /></button>
+                            <button onClick={() => setEditUserId(null)} className="text-slate-400 hover:text-red-600 p-1"><X size={15} /></button>
+                          </div>
+                        </div>
                       ) : isResetting ? (
                         <div className="flex items-center gap-1">
                           <input
@@ -127,6 +188,13 @@ export function OfficeUsers() {
                         </div>
                       ) : (
                         <div className="flex gap-1 flex-wrap">
+                          <button
+                            onClick={() => startEdit(user)}
+                            className="text-xs px-2 py-0.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 flex items-center gap-1"
+                            title="עריכת פרטים"
+                          >
+                            <Pencil size={12} /> עריכה
+                          </button>
                           {ROLE_OPTIONS.filter(r => r.value !== user.role).map(option => (
                             <button
                               key={option.value}

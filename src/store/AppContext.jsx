@@ -132,8 +132,13 @@ const appReducer = (state, action) => {
     // --- רשימת משתמשים ---
     case 'ADD_USER':
       return { ...state, users: [...state.users, action.payload] };
-    case 'UPDATE_USER':
-      return { ...state, users: state.users.map(u => u.id === action.payload.id ? { ...u, ...action.payload } : u) };
+    case 'UPDATE_USER': {
+      const updatedUsers = state.users.map(u => u.id === action.payload.id ? { ...u, ...action.payload } : u);
+      const updatedCurrent = state.currentUser?.id === action.payload.id
+        ? { ...state.currentUser, ...action.payload }
+        : state.currentUser;
+      return { ...state, users: updatedUsers, currentUser: updatedCurrent };
+    }
 
     // --- קונפיגורציית סטטוסים ---
     case 'ADD_STATUS':
