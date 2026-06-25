@@ -6,7 +6,9 @@ import { formatDateTime, formatMoney } from '../utils/formatters';
 import { filterWorkCatalogForDevice, calculateAvgHoursForWork } from '../utils/workCatalog';
 import Modal from './Modal';
 import InfoCard from './InfoCard';
-import { User, Wrench, FileText, History, ShieldAlert, Camera, Send, CheckSquare, Square } from 'lucide-react';
+import { User, Wrench, FileText, History, ShieldAlert, Camera, Send, CheckSquare, Square, BookOpen } from 'lucide-react';
+import PartThumbnail from './PartThumbnail';
+import AssemblyInstructionsViewer from './AssemblyInstructionsViewer';
 
 export default function DiagnosisModal({ repair, onClose }) {
   const { state, dispatch } = useAppContext();
@@ -24,6 +26,7 @@ export default function DiagnosisModal({ repair, onClose }) {
   const [selectedParts, setSelectedParts] = useState(repair.diagnosed_parts || []);
 
   const [showAppealForm, setShowAppealForm] = useState(false);
+  const [assemblyPart, setAssemblyPart] = useState(null);
   const [appealReason, setAppealReason] = useState('');
   const [appealEvidence, setAppealEvidence] = useState([]);
 
@@ -105,6 +108,8 @@ export default function DiagnosisModal({ repair, onClose }) {
   const isWarrantyCase = repair.warranty_type === WARRANTY_TYPES.FULL_WARRANTY;
 
   return (
+    <>
+    {assemblyPart && <AssemblyInstructionsViewer part={assemblyPart} onClose={() => setAssemblyPart(null)} />}
     <Modal
       open={true}
       onClose={onClose}
@@ -253,12 +258,19 @@ export default function DiagnosisModal({ repair, onClose }) {
                       <button onClick={() => togglePart(p.id)}>
                         {isSelected ? <CheckSquare size={18} className="text-orange-600" /> : <Square size={18} className="text-slate-400" />}
                       </button>
+                      <PartThumbnail part={p} size="xs" />
                       <div className="flex-1">
-                        <p className="font-semibold text-sm">{p.images?.[0]} {p.name}</p>
+                        <p className="font-semibold text-sm">{p.name}</p>
                         <p className="text-xs text-slate-500">
                           {p.manufacturer} • מלאי: {totalStock} • {formatMoney(getPartSellingPrice(p))} ללקוח
                         </p>
                       </div>
+                      {p.assembly_instructions?.text || p.assembly_instructions?.images?.length > 0 ? (
+                        <button onClick={(e) => { e.stopPropagation(); setAssemblyPart(p); }}
+                          className="text-blue-500 hover:text-blue-700 p-0.5" title="הוראות הרכבה">
+                          <BookOpen size={14} />
+                        </button>
+                      ) : null}
                       {isSelected && (
                         <input
                           type="number"
@@ -319,5 +331,6 @@ export default function DiagnosisModal({ repair, onClose }) {
         </div>
       )}
     </Modal>
+    </>
   );
 }

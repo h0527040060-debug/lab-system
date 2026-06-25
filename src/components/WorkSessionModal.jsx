@@ -8,7 +8,9 @@ import { filterWorkCatalogForDevice } from '../utils/workCatalog';
 import Modal from './Modal';
 import InfoCard from './InfoCard';
 import ConfirmDialog from './ConfirmDialog';
-import { Play, Square, User, Wrench, Package, AlertTriangle, Plus, CheckCircle2, Trash2, Clock } from 'lucide-react';
+import { Play, Square, User, Wrench, Package, AlertTriangle, Plus, CheckCircle2, Trash2, Clock, BookOpen } from 'lucide-react';
+import PartThumbnail from './PartThumbnail';
+import AssemblyInstructionsViewer from './AssemblyInstructionsViewer';
 
 export default function WorkSessionModal({ repair, onClose }) {
   const { state, dispatch } = useAppContext();
@@ -25,6 +27,7 @@ export default function WorkSessionModal({ repair, onClose }) {
   const [showAddWork, setShowAddWork] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
   const [stockError, setStockError] = useState(null);
+  const [assemblyPart, setAssemblyPart] = useState(null);
 
   const originalWorks = repair.diagnosed_work_codes || [];
   const originalParts = repair.diagnosed_parts || [];
@@ -130,6 +133,8 @@ export default function WorkSessionModal({ repair, onClose }) {
   const availablePartsToAdd = state.parts.filter(p => !partsToUse.find(used => used.part_id === p.id));
 
   return (
+    <>
+    {assemblyPart && <AssemblyInstructionsViewer part={assemblyPart} onClose={() => setAssemblyPart(null)} />}
     <Modal
       open={true}
       onClose={onClose}
@@ -287,9 +292,12 @@ export default function WorkSessionModal({ repair, onClose }) {
                     key={p.id}
                     onClick={() => addPart(p.id)}
                     disabled={stock === 0}
-                    className="w-full text-right p-2 hover:bg-white rounded text-sm disabled:opacity-50 flex justify-between"
+                    className="w-full text-right p-2 hover:bg-white rounded text-sm disabled:opacity-50 flex items-center justify-between gap-2"
                   >
-                    <span>{p.images?.[0]} {p.name}</span>
+                    <div className="flex items-center gap-2">
+                      <PartThumbnail part={p} size="xs" />
+                      <span>{p.name}</span>
+                    </div>
                     <span className={stock === 0 ? 'text-red-600' : 'text-slate-500'}>מלאי: {stock}</span>
                   </button>
                 );
@@ -315,10 +323,10 @@ export default function WorkSessionModal({ repair, onClose }) {
                   'bg-slate-50 border-slate-200'
                 }`}
               >
-                <Package className="text-slate-600" size={18} />
+                <PartThumbnail part={part} size="xs" />
                 <div className="flex-1">
                   <p className="font-semibold text-sm">
-                    {part.images?.[0]} {part.name}
+                    {part.name}
                     {isNew && <span className="text-xs bg-orange-200 text-orange-800 px-2 py-0.5 rounded font-bold mr-2">חדש!</span>}
                   </p>
                   <p className={`text-xs ${lowStock ? 'text-red-600 font-bold' : 'text-slate-500'}`}>
@@ -333,6 +341,11 @@ export default function WorkSessionModal({ repair, onClose }) {
                   onChange={(e) => updatePartQty(item.part_id, e.target.value)}
                   className="w-16 border border-slate-300 rounded px-2 py-1 text-sm text-center"
                 />
+                {(part.assembly_instructions?.text || part.assembly_instructions?.images?.length > 0 || part.assembly_instructions?.video_url) && (
+                  <button onClick={() => setAssemblyPart(part)} className="text-blue-500 hover:text-blue-700 p-0.5" title="הוראות הרכבה">
+                    <BookOpen size={14} />
+                  </button>
+                )}
                 <button onClick={() => removePart(item.part_id)} className="text-slate-400 hover:text-red-600">
                   <Trash2 size={14} />
                 </button>
@@ -364,5 +377,6 @@ export default function WorkSessionModal({ repair, onClose }) {
         onCancel={() => setConfirmAction(null)}
       />
     </Modal>
+    </>
   );
 }

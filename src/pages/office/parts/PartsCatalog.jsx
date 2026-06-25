@@ -1,0 +1,248 @@
+import { useState } from 'react';
+import { useAppContext as useApp } from '../../../store/AppContext';
+import { formatMoney } from '../../../utils/formatters';
+import { getTotalStock } from '../../../utils/fifo';
+import { getDefaultSupplier, isPartLowStock, calculateWeightedAvgCost } from '../../../utils/inventory';
+import SearchInput from '../../../components/SearchInput';
+import EmptyState from '../../../components/EmptyState';
+import ConfirmDialog from '../../../components/ConfirmDialog';
+import PartThumbnail from '../../../components/PartThumbnail';
+import PartEditModal from './PartEditModal';
+import Modal from '../../../components/Modal';
+import { Package, Plus, Edit2, Trash2, AlertTriangle, MapPin, BookOpen } from 'lucide-react';
+import AssemblyInstructionsViewer from '../../../components/AssemblyInstructionsViewer';
+
+export default function PartsCatalog() {
+  const { state, dispatch } = useApp();
+  const [search, setSearch] = useState('');
+  const [showLowStockOnly, setShowLowStockOnly] = useState(false);
+  const [editingPart, setEditingPart] = useState(null);
+  const [viewingBatches, setViewingBatches] = useState(null);
+  const [deletingPart, setDeletingPart] = useState(null);
+  const [viewingAssembly, setViewingAssembly] = useState(null);
+
+  const filteredParts = state.parts.filter(p => {
+    if (showLowStockOnly && !isPartLowStock(p, state.stockBatches)) return false;
+    if (!search) return true;
+    const s = search.toLowerCase();
+    return (
+      p.name?.toLowerCase().includes(s) ||
+      p.manufacturer?.toLowerCase().includes(s) ||
+      p.manufacturer_sku?.toLowerCase().includes(s) ||
+      p.internal_barcode?.toLowerCase().includes(s) ||
+      p.category?.toLowerCase().includes(s)
+    );
+  });
+
+  const handleSavePart = (partData) => {
+    if (partData.id) {
+      dispatch({ type: 'UPDATE_PART', payload: partData });
+    } else {
+      const newId = Math.max(0, ...state.parts.map(p => p.id || 0)) + 1;
+      dispatch({ type: 'ADD_PART', payload: { ...partData, id: newId } });
+    }
+    setEditingPart(null);
+  };
+
+  const handleDeletePart = () => {
+    if (!deletingPart) return;
+    dispatch({ type: 'DELETE_PART', payload: deletingPart.id });
+    setDeletingPart(null);
+  };
+
+  const lowStockCount = state.parts.filter(p => isPartLowStock(p, state.stockBatches)).length;
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h2 className="text-lg font-bold text-slate-900">קטלוג חלקים</h2>
+          <p className="text-sm text-slate-500">{state.parts.length} חלקים, {lowStockCount} במצב חוסר</p>
+        </div>
+        <button
+          onClick={() => setEditingPart('new')}
+          className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-semibold flex items-center gap-1 text-sm"
+        >
+          <Plus size={16} />
+          הוסף חלק
+        </button>
+      </div>
+
+      <div className="bg-white rounded-xl border border-slate-200 p-3 mb-4 flex gap-3 items-center flex-wrap">
+        <SearchInput value={search} onChange={setSearch} placeholder="חיפוש לפי שם, יצרן, מק״ט..." className="flex-1 min-w-48" />
+        <label className="flex items-center gap-2 text-sm cursor-pointer">
+          <input type="checkbox" checked={showLowStockOnly} onChange={e => setShowLowStockOnly(e.target.checked)} className="w-4 h-4" />
+          <span>רק חוסרים ({lowStockCount})</span>
+        </label>
+      </div>
+
+      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+        {filteredParts.length === 0 ? (
+          <EmptyState icon={Package} title="אין חלקים בקטלוג" />
+        ) : (
+          <table className="w-full text-sm">
+            <thead className="bg-slate-50 border-b border-slate-200">
+              <tr>
+                <th className="text-right p-3 font-semibold">חלק</th>
+                <th className="text-right p-3 font-semibold">ברקוד</th>
+                <th className="text-right p-3 font-semibold">מיקום</th>
+                <th className="text-right p-3 font-semibold">ספק ברירת מחדל</th>
+                <th className="text-center p-3 font-semibold">מלאי</th>
+                <th className="text-right p-3 font-semibold">מחיר ללקוח</th>
+                <th className="text-right p-3 font-semibold">פעולות</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredParts.map(part => {
+                const stock = getTotalStock(part.id, state.stockBatches);
+                const lowStock = isPartLowStock(part, state.stockBatches);
+                const supplier = getDefaultSupplier(part);
+                const avgCost = calculateWeightedAvgCost(part.id, state.stockBatches);
+                const batchesCount = state.stockBatches.filter(b => b.part_id === part.id && b.quantity_remaining > 0).length;
+                const sellingPrice = part.selling_price || (avgCost * (1 + (part.selling_markup_percent || 0) / 100));
+                const hasAssembly = part.assembly_instructions?.text || part.assembly_instructions?.images?.length > 0 || part.assembly_instructions?.video_url;
+
+                return (
+                  <tr key={part.id} className={`border-b border-slate-100 hover:bg-slate-50 ${lowStock ? 'bg-red-50' : ''}`}>
+                    <td className="p-3">
+                      <div className="flex items-center gap-2">
+                        <PartThumbnail part={part} size="sm" />
+                        <div>
+                          <p className="font-semibold">{part.name}</p>
+                          <p className="text-xs text-slate-500">{part.manufacturer} • {part.manufacturer_sku}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="p-3 font-mono text-xs">{part.internal_barcode}</td>
+                    <td className="p-3 text-xs">
+                      {part.shelf && (
+                        <div className="flex items-center gap-1 text-slate-600">
+                          <MapPin size={11} />
+                          <span>מדף {part.shelf}{part.bin && `, תא ${part.bin}`}</span>
+                        </div>
+                      )}
+                      {part.zone && <p className="text-slate-500 mt-0.5">{part.zone}</p>}
+                    </td>
+                    <td className="p-3 text-xs">
+                      {supplier ? (
+                        <>
+                          <p className="font-semibold">{supplier.supplier_name}</p>
+                          <p className="text-slate-500">{formatMoney(supplier.price)} • {supplier.lead_time_days} ימים</p>
+                        </>
+                      ) : <span className="text-slate-400">—</span>}
+                    </td>
+                    <td className="p-3 text-center">
+                      <button
+                        onClick={() => setViewingBatches(part)}
+                        className={`font-bold text-lg hover:underline ${lowStock ? 'text-red-600' : stock > 0 ? 'text-green-600' : 'text-slate-400'}`}
+                      >
+                        {stock}
+                      </button>
+                      <p className="text-xs text-slate-500">מינ׳ {part.min_stock} • {batchesCount} אצוות</p>
+                      {lowStock && (
+                        <div className="flex items-center justify-center gap-1 text-red-600 text-xs mt-0.5">
+                          <AlertTriangle size={10} /> חוסר
+                        </div>
+                      )}
+                    </td>
+                    <td className="p-3">
+                      <p className="font-semibold text-green-700">{formatMoney(sellingPrice)}</p>
+                      <p className="text-xs text-slate-500">עלות: {formatMoney(avgCost)}</p>
+                    </td>
+                    <td className="p-3">
+                      <div className="flex gap-1">
+                        {hasAssembly && (
+                          <button onClick={() => setViewingAssembly(part)} className="text-blue-500 hover:text-blue-700 p-1" title="הוראות הרכבה">
+                            <BookOpen size={15} />
+                          </button>
+                        )}
+                        <button onClick={() => setEditingPart(part)} className="text-slate-500 hover:text-orange-600 p-1">
+                          <Edit2 size={15} />
+                        </button>
+                        <button onClick={() => setDeletingPart(part)} className="text-slate-500 hover:text-red-600 p-1">
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {editingPart && (
+        <PartEditModal
+          part={editingPart === 'new' ? null : editingPart}
+          onSave={handleSavePart}
+          onClose={() => setEditingPart(null)}
+        />
+      )}
+
+      {viewingBatches && (
+        <BatchesModal part={viewingBatches} onClose={() => setViewingBatches(null)} />
+      )}
+
+      {viewingAssembly && (
+        <AssemblyInstructionsViewer part={viewingAssembly} onClose={() => setViewingAssembly(null)} />
+      )}
+
+      <ConfirmDialog
+        open={!!deletingPart}
+        title="מחיקת חלק"
+        message={`האם למחוק את "${deletingPart?.name}"? כל האצוות שלו יימחקו גם.`}
+        confirmLabel="מחק"
+        variant="danger"
+        onConfirm={handleDeletePart}
+        onCancel={() => setDeletingPart(null)}
+      />
+    </div>
+  );
+}
+
+function BatchesModal({ part, onClose }) {
+  const { state } = useApp();
+  const allBatches = state.stockBatches
+    .filter(b => b.part_id === part.id)
+    .sort((a, b) => new Date(a.received_date) - new Date(b.received_date));
+
+  return (
+    <Modal open={true} onClose={onClose} title={`אצוות מלאי — ${part.name}`} subtitle="לפי FIFO" maxWidth="max-w-3xl">
+      {allBatches.length === 0 ? (
+        <EmptyState icon={Package} title="אין אצוות לחלק זה" />
+      ) : (
+        <table className="w-full text-sm">
+          <thead className="bg-slate-50 border-b">
+            <tr>
+              <th className="text-right p-2">קוד אצווה</th>
+              <th className="text-right p-2">תאריך קבלה</th>
+              <th className="text-right p-2">ספק</th>
+              <th className="text-center p-2">התקבל</th>
+              <th className="text-center p-2">נשאר</th>
+              <th className="text-right p-2">עלות יחידה</th>
+              <th className="text-center p-2">סטטוס</th>
+            </tr>
+          </thead>
+          <tbody>
+            {allBatches.map(b => (
+              <tr key={b.id} className="border-b">
+                <td className="p-2 font-mono text-xs">{b.id}</td>
+                <td className="p-2 text-xs">{new Date(b.received_date).toLocaleDateString('he-IL')}</td>
+                <td className="p-2 text-xs">{b.supplier_name}</td>
+                <td className="p-2 text-center font-semibold">{b.quantity}</td>
+                <td className={`p-2 text-center font-bold ${b.quantity_remaining === 0 ? 'text-slate-400' : 'text-green-700'}`}>{b.quantity_remaining}</td>
+                <td className="p-2 font-semibold">{formatMoney(b.unit_cost)}</td>
+                <td className="p-2 text-center">
+                  {b.quantity_remaining === 0
+                    ? <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded">נגמר</span>
+                    : <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">פעיל</span>}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </Modal>
+  );
+}
