@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useAppContext } from '../store/AppContext';
 import Layout from '../components/Layout';
 import { OFFICE_TABS } from '../constants/tabs';
 
@@ -35,11 +36,15 @@ const PAGE_COMPONENTS = {
 };
 
 export default function OfficeRouter() {
+  const { state } = useAppContext();
   const [currentTab, setCurrentTab] = useState('dashboard');
   const PageComponent = PAGE_COMPONENTS[currentTab] || OfficeDashboard;
 
+  const isAdmin = state.currentUser?.role === 'admin';
+  const visibleTabs = OFFICE_TABS.filter(t => t.id !== 'users' || isAdmin);
+
   return (
-    <Layout currentTab={currentTab} onTabChange={setCurrentTab} tabs={OFFICE_TABS}>
+    <Layout currentTab={currentTab} onTabChange={setCurrentTab} tabs={visibleTabs}>
       <PageComponent />
     </Layout>
   );

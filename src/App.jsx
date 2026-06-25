@@ -32,6 +32,7 @@ export default function App() {
   }
 
   switch (state.currentUser.role) {
+    case USER_ROLES.ADMIN:
     case USER_ROLES.OFFICE:
       return <OfficeRouter />;
     case USER_ROLES.LAB:

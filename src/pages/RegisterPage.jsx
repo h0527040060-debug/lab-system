@@ -35,7 +35,7 @@ export default function RegisterPage({ onBack }) {
       name: form.name.trim(),
       email: form.email.trim().toLowerCase(),
       password: form.password,
-      role: isFirst ? 'office' : 'pending',
+      role: isFirst ? 'admin' : 'pending',
       created_at: new Date().toISOString(),
     };
 

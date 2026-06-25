@@ -1,14 +1,18 @@
+import { useState } from 'react';
 import { useAppContext } from '../../store/AppContext';
+import { KeyRound, Check, X } from 'lucide-react';
 
 const ROLE_OPTIONS = [
-  { value: 'office', label: 'משרד', color: 'blue' },
-  { value: 'lab', label: 'מעבדה', color: 'amber' },
-  { value: 'pending', label: 'ממתין', color: 'slate' },
+  { value: 'admin',   label: 'אדמין',         color: 'purple' },
+  { value: 'office',  label: 'משרד',           color: 'blue' },
+  { value: 'lab',     label: 'מעבדה',          color: 'amber' },
+  { value: 'pending', label: 'ממתין',          color: 'slate' },
 ];
 
 const ROLE_BADGE = {
-  office: 'bg-blue-100 text-blue-800',
-  lab: 'bg-amber-100 text-amber-800',
+  admin:   'bg-purple-100 text-purple-800',
+  office:  'bg-blue-100 text-blue-800',
+  lab:     'bg-amber-100 text-amber-800',
   pending: 'bg-slate-100 text-slate-600',
 };
 
@@ -22,16 +26,30 @@ const formatDate = (iso) => {
 export function OfficeUsers() {
   const { state, dispatch } = useAppContext();
   const currentUserId = state.currentUser?.id;
+  const [resetUserId, setResetUserId] = useState(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [resetError, setResetError] = useState('');
 
   const handleRoleChange = (userId, newRole) => {
     const user = state.users.find(u => u.id === userId);
     if (!user) return;
     dispatch({ type: 'UPDATE_USER', payload: { id: userId, role: newRole } });
-
-    // אם המשתמש הנוכחי הוא זה שנערך → עדכן גם currentUser
     if (userId === currentUserId) {
       dispatch({ type: 'SET_CURRENT_USER', payload: { ...user, role: newRole } });
     }
+  };
+
+  const startReset = (userId) => {
+    setResetUserId(userId);
+    setNewPassword('');
+    setResetError('');
+  };
+
+  const handleReset = (userId) => {
+    if (newPassword.length < 6) { setResetError('סיסמה חייבת להכיל לפחות 6 תווים'); return; }
+    dispatch({ type: 'UPDATE_USER', payload: { id: userId, password: newPassword } });
+    setResetUserId(null);
+    setNewPassword('');
   };
 
   return (
@@ -60,16 +78,14 @@ export function OfficeUsers() {
             <tbody>
               {state.users.map((user) => {
                 const isSelf = user.id === currentUserId;
+                const isResetting = resetUserId === user.id;
                 return (
                   <tr key={user.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         {user.picture ? (
-                          <img
-                            src={user.picture}
-                            alt={user.name}
-                            className="w-9 h-9 rounded-full object-cover flex-shrink-0"
-                          />
+                          <img src={user.picture} alt={user.name}
+                            className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
                         ) : (
                           <div className="w-9 h-9 rounded-full bg-slate-200 flex items-center justify-center text-sm font-bold text-slate-600 flex-shrink-0">
                             {user.name?.charAt(0) || '?'}
@@ -94,23 +110,44 @@ export function OfficeUsers() {
                     <td className="px-4 py-3">
                       {isSelf ? (
                         <span className="text-xs text-slate-400">לא ניתן לשנות</span>
+                      ) : isResetting ? (
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="password"
+                            value={newPassword}
+                            onChange={e => { setNewPassword(e.target.value); setResetError(''); }}
+                            placeholder="סיסמה חדשה"
+                            className="border border-slate-300 rounded px-2 py-1 text-xs w-32"
+                            dir="ltr"
+                            autoFocus
+                          />
+                          <button onClick={() => handleReset(user.id)} className="text-green-600 hover:text-green-800 p-1"><Check size={15} /></button>
+                          <button onClick={() => setResetUserId(null)} className="text-slate-400 hover:text-red-600 p-1"><X size={15} /></button>
+                          {resetError && <span className="text-xs text-red-600">{resetError}</span>}
+                        </div>
                       ) : (
-                        <div className="flex gap-1">
+                        <div className="flex gap-1 flex-wrap">
                           {ROLE_OPTIONS.filter(r => r.value !== user.role).map(option => (
                             <button
                               key={option.value}
                               onClick={() => handleRoleChange(user.id, option.value)}
-                              className={`text-xs px-2.5 py-1 rounded-lg border transition-colors ${
-                                option.value === 'office'
-                                  ? 'border-blue-200 text-blue-700 hover:bg-blue-50'
-                                  : option.value === 'lab'
-                                  ? 'border-amber-200 text-amber-700 hover:bg-amber-50'
-                                  : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                              className={`text-xs px-2 py-0.5 rounded-lg border transition-colors ${
+                                option.value === 'admin'  ? 'border-purple-200 text-purple-700 hover:bg-purple-50' :
+                                option.value === 'office' ? 'border-blue-200 text-blue-700 hover:bg-blue-50' :
+                                option.value === 'lab'    ? 'border-amber-200 text-amber-700 hover:bg-amber-50' :
+                                'border-slate-200 text-slate-600 hover:bg-slate-50'
                               }`}
                             >
                               {option.label}
                             </button>
                           ))}
+                          <button
+                            onClick={() => startReset(user.id)}
+                            className="text-xs px-2 py-0.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 flex items-center gap-1"
+                            title="איפוס סיסמה"
+                          >
+                            <KeyRound size={12} /> סיסמה
+                          </button>
                         </div>
                       )}
                     </td>

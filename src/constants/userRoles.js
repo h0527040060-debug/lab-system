@@ -1,9 +1,13 @@
 export const USER_ROLES = {
+  ADMIN: 'admin',
   OFFICE: 'office',
   LAB: 'lab',
+  PENDING: 'pending',
 };
 
 export const ROLE_LABELS = {
-  [USER_ROLES.OFFICE]: 'משרד',
-  [USER_ROLES.LAB]: 'מעבדה',
+  admin:   'אדמין',
+  office:  'משרד',
+  lab:     'מעבדה',
+  pending: 'ממתין אישור',
 };
