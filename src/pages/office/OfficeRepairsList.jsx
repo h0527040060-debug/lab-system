@@ -10,8 +10,11 @@ import EmptyState from '../../components/EmptyState';
 import DiagnosisModal from '../../components/DiagnosisModal';
 import WorkSessionModal from '../../components/WorkSessionModal';
 import ReleaseDocsModal from '../../components/ReleaseDocsModal';
-import { FileText, Stethoscope, Wrench, Camera, Printer } from 'lucide-react';
 import PrintStickerModal from '../../components/PrintStickerModal';
+import CustomerQuickModal from '../../components/CustomerQuickModal';
+import DeviceQuickModal from '../../components/DeviceQuickModal';
+import StatusPickerPopover from '../../components/StatusPickerPopover';
+import { FileText, Stethoscope, Wrench, Camera, Printer } from 'lucide-react';
 
 const getActionForStatus = (status) => {
   if ([REPAIR_STATUSES.RED_INTAKE, REPAIR_STATUSES.YELLOW_DIAGNOSIS, REPAIR_STATUSES.YELLOW_APPEAL].includes(status))
@@ -30,8 +33,12 @@ export default function OfficeRepairsList() {
   const [activeRepairId, setActiveRepairId] = useState(null);
   const [activeModal, setActiveModal] = useState(null);
   const [printRepair, setPrintRepair] = useState(null);
+  const [quickCustomer, setQuickCustomer] = useState(null);
+  const [quickDevice, setQuickDevice] = useState(null);
+  const [statusPickerRepairId, setStatusPickerRepairId] = useState(null);
 
   const activeRepair = activeRepairId ? state.repairs.find(r => r.id === activeRepairId) : null;
+  const statusPickerRepair = statusPickerRepairId ? state.repairs.find(r => r.id === statusPickerRepairId) : null;
 
   const openModal = (repairId, modal) => {
     setActiveRepairId(repairId);
@@ -116,54 +123,85 @@ export default function OfficeRepairsList() {
                     <tr key={r.id} className="border-b border-slate-100 hover:bg-slate-50">
                       <td className="p-3 font-mono text-xs font-bold text-orange-600">{r.id}</td>
                       <td className="p-3 text-xs text-slate-600">{formatDateTime(r.date_intake)}</td>
+
                       <td className="p-3">
-                        <p className="font-medium">{customer?.name || '—'}</p>
-                        <p className="text-xs text-slate-500">{customer?.phone}</p>
+                        <button
+                          onClick={() => setQuickCustomer(customer)}
+                          className="text-right hover:text-blue-600 transition-colors group"
+                        >
+                          <p className="font-medium group-hover:underline">{customer?.name || '—'}</p>
+                          <p className="text-xs text-slate-500" dir="ltr">{customer?.phone}</p>
+                        </button>
                       </td>
+
                       <td className="p-3">
-                        <p className="text-xs">{device?.brand} {device?.model}</p>
-                        <p className="text-xs text-slate-500 font-mono">{device?.id}</p>
+                        <button
+                          onClick={() => setQuickDevice({ device, customer })}
+                          className="text-right hover:text-blue-600 transition-colors group"
+                        >
+                          <p className="text-xs group-hover:underline">{device?.brand} {device?.model}</p>
+                          <p className="text-xs text-slate-500 font-mono">{device?.id}</p>
+                        </button>
                       </td>
+
                       <td className="p-3 text-xs max-w-xs truncate">{r.complaint}</td>
                       <td className="p-3 text-xs">{WARRANTY_LABELS[r.warranty_type] || '—'}</td>
                       <td className="p-3 text-xs text-slate-500">
                         {r.intake_by_name && <div>קליטה: {r.intake_by_name}</div>}
                         {r.performed_by_name && <div>ביצוע: {r.performed_by_name}</div>}
                       </td>
-                      <td className="p-3"><StatusBadge status={r.status} size="sm" /></td>
+
+                      <td className="p-3">
+                        <div className="relative">
+                          <button
+                            onClick={() => setStatusPickerRepairId(prev => prev === r.id ? null : r.id)}
+                            className="hover:opacity-75 transition-opacity"
+                            title="לחץ לשינוי סטטוס"
+                          >
+                            <StatusBadge status={r.status} size="sm" />
+                          </button>
+                          {statusPickerRepairId === r.id && statusPickerRepair && (
+                            <StatusPickerPopover
+                              repair={statusPickerRepair}
+                              onClose={() => setStatusPickerRepairId(null)}
+                            />
+                          )}
+                        </div>
+                      </td>
+
                       <td className="p-3">
                         <div className="flex flex-col gap-1">
-                        <button
-                          onClick={() => setPrintRepair({ repair: r, customer, device })}
-                          className="flex items-center gap-1 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-1 rounded-lg font-semibold"
-                          title="הדפס מדבקת QR"
-                        >
-                          <Printer size={13} /> QR
-                        </button>
-                        {getActionForStatus(r.status) === 'diagnosis' && (
                           <button
-                            onClick={() => openModal(r.id, 'diagnosis')}
-                            className="flex items-center gap-1 text-xs bg-yellow-100 hover:bg-yellow-200 text-yellow-800 px-2 py-1 rounded-lg font-semibold"
+                            onClick={() => setPrintRepair({ repair: r, customer, device })}
+                            className="flex items-center gap-1 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-1 rounded-lg font-semibold"
+                            title="הדפס מדבקת QR"
                           >
-                            <Stethoscope size={13} /> אבחון
+                            <Printer size={13} /> QR
                           </button>
-                        )}
-                        {getActionForStatus(r.status) === 'work' && (
-                          <button
-                            onClick={() => openModal(r.id, 'work')}
-                            className="flex items-center gap-1 text-xs bg-blue-100 hover:bg-blue-200 text-blue-800 px-2 py-1 rounded-lg font-semibold"
-                          >
-                            <Wrench size={13} /> ביצוע
-                          </button>
-                        )}
-                        {getActionForStatus(r.status) === 'docs' && (
-                          <button
-                            onClick={() => openModal(r.id, 'docs')}
-                            className="flex items-center gap-1 text-xs bg-purple-100 hover:bg-purple-200 text-purple-800 px-2 py-1 rounded-lg font-semibold"
-                          >
-                            <Camera size={13} /> תיעוד
-                          </button>
-                        )}
+                          {getActionForStatus(r.status) === 'diagnosis' && (
+                            <button
+                              onClick={() => openModal(r.id, 'diagnosis')}
+                              className="flex items-center gap-1 text-xs bg-yellow-100 hover:bg-yellow-200 text-yellow-800 px-2 py-1 rounded-lg font-semibold"
+                            >
+                              <Stethoscope size={13} /> אבחון
+                            </button>
+                          )}
+                          {getActionForStatus(r.status) === 'work' && (
+                            <button
+                              onClick={() => openModal(r.id, 'work')}
+                              className="flex items-center gap-1 text-xs bg-blue-100 hover:bg-blue-200 text-blue-800 px-2 py-1 rounded-lg font-semibold"
+                            >
+                              <Wrench size={13} /> ביצוע
+                            </button>
+                          )}
+                          {getActionForStatus(r.status) === 'docs' && (
+                            <button
+                              onClick={() => openModal(r.id, 'docs')}
+                              className="flex items-center gap-1 text-xs bg-purple-100 hover:bg-purple-200 text-purple-800 px-2 py-1 rounded-lg font-semibold"
+                            >
+                              <Camera size={13} /> תיעוד
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -190,6 +228,22 @@ export default function OfficeRepairsList() {
           customer={printRepair.customer}
           device={printRepair.device}
           onClose={() => setPrintRepair(null)}
+        />
+      )}
+      {quickCustomer && (
+        <CustomerQuickModal
+          customer={quickCustomer}
+          repairs={state.repairs}
+          devices={state.devices}
+          onClose={() => setQuickCustomer(null)}
+        />
+      )}
+      {quickDevice && (
+        <DeviceQuickModal
+          device={quickDevice.device}
+          customer={quickDevice.customer}
+          repairs={state.repairs}
+          onClose={() => setQuickDevice(null)}
         />
       )}
     </div>

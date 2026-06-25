@@ -4,11 +4,15 @@ import { formatDate } from '../../utils/formatters';
 import PageHeader from '../../components/PageHeader';
 import SearchInput from '../../components/SearchInput';
 import EmptyState from '../../components/EmptyState';
+import CustomerQuickModal from '../../components/CustomerQuickModal';
+import DeviceQuickModal from '../../components/DeviceQuickModal';
 import { Wrench, ShieldCheck, AlertCircle } from 'lucide-react';
 
 export default function OfficeDevices() {
   const { state } = useAppContext();
   const [search, setSearch] = useState('');
+  const [quickCustomer, setQuickCustomer] = useState(null);
+  const [quickDevice, setQuickDevice] = useState(null);
 
   const filteredDevices = [...state.devices]
     .filter(d => {
@@ -68,14 +72,31 @@ export default function OfficeDevices() {
 
                 return (
                   <tr key={d.id} className="border-b border-slate-100 hover:bg-slate-50">
-                    <td className="p-3 font-mono text-xs font-bold text-orange-600">{d.id}</td>
+                    <td className="p-3">
+                      <button
+                        onClick={() => setQuickDevice({ device: d, customer: owner })}
+                        className="font-mono text-xs font-bold text-orange-600 hover:underline"
+                      >{d.id}</button>
+                    </td>
                     <td className="p-3">{d.type}</td>
                     <td className="p-3">
-                      <p className="font-semibold">{d.brand}</p>
-                      <p className="text-xs text-slate-500">{d.model}</p>
+                      <button
+                        onClick={() => setQuickDevice({ device: d, customer: owner })}
+                        className="text-right hover:text-blue-600 group"
+                      >
+                        <p className="font-semibold group-hover:underline">{d.brand}</p>
+                        <p className="text-xs text-slate-500">{d.model}</p>
+                      </button>
                     </td>
                     <td className="p-3 font-mono text-xs">{d.manufacturer_serial || '—'}</td>
-                    <td className="p-3 text-xs">{owner?.name || '—'}</td>
+                    <td className="p-3 text-xs">
+                      {owner ? (
+                        <button
+                          onClick={() => setQuickCustomer(owner)}
+                          className="hover:text-blue-600 hover:underline"
+                        >{owner.name}</button>
+                      ) : '—'}
+                    </td>
                     <td className="p-3">
                       <div className="flex items-center gap-1">
                         <span className={`font-bold ${problematic ? 'text-red-600' : repairsCount > 0 ? 'text-orange-600' : 'text-slate-400'}`}>
@@ -102,6 +123,12 @@ export default function OfficeDevices() {
           </table>
         )}
       </div>
+      {quickCustomer && (
+        <CustomerQuickModal customer={quickCustomer} repairs={state.repairs} devices={state.devices} onClose={() => setQuickCustomer(null)} />
+      )}
+      {quickDevice && (
+        <DeviceQuickModal device={quickDevice.device} customer={quickDevice.customer} repairs={state.repairs} onClose={() => setQuickDevice(null)} />
+      )}
     </div>
   );
 }

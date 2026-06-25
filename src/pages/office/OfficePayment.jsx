@@ -12,12 +12,16 @@ import SignaturePad from '../../components/SignaturePad';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import PriceBreakdown from '../../components/PriceBreakdown';
 import EditInvoiceModal from '../../components/EditInvoiceModal';
+import CustomerQuickModal from '../../components/CustomerQuickModal';
+import DeviceQuickModal from '../../components/DeviceQuickModal';
 import { DollarSign, User, Wrench, Camera, Check, Receipt, FileText, Pencil } from 'lucide-react';
 
 export default function OfficePayment() {
   const { state } = useAppContext();
   const [selectedRepair, setSelectedRepair] = useState(null);
   const [editingInvoiceRepair, setEditingInvoiceRepair] = useState(null);
+  const [quickCustomer, setQuickCustomer] = useState(null);
+  const [quickDevice, setQuickDevice] = useState(null);
 
   const pendingPayments = state.repairs
     .filter(r => r.status === REPAIR_STATUSES.PENDING_PAYMENT || r.status === REPAIR_STATUSES.CUSTOMER_REFUSED)
@@ -66,9 +70,13 @@ export default function OfficePayment() {
                           <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-semibold">🚫 לקוח מסרב</span>
                         )}
                       </div>
-                      <p className="font-semibold">{customer?.name}</p>
-                      <p className="text-xs text-slate-500">{customer?.phone}</p>
-                      <p className="text-xs text-slate-500 mt-1">{device?.brand} {device?.model}</p>
+                      <button onClick={() => setQuickCustomer(customer)} className="text-right hover:text-blue-600 group block">
+                        <p className="font-semibold group-hover:underline">{customer?.name}</p>
+                        <p className="text-xs text-slate-500" dir="ltr">{customer?.phone}</p>
+                      </button>
+                      <button onClick={() => setQuickDevice({ device, customer })} className="text-right hover:text-blue-600 group block mt-1">
+                        <p className="text-xs text-slate-500 group-hover:underline">{device?.brand} {device?.model}</p>
+                      </button>
                     </div>
                     <div className="text-left">
                       {isRefused ? (
@@ -153,6 +161,13 @@ export default function OfficePayment() {
             );
           })}
         </div>
+      )}
+
+      {quickCustomer && (
+        <CustomerQuickModal customer={quickCustomer} repairs={state.repairs} devices={state.devices} onClose={() => setQuickCustomer(null)} />
+      )}
+      {quickDevice && (
+        <DeviceQuickModal device={quickDevice.device} customer={quickDevice.customer} repairs={state.repairs} onClose={() => setQuickDevice(null)} />
       )}
 
       {selectedRepair && (

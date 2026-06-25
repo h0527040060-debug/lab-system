@@ -8,12 +8,16 @@ import EmptyState from '../../components/EmptyState';
 import Modal from '../../components/Modal';
 import InfoCard from '../../components/InfoCard';
 import ConfirmDialog from '../../components/ConfirmDialog';
+import CustomerQuickModal from '../../components/CustomerQuickModal';
+import DeviceQuickModal from '../../components/DeviceQuickModal';
 import { ShieldAlert, User, Wrench, Check, X } from 'lucide-react';
 
 export default function OfficeAppeals() {
   const { state, dispatch } = useAppContext();
   const [viewingAppeal, setViewingAppeal] = useState(null);
   const [confirmAction, setConfirmAction] = useState(null);
+  const [quickCustomer, setQuickCustomer] = useState(null);
+  const [quickDevice, setQuickDevice] = useState(null);
 
   const appeals = state.repairs
     .filter(r => r.status === REPAIR_STATUSES.YELLOW_APPEAL)
@@ -85,8 +89,12 @@ export default function OfficeAppeals() {
                         <span className="text-xs text-slate-400">•</span>
                         <span className="font-mono text-xs text-slate-500">{device?.id}</span>
                       </div>
-                      <p className="font-semibold">{customer?.name} • {customer?.phone}</p>
-                      <p className="text-sm text-slate-600 mt-1">{device?.brand} {device?.model}</p>
+                      <button onClick={() => setQuickCustomer(customer)} className="text-right hover:text-blue-600 group block">
+                        <p className="font-semibold group-hover:underline">{customer?.name} • <span dir="ltr">{customer?.phone}</span></p>
+                      </button>
+                      <button onClick={() => setQuickDevice({ device, customer })} className="text-right hover:text-blue-600 group block mt-1">
+                        <p className="text-sm text-slate-600 group-hover:underline">{device?.brand} {device?.model}</p>
+                      </button>
                     </div>
                     <div className="text-left text-xs">
                       <p className="text-slate-500">ערעור הוגש</p>
@@ -139,6 +147,13 @@ export default function OfficeAppeals() {
             );
           })}
         </div>
+      )}
+
+      {quickCustomer && (
+        <CustomerQuickModal customer={quickCustomer} repairs={state.repairs} devices={state.devices} onClose={() => setQuickCustomer(null)} />
+      )}
+      {quickDevice && (
+        <DeviceQuickModal device={quickDevice.device} customer={quickDevice.customer} repairs={state.repairs} onClose={() => setQuickDevice(null)} />
       )}
 
       {viewingAppeal && (
