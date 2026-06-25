@@ -6,6 +6,7 @@ import { WARRANTY_TYPES, WARRANTY_LABELS } from '../../constants/warranty';
 import { formatDateTime, formatMoney } from '../../utils/formatters';
 import PageHeader from '../../components/PageHeader';
 import SearchInput from '../../components/SearchInput';
+import AutocompleteInput from '../../components/AutocompleteInput';
 import { User, Wrench, FileText, ShieldCheck, Camera, Check, Plus } from 'lucide-react';
 
 export default function OfficeIntake() {
@@ -329,26 +330,27 @@ export default function OfficeIntake() {
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-3">
-              <input
-                type="text"
-                placeholder="סוג מכשיר * (תנור קומבי, קוצץ ירקות)"
+              <AutocompleteInput
                 value={newDevice.type}
-                onChange={(e) => setNewDevice({ ...newDevice, type: e.target.value })}
-                className="border border-slate-300 rounded-lg px-3 py-2 col-span-2"
+                onChange={val => setNewDevice({ ...newDevice, type: val })}
+                suggestions={[...new Set(state.devices.map(d => d.type).filter(Boolean))]}
+                placeholder="סוג מכשיר * (תנור קומבי, קוצץ ירקות)"
+                allowNew
+                className="col-span-2"
               />
-              <input
-                type="text"
-                placeholder="יצרן * (Ozti, Dynamic)"
+              <AutocompleteInput
                 value={newDevice.brand}
-                onChange={(e) => setNewDevice({ ...newDevice, brand: e.target.value })}
-                className="border border-slate-300 rounded-lg px-3 py-2"
+                onChange={val => setNewDevice({ ...newDevice, brand: val, model: '' })}
+                suggestions={[...new Set(state.devices.map(d => d.brand).filter(Boolean))]}
+                placeholder="יצרן * (Ozti, Dynamic)"
+                allowNew
               />
-              <input
-                type="text"
-                placeholder="דגם (MX91)"
+              <AutocompleteInput
                 value={newDevice.model}
-                onChange={(e) => setNewDevice({ ...newDevice, model: e.target.value })}
-                className="border border-slate-300 rounded-lg px-3 py-2"
+                onChange={val => setNewDevice({ ...newDevice, model: val })}
+                suggestions={[...new Set(state.devices.filter(d => d.brand === newDevice.brand).map(d => d.model).filter(Boolean))]}
+                placeholder="דגם (MX91)"
+                allowNew
               />
               <input
                 type="text"
@@ -466,13 +468,17 @@ export default function OfficeIntake() {
                 <Camera className="inline ml-1" size={16} />
                 תמונות קליטה (מומלץ 4 מ-4 צדדים) *
               </label>
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handlePhotoUpload}
-                className="block w-full text-sm text-slate-600 file:ml-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"
-              />
+              <div className="flex flex-wrap gap-2 items-center">
+                <label className="cursor-pointer bg-orange-50 hover:bg-orange-100 text-orange-700 font-semibold text-sm px-4 py-2 rounded-lg border border-orange-200">
+                  📁 בחר קבצים
+                  <input type="file" accept="image/*" multiple onChange={handlePhotoUpload} className="hidden" />
+                </label>
+                <label className="cursor-pointer bg-slate-800 hover:bg-slate-900 text-white font-semibold text-sm px-4 py-2 rounded-lg flex items-center gap-1">
+                  <Camera size={15} />
+                  צלם
+                  <input type="file" accept="image/*" capture="environment" onChange={handlePhotoUpload} className="hidden" />
+                </label>
+              </div>
               {intakePhotos.length > 0 && (
                 <div className="grid grid-cols-4 gap-2 mt-3">
                   {intakePhotos.map((photo, idx) => (

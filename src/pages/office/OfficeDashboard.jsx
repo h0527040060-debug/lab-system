@@ -3,7 +3,7 @@ import { REPAIR_STATUSES, STATUS_LABELS } from '../../constants/statuses';
 import { formatMoney, formatPercent } from '../../utils/formatters';
 import {
   getMonthlyRevenue, getRepairsByStatus, getTopCustomers,
-  getTopWorkCodes, calculateFinancialSummary,
+  getTopWorkCodes, calculateFinancialSummary, getRepairsByDeviceType,
 } from '../../utils/reports';
 import PageHeader from '../../components/PageHeader';
 import {
@@ -25,6 +25,7 @@ export default function OfficeDashboard() {
   }));
   const topCustomers = getTopCustomers(state.repairs, state.customers, 10);
   const topWorks = getTopWorkCodes(state.repairs, state.workCatalog, 5);
+  const deviceTypes = getRepairsByDeviceType(state.repairs, state.devices);
 
   const activeRepairs = state.repairs.filter(r =>
     ![REPAIR_STATUSES.GREEN_COMPLETE, REPAIR_STATUSES.RED_CANCELLED].includes(r.status)
@@ -148,6 +149,23 @@ export default function OfficeDashboard() {
             </ResponsiveContainer>
           ) : (
             <EmptyChart message="אין נתוני עבודות עדיין" />
+          )}
+        </ChartCard>
+
+        {/* גרף 5: סוגי מכשירים */}
+        <ChartCard title="סוגי מכשירים נפוצים">
+          {deviceTypes.length > 0 ? (
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={deviceTypes} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis type="number" allowDecimals={false} />
+                <YAxis dataKey="type" type="category" width={110} />
+                <Tooltip formatter={(v) => `${v} תיקונים`} />
+                <Bar dataKey="count" fill="#f97316" name="תיקונים" />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <EmptyChart message="אין נתוני מכשירים עדיין" />
           )}
         </ChartCard>
       </div>

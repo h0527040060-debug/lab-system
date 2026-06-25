@@ -79,6 +79,21 @@ export const getTopWorkCodes = (repairs, workCatalog, limit = 5) => {
     .slice(0, limit);
 };
 
+// סוגי מכשירים לפי כמות תיקונים
+export const getRepairsByDeviceType = (repairs, devices) => {
+  const counts = {};
+  repairs.forEach(r => {
+    const device = devices.find(d => d.id === r.device_id);
+    if (device?.type) {
+      counts[device.type] = (counts[device.type] || 0) + 1;
+    }
+  });
+  return Object.entries(counts)
+    .map(([type, count]) => ({ type, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 8);
+};
+
 // סיכום פיננסי מלא (ללא מע"מ)
 export const calculateFinancialSummary = (repairs, generalExpenses, technicians) => {
   const completed = repairs.filter(r => r.status === REPAIR_STATUSES.GREEN_COMPLETE);
