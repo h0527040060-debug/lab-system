@@ -3,6 +3,7 @@ import { USER_ROLES } from './constants/userRoles';
 import LoginPage from './pages/LoginPage';
 import OfficeRouter from './pages/OfficeRouter';
 import LabRouter from './pages/LabRouter';
+import { InstallPrompt } from './components/InstallPrompt';
 
 export default function App() {
   const { state, dispatch } = useAppContext();
@@ -34,9 +35,9 @@ export default function App() {
   switch (state.currentUser.role) {
     case USER_ROLES.ADMIN:
     case USER_ROLES.OFFICE:
-      return <OfficeRouter />;
+      return <><OfficeRouter /><InstallPrompt /></>;
     case USER_ROLES.LAB:
-      return <LabRouter />;
+      return <><LabRouter /><InstallPrompt /></>;
     default:
       return <LoginPage />;
   }
