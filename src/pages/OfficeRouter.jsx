@@ -17,7 +17,6 @@ import OfficeReports from './office/OfficeReports';
 import OfficeSettings from './office/OfficeSettings';
 import { OfficeUsers } from './office/OfficeUsers';
 import PartsPage from './office/PartsPage';
-import ProfilePage from './ProfilePage';
 
 const PAGE_COMPONENTS = {
   dashboard: OfficeDashboard,
@@ -34,7 +33,6 @@ const PAGE_COMPONENTS = {
   reports: OfficeReports,
   settings: OfficeSettings,
   users: OfficeUsers,
-  profile: ProfilePage,
 };
 
 export default function OfficeRouter() {
