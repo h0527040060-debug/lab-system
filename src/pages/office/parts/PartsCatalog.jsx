@@ -11,6 +11,7 @@ import PartEditModal from './PartEditModal';
 import Modal from '../../../components/Modal';
 import { Package, Plus, Edit2, Trash2, AlertTriangle, MapPin, BookOpen } from 'lucide-react';
 import AssemblyInstructionsViewer from '../../../components/AssemblyInstructionsViewer';
+import ImageGalleryModal from '../../../components/ImageGalleryModal';
 
 export default function PartsCatalog() {
   const { state, dispatch } = useApp();
@@ -20,6 +21,7 @@ export default function PartsCatalog() {
   const [viewingBatches, setViewingBatches] = useState(null);
   const [deletingPart, setDeletingPart] = useState(null);
   const [viewingAssembly, setViewingAssembly] = useState(null);
+  const [galleryPart, setGalleryPart] = useState(null);
 
   const filteredParts = state.parts.filter(p => {
     if (showLowStockOnly && !isPartLowStock(p, state.stockBatches)) return false;
@@ -106,7 +108,11 @@ export default function PartsCatalog() {
                   <tr key={part.id} className={`border-b border-slate-100 hover:bg-slate-50 ${lowStock ? 'bg-red-50' : ''}`}>
                     <td className="p-3">
                       <div className="flex items-center gap-2">
-                        <PartThumbnail part={part} size="sm" />
+                        <PartThumbnail
+                          part={part}
+                          size="sm"
+                          onClick={part.images?.some(img => img?.startsWith('data:image/')) ? () => setGalleryPart(part) : undefined}
+                        />
                         <div>
                           <p className="font-semibold">{part.name}</p>
                           <p className="text-xs text-slate-500">{part.manufacturer} • {part.manufacturer_sku}</p>
@@ -186,6 +192,15 @@ export default function PartsCatalog() {
 
       {viewingAssembly && (
         <AssemblyInstructionsViewer part={viewingAssembly} onClose={() => setViewingAssembly(null)} />
+      )}
+
+      {galleryPart && (
+        <ImageGalleryModal
+          images={galleryPart.images}
+          startIndex={galleryPart.main_image_index || 0}
+          altText={galleryPart.name}
+          onClose={() => setGalleryPart(null)}
+        />
       )}
 
       <ConfirmDialog

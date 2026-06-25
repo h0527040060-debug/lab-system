@@ -1,5 +1,5 @@
 // תצוגת תמונה/אמוג'י לחלק — תומך גם בbase64 וגם בירושה של אמוג'י
-export default function PartThumbnail({ part, size = 'sm', className = '' }) {
+export default function PartThumbnail({ part, size = 'sm', className = '', onClick }) {
   const mainIdx = part?.main_image_index || 0;
   const mainImage = part?.images?.[mainIdx];
   const isRealImage = mainImage && mainImage.startsWith('data:image/');
@@ -21,11 +21,17 @@ export default function PartThumbnail({ part, size = 'sm', className = '' }) {
   }[size] || 'text-2xl';
 
   if (isRealImage) {
-    return (
-      <div className={`${sizeClass} bg-slate-100 rounded border border-slate-200 overflow-hidden flex-shrink-0 flex items-center justify-center ${className}`}>
+    const inner = (
+      <div className={`${sizeClass} bg-slate-100 rounded border border-slate-200 overflow-hidden flex-shrink-0 flex items-center justify-center ${className} ${onClick ? 'relative' : ''}`}>
         <img src={mainImage} alt={part?.name || ''} className="w-full h-full object-contain" />
+        {onClick && <span className="absolute inset-0 bg-black/0 hover:bg-black/15 transition-colors" />}
       </div>
     );
+    return onClick ? (
+      <button type="button" onClick={onClick} className="cursor-zoom-in flex-shrink-0">
+        {inner}
+      </button>
+    ) : inner;
   }
 
   return (
