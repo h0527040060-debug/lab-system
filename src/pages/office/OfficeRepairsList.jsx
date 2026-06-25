@@ -10,7 +10,8 @@ import EmptyState from '../../components/EmptyState';
 import DiagnosisModal from '../../components/DiagnosisModal';
 import WorkSessionModal from '../../components/WorkSessionModal';
 import ReleaseDocsModal from '../../components/ReleaseDocsModal';
-import { FileText, Stethoscope, Wrench, Camera } from 'lucide-react';
+import { FileText, Stethoscope, Wrench, Camera, Printer } from 'lucide-react';
+import PrintStickerModal from '../../components/PrintStickerModal';
 
 const getActionForStatus = (status) => {
   if ([REPAIR_STATUSES.RED_INTAKE, REPAIR_STATUSES.YELLOW_DIAGNOSIS, REPAIR_STATUSES.YELLOW_APPEAL].includes(status))
@@ -28,6 +29,7 @@ export default function OfficeRepairsList() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [activeRepairId, setActiveRepairId] = useState(null);
   const [activeModal, setActiveModal] = useState(null);
+  const [printRepair, setPrintRepair] = useState(null);
 
   const activeRepair = activeRepairId ? state.repairs.find(r => r.id === activeRepairId) : null;
 
@@ -130,6 +132,14 @@ export default function OfficeRepairsList() {
                       </td>
                       <td className="p-3"><StatusBadge status={r.status} size="sm" /></td>
                       <td className="p-3">
+                        <div className="flex flex-col gap-1">
+                        <button
+                          onClick={() => setPrintRepair({ repair: r, customer, device })}
+                          className="flex items-center gap-1 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-1 rounded-lg font-semibold"
+                          title="הדפס מדבקת QR"
+                        >
+                          <Printer size={13} /> QR
+                        </button>
                         {getActionForStatus(r.status) === 'diagnosis' && (
                           <button
                             onClick={() => openModal(r.id, 'diagnosis')}
@@ -154,6 +164,7 @@ export default function OfficeRepairsList() {
                             <Camera size={13} /> תיעוד
                           </button>
                         )}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -172,6 +183,14 @@ export default function OfficeRepairsList() {
       )}
       {activeRepair && activeModal === 'docs' && (
         <ReleaseDocsModal repair={activeRepair} onClose={closeModal} />
+      )}
+      {printRepair && (
+        <PrintStickerModal
+          repair={printRepair.repair}
+          customer={printRepair.customer}
+          device={printRepair.device}
+          onClose={() => setPrintRepair(null)}
+        />
       )}
     </div>
   );
