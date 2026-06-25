@@ -9,24 +9,44 @@ import { DEFAULT_STATUS_CONFIG } from '../utils/statusConfig';
 // ============================================================
 // STATE INITIAL
 // ============================================================
-const buildInitialState = () => ({
-  customers:        loadFromStorage(storageKeys.CUSTOMERS, []),
-  devices:          loadFromStorage(storageKeys.DEVICES, []),
-  repairs:          loadFromStorage(storageKeys.REPAIRS, []),
-  parts:            loadFromStorage(storageKeys.PARTS, SEED_PARTS),
-  stockBatches:     loadFromStorage(storageKeys.STOCK_BATCHES, SEED_STOCK_BATCHES),
-  suppliers:        loadFromStorage(storageKeys.SUPPLIERS, SEED_SUPPLIERS),
-  purchaseOrders:   loadFromStorage(storageKeys.PURCHASE_ORDERS, []),
-  generalExpenses:  loadFromStorage(storageKeys.GENERAL_EXPENSES, []),
-  workCatalog:      loadFromStorage(storageKeys.WORK_CATALOG, SEED_WORK_CATALOG),
-  services:         loadFromStorage(storageKeys.SERVICES, SEED_SERVICES),
-  technicians:      loadFromStorage(storageKeys.TECHNICIANS, SEED_TECHNICIANS),
-  warrantyAppeals:  loadFromStorage(storageKeys.WARRANTY_APPEALS, []),
-  settings:         loadFromStorage(storageKeys.SETTINGS, SEED_SETTINGS),
-  currentUser:      loadFromStorage(storageKeys.CURRENT_USER, null),
-  users:            loadFromStorage(storageKeys.USERS, []),
-  statusConfig:     loadFromStorage(storageKeys.STATUS_CONFIG, DEFAULT_STATUS_CONFIG),
-});
+// מוודא שיצחק הורוביץ הוא תמיד אדמין
+const OWNER_EMAIL = 'h0527040060@gmail.com';
+
+const ensureOwnerIsAdmin = (users) => {
+  const idx = users.findIndex(u => u.email.toLowerCase() === OWNER_EMAIL);
+  if (idx === -1) return users;
+  if (users[idx].role === 'admin') return users;
+  const updated = [...users];
+  updated[idx] = { ...updated[idx], role: 'admin' };
+  return updated;
+};
+
+const buildInitialState = () => {
+  const users = ensureOwnerIsAdmin(loadFromStorage(storageKeys.USERS, []));
+  const rawCurrentUser = loadFromStorage(storageKeys.CURRENT_USER, null);
+  // סנכרון currentUser עם הנתון המעודכן מ-users
+  const currentUser = rawCurrentUser
+    ? (users.find(u => u.id === rawCurrentUser.id) || rawCurrentUser)
+    : null;
+  return {
+    customers:        loadFromStorage(storageKeys.CUSTOMERS, []),
+    devices:          loadFromStorage(storageKeys.DEVICES, []),
+    repairs:          loadFromStorage(storageKeys.REPAIRS, []),
+    parts:            loadFromStorage(storageKeys.PARTS, SEED_PARTS),
+    stockBatches:     loadFromStorage(storageKeys.STOCK_BATCHES, SEED_STOCK_BATCHES),
+    suppliers:        loadFromStorage(storageKeys.SUPPLIERS, SEED_SUPPLIERS),
+    purchaseOrders:   loadFromStorage(storageKeys.PURCHASE_ORDERS, []),
+    generalExpenses:  loadFromStorage(storageKeys.GENERAL_EXPENSES, []),
+    workCatalog:      loadFromStorage(storageKeys.WORK_CATALOG, SEED_WORK_CATALOG),
+    services:         loadFromStorage(storageKeys.SERVICES, SEED_SERVICES),
+    technicians:      loadFromStorage(storageKeys.TECHNICIANS, SEED_TECHNICIANS),
+    warrantyAppeals:  loadFromStorage(storageKeys.WARRANTY_APPEALS, []),
+    settings:         loadFromStorage(storageKeys.SETTINGS, SEED_SETTINGS),
+    currentUser,
+    users,
+    statusConfig:     loadFromStorage(storageKeys.STATUS_CONFIG, DEFAULT_STATUS_CONFIG),
+  };
+};
 
 // ============================================================
 // REDUCER
