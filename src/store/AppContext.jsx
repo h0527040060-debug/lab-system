@@ -65,6 +65,14 @@ const appReducer = (state, action) => {
       return { ...state, stockBatches: [...state.stockBatches, action.payload] };
     case 'UPDATE_STOCK_BATCH':
       return { ...state, stockBatches: state.stockBatches.map(b => b.id === action.payload.id ? { ...b, ...action.payload } : b) };
+    case 'UPDATE_STOCK_BATCHES_BULK':
+      return {
+        ...state,
+        stockBatches: state.stockBatches.map(b => {
+          const update = action.payload.find(u => u.id === b.id);
+          return update ? { ...b, ...update } : b;
+        })
+      };
 
     // --- ספקים ---
     case 'ADD_SUPPLIER':

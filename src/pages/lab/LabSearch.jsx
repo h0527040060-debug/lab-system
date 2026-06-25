@@ -1,0 +1,181 @@
+import { useState } from 'react';
+import { useAppContext } from '../../store/AppContext';
+import { formatDateTime } from '../../utils/formatters';
+import PageHeader from '../../components/PageHeader';
+import SearchInput from '../../components/SearchInput';
+import StatusBadge from '../../components/StatusBadge';
+import EmptyState from '../../components/EmptyState';
+import { Search, Wrench, Package, FileText } from 'lucide-react';
+
+export default function LabSearch() {
+  const { state } = useAppContext();
+  const [query, setQuery] = useState('');
+
+  if (!query) {
+    return (
+      <div>
+        <PageHeader title="חיפוש מהיר" subtitle="חיפוש לפי קוד תיקון, מכשיר, או ברקוד" />
+        <div className="bg-white rounded-xl shadow-sm p-4 mb-4">
+          <SearchInput
+            value={query}
+            onChange={setQuery}
+            placeholder="הקלד קוד תיקון (QR_...), מכשיר (DEV-...), ברקוד (BR-...) או Serial..."
+          />
+        </div>
+        <EmptyState
+          icon={Search}
+          title="חיפוש גלובלי"
+          description="חפש לפי כל מזהה במערכת"
+        />
+      </div>
+    );
+  }
+
+  const q = query.toLowerCase();
+
+  const matchedRepairs = state.repairs.filter(r => {
+    const customer = state.customers.find(c => c.id === r.customer_id);
+    const device = state.devices.find(d => d.id === r.device_id);
+    return (
+      r.id.toLowerCase().includes(q) ||
+      r.complaint?.toLowerCase().includes(q) ||
+      customer?.name?.toLowerCase().includes(q) ||
+      customer?.phone?.includes(query) ||
+      device?.id.toLowerCase().includes(q) ||
+      device?.manufacturer_serial?.toLowerCase().includes(q)
+    );
+  });
+
+  const matchedDevices = state.devices.filter(d =>
+    d.id.toLowerCase().includes(q) ||
+    d.brand?.toLowerCase().includes(q) ||
+    d.model?.toLowerCase().includes(q) ||
+    d.manufacturer_serial?.toLowerCase().includes(q) ||
+    d.type?.toLowerCase().includes(q)
+  );
+
+  const matchedParts = state.parts.filter(p =>
+    p.name.toLowerCase().includes(q) ||
+    p.internal_barcode?.toLowerCase().includes(q) ||
+    p.manufacturer_sku?.toLowerCase().includes(q) ||
+    p.manufacturer?.toLowerCase().includes(q)
+  );
+
+  const totalResults = matchedRepairs.length + matchedDevices.length + matchedParts.length;
+
+  return (
+    <div>
+      <PageHeader title="חיפוש מהיר" subtitle={`${totalResults} תוצאות עבור "${query}"`} />
+      <div className="bg-white rounded-xl shadow-sm p-4 mb-4">
+        <SearchInput value={query} onChange={setQuery} placeholder="חיפוש..." />
+      </div>
+
+      {totalResults === 0 ? (
+        <EmptyState icon={Search} title="לא נמצאו תוצאות" description={`חיפוש: "${query}"`} />
+      ) : (
+        <div className="space-y-4">
+          {/* תיקונים */}
+          {matchedRepairs.length > 0 && (
+            <div className="bg-white rounded-xl shadow-sm p-4">
+              <h3 className="font-bold text-slate-800 mb-3 flex items-center gap-2">
+                <FileText size={18} />
+                תיקונים ({matchedRepairs.length})
+              </h3>
+              <div className="space-y-2">
+                {matchedRepairs.map(r => {
+                  const customer = state.customers.find(c => c.id === r.customer_id);
+                  const device = state.devices.find(d => d.id === r.device_id);
+                  return (
+                    <div key={r.id} className="border border-slate-200 rounded-lg p-3 hover:bg-slate-50">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-mono text-sm font-bold text-orange-600">{r.id}</span>
+                            <StatusBadge status={r.status} size="sm" />
+                          </div>
+                          <p className="font-semibold text-sm">{customer?.name}</p>
+                          <p className="text-xs text-slate-500">{device?.brand} {device?.model}</p>
+                          <p className="text-xs text-slate-500 mt-1">{r.complaint}</p>
+                        </div>
+                        <span className="text-xs text-slate-400">{formatDateTime(r.date_intake)}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* מכשירים */}
+          {matchedDevices.length > 0 && (
+            <div className="bg-white rounded-xl shadow-sm p-4">
+              <h3 className="font-bold text-slate-800 mb-3 flex items-center gap-2">
+                <Wrench size={18} />
+                מכשירים ({matchedDevices.length})
+              </h3>
+              <div className="space-y-2">
+                {matchedDevices.map(d => {
+                  const owner = state.customers.find(c => c.id === d.owner_customer_id);
+                  const repairsCount = state.repairs.filter(r => r.device_id === d.id).length;
+                  return (
+                    <div key={d.id} className="border border-slate-200 rounded-lg p-3 hover:bg-slate-50">
+                      <div className="flex justify-between">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-mono text-sm font-bold text-cyan-600">{d.id}</span>
+                            <span className="text-xs text-slate-500">• {repairsCount} תיקונים</span>
+                          </div>
+                          <p className="font-semibold text-sm">{d.brand} {d.model}</p>
+                          <p className="text-xs text-slate-500">{d.type} • {owner?.name}</p>
+                          {d.manufacturer_serial && (
+                            <p className="text-xs font-mono text-slate-500">Serial: {d.manufacturer_serial}</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* חלקים */}
+          {matchedParts.length > 0 && (
+            <div className="bg-white rounded-xl shadow-sm p-4">
+              <h3 className="font-bold text-slate-800 mb-3 flex items-center gap-2">
+                <Package size={18} />
+                חלקים ({matchedParts.length})
+              </h3>
+              <div className="space-y-2">
+                {matchedParts.map(p => {
+                  const totalStock = state.stockBatches
+                    .filter(b => b.part_id === p.id)
+                    .reduce((sum, b) => sum + b.quantity_remaining, 0);
+                  return (
+                    <div key={p.id} className="border border-slate-200 rounded-lg p-3 hover:bg-slate-50">
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="font-semibold text-sm">{p.name}</p>
+                            <span className="font-mono text-xs text-slate-500">{p.internal_barcode}</span>
+                          </div>
+                          <p className="text-xs text-slate-500">{p.manufacturer} • {p.manufacturer_sku}</p>
+                          {p.shelf && (
+                            <p className="text-xs text-slate-500">📍 מדף {p.shelf}, תא {p.bin}</p>
+                          )}
+                        </div>
+                        <span className={`font-bold text-sm ${totalStock === 0 ? 'text-red-600' : 'text-green-600'}`}>
+                          {totalStock} במלאי
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
