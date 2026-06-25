@@ -5,12 +5,14 @@ import { formatDateTime } from '../../utils/formatters';
 import PageHeader from '../../components/PageHeader';
 import DiagnosisModal from '../../components/DiagnosisModal';
 import WorkSessionModal from '../../components/WorkSessionModal';
+import ReleaseDocsModal from '../../components/ReleaseDocsModal';
 import { AlertTriangle, Clock } from 'lucide-react';
 
 export default function LabDashboard() {
   const { state } = useAppContext();
   const [diagnosingRepair, setDiagnosingRepair] = useState(null);
   const [workingOnRepair, setWorkingOnRepair] = useState(null);
+  const [releaseDocsRepair, setReleaseDocsRepair] = useState(null);
 
   const newRepairs = state.repairs.filter(r => r.status === REPAIR_STATUSES.RED_INTAKE);
   const inDiagnosis = state.repairs.filter(r =>
@@ -18,6 +20,7 @@ export default function LabDashboard() {
   );
   const readyForWork = state.repairs.filter(r => r.status === REPAIR_STATUSES.YELLOW_READY_TO_WORK);
   const inWork = state.repairs.filter(r => r.status === REPAIR_STATUSES.IN_WORK);
+  const pendingDocs = state.repairs.filter(r => r.status === REPAIR_STATUSES.PENDING_RELEASE_DOCS);
 
   const stuckRepairs = state.repairs.filter(r => {
     const completed = [REPAIR_STATUSES.GREEN_COMPLETE, REPAIR_STATUSES.RED_CANCELLED].includes(r.status);
@@ -39,7 +42,7 @@ export default function LabDashboard() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-3">
         <KanbanColumn
           title="חדשות באבחון"
           count={newRepairs.length}
@@ -72,6 +75,14 @@ export default function LabDashboard() {
           onSelect={setWorkingOnRepair}
           color="blue"
         />
+        <KanbanColumn
+          title="📸 ממתין תיעוד"
+          count={pendingDocs.length}
+          repairs={pendingDocs}
+          state={state}
+          onSelect={setReleaseDocsRepair}
+          color="orange"
+        />
       </div>
 
       {diagnosingRepair && (
@@ -87,6 +98,13 @@ export default function LabDashboard() {
           onClose={() => setWorkingOnRepair(null)}
         />
       )}
+
+      {releaseDocsRepair && (
+        <ReleaseDocsModal
+          repair={releaseDocsRepair}
+          onClose={() => setReleaseDocsRepair(null)}
+        />
+      )}
     </div>
   );
 }
@@ -97,9 +115,10 @@ function KanbanColumn({ title, count, repairs, state, onSelect, color, disabled 
     yellow: 'border-yellow-200 bg-yellow-50',
     green: 'border-green-200 bg-green-50',
     blue: 'border-blue-200 bg-blue-50',
+    orange: 'border-orange-200 bg-orange-50',
   };
 
-  const emoji = { red: '🔴', yellow: '🟡', green: '🟢', blue: '⚙️' };
+  const emoji = { red: '🔴', yellow: '🟡', green: '🟢', blue: '⚙️', orange: '' };
 
   return (
     <div className={`rounded-xl border-2 ${colorMap[color]} p-3`}>

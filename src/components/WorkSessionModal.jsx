@@ -92,6 +92,7 @@ export default function WorkSessionModal({ repair, onClose }) {
       }
     });
 
+    alert('הסטופר נסגר! הקריאה עברה ל"📸 ממתין תיעוד". יש להעלות תמונה/וידאו תקינות.');
     setConfirmAction(null);
     onClose();
   };
