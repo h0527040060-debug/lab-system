@@ -47,3 +47,22 @@ export const calculateQuoteBreakdown = (repair, state) => {
 
   return { works, worksTotal, parts, partsTotal, services, servicesTotal, grandTotal };
 };
+
+// חישוב חשבון סופי — משתמש ב-invoice_items אם קיים, אחרת fallback ל-calculateQuoteBreakdown
+export const calculateInvoiceBreakdown = (repair, state) => {
+  if (!repair.invoice_items) return calculateQuoteBreakdown(repair, state);
+  const { works = [], parts = [], services = [] } = repair.invoice_items;
+  const worksTotal = works.reduce((s, w) => s + (w.price || 0), 0);
+  const partsWithTotal = parts.map(p => ({ ...p, total: (p.unit_price || 0) * (p.quantity || 1) }));
+  const partsTotal = partsWithTotal.reduce((s, p) => s + p.total, 0);
+  const servicesTotal = services.reduce((s, sv) => s + (sv.price || 0), 0);
+  return {
+    works,
+    worksTotal,
+    parts: partsWithTotal,
+    partsTotal,
+    services,
+    servicesTotal,
+    grandTotal: worksTotal + partsTotal + servicesTotal,
+  };
+};

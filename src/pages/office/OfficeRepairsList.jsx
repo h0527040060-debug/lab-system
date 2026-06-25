@@ -1,18 +1,44 @@
 import { useState } from 'react';
 import { useAppContext } from '../../store/AppContext';
-import { STATUS_LABELS } from '../../constants/statuses';
+import { STATUS_LABELS, REPAIR_STATUSES } from '../../constants/statuses';
 import { WARRANTY_LABELS } from '../../constants/warranty';
 import { formatDateTime } from '../../utils/formatters';
 import PageHeader from '../../components/PageHeader';
 import SearchInput from '../../components/SearchInput';
 import StatusBadge from '../../components/StatusBadge';
 import EmptyState from '../../components/EmptyState';
-import { FileText } from 'lucide-react';
+import DiagnosisModal from '../../components/DiagnosisModal';
+import WorkSessionModal from '../../components/WorkSessionModal';
+import ReleaseDocsModal from '../../components/ReleaseDocsModal';
+import { FileText, Stethoscope, Wrench, Camera } from 'lucide-react';
+
+const getActionForStatus = (status) => {
+  if ([REPAIR_STATUSES.RED_INTAKE, REPAIR_STATUSES.YELLOW_DIAGNOSIS, REPAIR_STATUSES.YELLOW_APPEAL].includes(status))
+    return 'diagnosis';
+  if ([REPAIR_STATUSES.YELLOW_READY_TO_WORK, REPAIR_STATUSES.IN_WORK].includes(status))
+    return 'work';
+  if (status === REPAIR_STATUSES.PENDING_RELEASE_DOCS)
+    return 'docs';
+  return null;
+};
 
 export default function OfficeRepairsList() {
   const { state } = useAppContext();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [activeRepairId, setActiveRepairId] = useState(null);
+  const [activeModal, setActiveModal] = useState(null);
+
+  const activeRepair = activeRepairId ? state.repairs.find(r => r.id === activeRepairId) : null;
+
+  const openModal = (repairId, modal) => {
+    setActiveRepairId(repairId);
+    setActiveModal(modal);
+  };
+  const closeModal = () => {
+    setActiveRepairId(null);
+    setActiveModal(null);
+  };
 
   const filteredRepairs = state.repairs
     .filter(r => {
@@ -77,6 +103,7 @@ export default function OfficeRepairsList() {
                   <th className="text-right p-3 font-semibold text-slate-700">אחריות</th>
                   <th className="text-right p-3 font-semibold text-slate-700">עובדים</th>
                   <th className="text-right p-3 font-semibold text-slate-700">סטטוס</th>
+                  <th className="text-right p-3 font-semibold text-slate-700">פעולה</th>
                 </tr>
               </thead>
               <tbody>
@@ -102,6 +129,32 @@ export default function OfficeRepairsList() {
                         {r.performed_by_name && <div>ביצוע: {r.performed_by_name}</div>}
                       </td>
                       <td className="p-3"><StatusBadge status={r.status} size="sm" /></td>
+                      <td className="p-3">
+                        {getActionForStatus(r.status) === 'diagnosis' && (
+                          <button
+                            onClick={() => openModal(r.id, 'diagnosis')}
+                            className="flex items-center gap-1 text-xs bg-yellow-100 hover:bg-yellow-200 text-yellow-800 px-2 py-1 rounded-lg font-semibold"
+                          >
+                            <Stethoscope size={13} /> אבחון
+                          </button>
+                        )}
+                        {getActionForStatus(r.status) === 'work' && (
+                          <button
+                            onClick={() => openModal(r.id, 'work')}
+                            className="flex items-center gap-1 text-xs bg-blue-100 hover:bg-blue-200 text-blue-800 px-2 py-1 rounded-lg font-semibold"
+                          >
+                            <Wrench size={13} /> ביצוע
+                          </button>
+                        )}
+                        {getActionForStatus(r.status) === 'docs' && (
+                          <button
+                            onClick={() => openModal(r.id, 'docs')}
+                            className="flex items-center gap-1 text-xs bg-purple-100 hover:bg-purple-200 text-purple-800 px-2 py-1 rounded-lg font-semibold"
+                          >
+                            <Camera size={13} /> תיעוד
+                          </button>
+                        )}
+                      </td>
                     </tr>
                   );
                 })}
@@ -110,6 +163,16 @@ export default function OfficeRepairsList() {
           </div>
         )}
       </div>
+
+      {activeRepair && activeModal === 'diagnosis' && (
+        <DiagnosisModal repair={activeRepair} onClose={closeModal} />
+      )}
+      {activeRepair && activeModal === 'work' && (
+        <WorkSessionModal repair={activeRepair} onClose={closeModal} />
+      )}
+      {activeRepair && activeModal === 'docs' && (
+        <ReleaseDocsModal repair={activeRepair} onClose={closeModal} />
+      )}
     </div>
   );
 }
