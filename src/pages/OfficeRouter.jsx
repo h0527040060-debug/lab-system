@@ -18,6 +18,7 @@ import OfficeSettings from './office/OfficeSettings';
 import { OfficeUsers } from './office/OfficeUsers';
 import PartsPage from './office/PartsPage';
 import OfficeSearch from './office/OfficeSearch';
+import OfficeLogs from './office/OfficeLogs';
 
 const PAGE_COMPONENTS = {
   dashboard: OfficeDashboard,
@@ -34,6 +35,7 @@ const PAGE_COMPONENTS = {
   reports: OfficeReports,
   settings: OfficeSettings,
   users: OfficeUsers,
+  logs: OfficeLogs,
   search: OfficeSearch,
 };
 
@@ -43,7 +45,7 @@ export default function OfficeRouter() {
   const PageComponent = PAGE_COMPONENTS[currentTab] || OfficeDashboard;
 
   const isAdmin = state.currentUser?.role === 'admin';
-  const visibleTabs = OFFICE_TABS.filter(t => !t.hidden && (t.id !== 'users' || isAdmin));
+  const visibleTabs = OFFICE_TABS.filter(t => !t.hidden && (!t.adminOnly || isAdmin));
 
   return (
     <Layout currentTab={currentTab} onTabChange={setCurrentTab} tabs={visibleTabs}>

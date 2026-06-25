@@ -83,3 +83,30 @@ export const importAllData = (data) => {
     saveToStorage(key, value);
   });
 };
+
+// --- לוגים ---
+const LOGS_KEY = STORAGE_PREFIX + 'action_logs';
+const MAX_LOGS = 2000;
+
+export const loadLogs = () => {
+  try {
+    const stored = localStorage.getItem(LOGS_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+};
+
+export const appendLog = (entry) => {
+  try {
+    const current = loadLogs();
+    const updated = [entry, ...current].slice(0, MAX_LOGS);
+    localStorage.setItem(LOGS_KEY, JSON.stringify(updated));
+  } catch {
+    // שגיאת שמירה — לא קריטי
+  }
+};
+
+export const clearLogs = () => {
+  localStorage.removeItem(LOGS_KEY);
+};

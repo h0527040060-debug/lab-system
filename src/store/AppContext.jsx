@@ -1,5 +1,5 @@
 import { createContext, useContext, useReducer, useEffect, useCallback, useRef } from 'react';
-import { storageKeys, loadFromStorage, saveToStorage } from './storage';
+import { storageKeys, loadFromStorage, saveToStorage, appendLog } from './storage';
 import {
   SEED_TECHNICIANS, SEED_SUPPLIERS, SEED_WORK_CATALOG,
   SEED_SERVICES, SEED_PARTS, SEED_STOCK_BATCHES, SEED_SETTINGS,
@@ -180,6 +180,75 @@ const appReducer = (state, action) => {
 };
 
 // ============================================================
+// AUDIT LOG
+// ============================================================
+const ACTION_META = {
+  ADD_REPAIR:           { entity: 'repair',    desc: (p) => `קלט תיקון חדש: ${p.id}` },
+  UPDATE_REPAIR:        { entity: 'repair',    desc: (p) => `עדכן תיקון: ${p.id}` },
+  DELETE_REPAIR:        { entity: 'repair',    desc: (p) => `מחק תיקון: ${p}` },
+  ADD_CUSTOMER:         { entity: 'customer',  desc: (p) => `הוסיף לקוח: ${p.name}` },
+  UPDATE_CUSTOMER:      { entity: 'customer',  desc: (p) => `עדכן לקוח: ${p.id}` },
+  DELETE_CUSTOMER:      { entity: 'customer',  desc: (p) => `מחק לקוח: ${p}` },
+  ADD_DEVICE:           { entity: 'device',    desc: (p) => `הוסיף מכשיר: ${p.id}` },
+  UPDATE_DEVICE:        { entity: 'device',    desc: (p) => `עדכן מכשיר: ${p.id}` },
+  ADD_PART:             { entity: 'part',      desc: (p) => `הוסיף חלק: ${p.name || p.id}` },
+  UPDATE_PART:          { entity: 'part',      desc: (p) => `עדכן חלק: ${p.id}` },
+  DELETE_PART:          { entity: 'part',      desc: (p) => `מחק חלק: ${p}` },
+  ADD_STOCK_BATCH:      { entity: 'stock',     desc: (p) => `קלט אצווה: ${p.id}` },
+  UPDATE_STOCK_BATCH:   { entity: 'stock',     desc: (p) => `עדכן אצווה: ${p.id}` },
+  UPDATE_STOCK_BATCHES_BULK: { entity: 'stock', desc: () => 'עדכון מלאי כמותי' },
+  ADD_SUPPLIER:         { entity: 'supplier',  desc: (p) => `הוסיף ספק: ${p.name}` },
+  UPDATE_SUPPLIER:      { entity: 'supplier',  desc: (p) => `עדכן ספק: ${p.id}` },
+  DELETE_SUPPLIER:      { entity: 'supplier',  desc: (p) => `מחק ספק: ${p}` },
+  ADD_PURCHASE_ORDER:   { entity: 'purchase',  desc: (p) => `יצר הזמנת רכש: ${p.id}` },
+  UPDATE_PURCHASE_ORDER:{ entity: 'purchase',  desc: (p) => `עדכן הזמנת רכש: ${p.id}` },
+  ADD_GENERAL_EXPENSE:  { entity: 'expense',   desc: (p) => `הוסיף הוצאה: ${p.description || p.id}` },
+  UPDATE_GENERAL_EXPENSE:{ entity: 'expense',  desc: (p) => `עדכן הוצאה: ${p.id}` },
+  DELETE_GENERAL_EXPENSE:{ entity: 'expense',  desc: (p) => `מחק הוצאה: ${p}` },
+  ADD_WORK_ITEM:        { entity: 'work',      desc: (p) => `הוסיף עבודה לקטלוג: ${p.name || p.id}` },
+  UPDATE_WORK_ITEM:     { entity: 'work',      desc: (p) => `עדכן עבודה בקטלוג: ${p.id}` },
+  DELETE_WORK_ITEM:     { entity: 'work',      desc: (p) => `מחק עבודה מהקטלוג: ${p}` },
+  ADD_SERVICE:          { entity: 'service',   desc: (p) => `הוסיף שירות: ${p.name || p.id}` },
+  UPDATE_SERVICE:       { entity: 'service',   desc: (p) => `עדכן שירות: ${p.id}` },
+  ADD_TECHNICIAN:       { entity: 'technician',desc: (p) => `הוסיף טכנאי: ${p.name}` },
+  UPDATE_TECHNICIAN:    { entity: 'technician',desc: (p) => `עדכן טכנאי: ${p.id}` },
+  ADD_WARRANTY_APPEAL:  { entity: 'appeal',    desc: (p) => `פתח ערעור אחריות: ${p.id}` },
+  UPDATE_WARRANTY_APPEAL:{ entity: 'appeal',   desc: (p) => `עדכן ערעור אחריות: ${p.id}` },
+  UPDATE_SETTINGS:      { entity: 'settings',  desc: () => 'עדכן הגדרות מערכת' },
+  ADD_USER:             { entity: 'user',      desc: (p) => `הוסיף משתמש: ${p.name}` },
+  UPDATE_USER:          { entity: 'user',      desc: (p) => `עדכן משתמש: ${p.id}` },
+  ADD_STATUS:           { entity: 'status',    desc: (p) => `הוסיף סטטוס: ${p.label}` },
+  UPDATE_STATUS:        { entity: 'status',    desc: (p) => `עדכן סטטוס: ${p.id}` },
+  DELETE_STATUS:        { entity: 'status',    desc: (p) => `מחק סטטוס: ${p}` },
+  SET_CURRENT_USER:     { entity: 'auth',      desc: (p) => `התחבר למערכת: ${p?.name || ''}` },
+  LOGOUT:               { entity: 'auth',      desc: () => 'התנתק מהמערכת' },
+};
+
+const buildLogEntry = (action, currentUser, state) => {
+  const meta = ACTION_META[action.type];
+  if (!meta) return null;
+  const p = action.payload;
+  // חיפוש שם לקוח — מהתיקון (אם יש customer_name) או מרשימת הלקוחות
+  let customerName = p?.customer_name || '';
+  if (!customerName && p?.customer_id && state?.customers) {
+    const c = state.customers.find(c => c.id === p.customer_id);
+    if (c) customerName = c.name;
+  }
+  const actor = action.type === 'SET_CURRENT_USER' ? p : currentUser;
+  return {
+    id: 'LOG-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+    timestamp: new Date().toISOString(),
+    user_id: actor?.id || '',
+    user_name: actor?.name || 'מערכת',
+    action_type: action.type,
+    entity_type: meta.entity,
+    entity_id: typeof p === 'string' ? p : (p?.id || ''),
+    customer_name: customerName,
+    description: meta.desc(p),
+  };
+};
+
+// ============================================================
 // CONTEXT
 // ============================================================
 const AppContext = createContext(null);
@@ -216,8 +285,14 @@ export const AppProvider = ({ children }) => {
   useEffect(() => { scheduleSave(storageKeys.USERS, state.users); }, [state.users, scheduleSave]);
   useEffect(() => { scheduleSave(storageKeys.STATUS_CONFIG, state.statusConfig); }, [state.statusConfig, scheduleSave]);
 
+  const loggedDispatch = useCallback((action) => {
+    dispatch(action);
+    const entry = buildLogEntry(action, state.currentUser, state);
+    if (entry) appendLog(entry);
+  }, [dispatch, state]);
+
   return (
-    <AppContext.Provider value={{ state, dispatch }}>
+    <AppContext.Provider value={{ state, dispatch: loggedDispatch }}>
       {children}
     </AppContext.Provider>
   );
