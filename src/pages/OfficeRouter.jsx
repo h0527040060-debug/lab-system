@@ -10,12 +10,12 @@ import OfficePayment from './office/OfficePayment';
 import OfficeRepairsList from './office/OfficeRepairsList';
 import OfficeCustomers from './office/OfficeCustomers';
 import OfficeDevices from './office/OfficeDevices';
-import OfficeInventory from './office/OfficeInventory';
-import OfficeOrders from './office/OfficeOrders';
 import OfficeWorkCatalog from './office/OfficeWorkCatalog';
 import OfficeGeneralExpenses from './office/OfficeGeneralExpenses';
 import OfficeReports from './office/OfficeReports';
 import OfficeSettings from './office/OfficeSettings';
+import { OfficeUsers } from './office/OfficeUsers';
+import PartsPage from './office/PartsPage';
 
 const PAGE_COMPONENTS = {
   dashboard: OfficeDashboard,
@@ -26,12 +26,12 @@ const PAGE_COMPONENTS = {
   repairs: OfficeRepairsList,
   customers: OfficeCustomers,
   devices: OfficeDevices,
-  inventory: OfficeInventory,
-  orders: OfficeOrders,
+  parts: PartsPage,
   'work-catalog': OfficeWorkCatalog,
   'general-expenses': OfficeGeneralExpenses,
   reports: OfficeReports,
   settings: OfficeSettings,
+  users: OfficeUsers,
 };
 
 export default function OfficeRouter() {

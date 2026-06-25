@@ -54,9 +54,30 @@ export default function Layout({ children, currentTab, onTabChange, tabs }) {
 
           {/* יוזר + יציאה */}
           <div className="p-4 border-t border-slate-700">
+            <div className="flex items-center gap-2 mb-3">
+              {state.currentUser?.picture ? (
+                <img
+                  src={state.currentUser.picture}
+                  alt={state.currentUser.name}
+                  className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-slate-600 flex items-center justify-center flex-shrink-0 text-xs font-bold text-white">
+                  {state.currentUser?.name?.charAt(0) || '?'}
+                </div>
+              )}
+              <div className="overflow-hidden">
+                <p className="text-sm font-medium text-white truncate leading-tight">
+                  {state.currentUser?.name || ''}
+                </p>
+                <p className="text-xs text-slate-400 truncate">
+                  {state.currentUser?.email || roleLabel}
+                </p>
+              </div>
+            </div>
             <button
               onClick={handleLogout}
-              className="w-full flex items-center gap-2 text-slate-300 hover:text-white text-sm"
+              className="w-full flex items-center gap-2 text-slate-400 hover:text-white text-sm transition-colors"
             >
               <LogOut size={16} />
               <span>התנתק</span>

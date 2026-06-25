@@ -16,6 +16,7 @@ export const storageKeys = {
   WARRANTY_APPEALS: 'warranty_appeals',
   SETTINGS: 'settings',
   CURRENT_USER: 'current_user',
+  USERS: 'users',
 };
 
 // טעינה

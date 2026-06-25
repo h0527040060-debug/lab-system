@@ -23,6 +23,7 @@ const buildInitialState = () => ({
   warrantyAppeals:  loadFromStorage(storageKeys.WARRANTY_APPEALS, []),
   settings:         loadFromStorage(storageKeys.SETTINGS, SEED_SETTINGS),
   currentUser:      loadFromStorage(storageKeys.CURRENT_USER, null),
+  users:            loadFromStorage(storageKeys.USERS, []),
 });
 
 // ============================================================
@@ -126,6 +127,12 @@ const appReducer = (state, action) => {
     case 'UPDATE_SETTINGS':
       return { ...state, settings: { ...state.settings, ...action.payload } };
 
+    // --- רשימת משתמשים ---
+    case 'ADD_USER':
+      return { ...state, users: [...state.users, action.payload] };
+    case 'UPDATE_USER':
+      return { ...state, users: state.users.map(u => u.id === action.payload.id ? { ...u, ...action.payload } : u) };
+
     // --- משתמש נוכחי ---
     case 'SET_CURRENT_USER':
       return { ...state, currentUser: action.payload };
@@ -171,6 +178,7 @@ export const AppProvider = ({ children }) => {
   useEffect(() => { scheduleSave(storageKeys.WARRANTY_APPEALS, state.warrantyAppeals); }, [state.warrantyAppeals, scheduleSave]);
   useEffect(() => { scheduleSave(storageKeys.SETTINGS, state.settings); }, [state.settings, scheduleSave]);
   useEffect(() => { scheduleSave(storageKeys.CURRENT_USER, state.currentUser); }, [state.currentUser, scheduleSave]);
+  useEffect(() => { scheduleSave(storageKeys.USERS, state.users); }, [state.users, scheduleSave]);
 
   return (
     <AppContext.Provider value={{ state, dispatch }}>

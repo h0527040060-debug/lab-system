@@ -7,12 +7,12 @@ export const OFFICE_TABS = [
   { id: 'repairs', label: 'כל הקריאות', icon: '📋' },
   { id: 'customers', label: 'לקוחות', icon: '👥' },
   { id: 'devices', label: 'מכשירים', icon: '📱' },
-  { id: 'inventory', label: 'מלאי חלקים', icon: '📦' },
-  { id: 'orders', label: 'הזמנות מספקים', icon: '🛒' },
+  { id: 'parts', label: 'חלקים', icon: '🔧' },
   { id: 'work-catalog', label: 'קטלוג עבודות', icon: '🛠️' },
   { id: 'general-expenses', label: 'רכש כללי', icon: '💵' },
   { id: 'reports', label: 'דוחות', icon: '📈' },
   { id: 'settings', label: 'הגדרות', icon: '⚙️' },
+  { id: 'users', label: 'משתמשים', icon: '👤' },
 ];
 
 export const LAB_TABS = [
