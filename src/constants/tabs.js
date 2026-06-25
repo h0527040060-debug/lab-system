@@ -13,10 +13,12 @@ export const OFFICE_TABS = [
   { id: 'reports', label: 'דוחות', icon: '📈' },
   { id: 'settings', label: 'הגדרות', icon: '⚙️' },
   { id: 'users', label: 'משתמשים', icon: '👤' },
+  { id: 'profile', label: 'הפרופיל שלי', icon: '🙋' },
 ];
 
 export const LAB_TABS = [
   { id: 'dashboard', label: 'דשבורד מעבדה', icon: '🏠' },
   { id: 'search', label: 'חיפוש מהיר', icon: '🔍' },
   { id: 'history', label: 'היסטוריית מכשירים', icon: '📜' },
+  { id: 'profile', label: 'הפרופיל שלי', icon: '🙋' },
 ];
