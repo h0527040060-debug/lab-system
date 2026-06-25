@@ -95,6 +95,8 @@ export default function OfficeIntake() {
       status: REPAIR_STATUSES.RED_INTAKE,
       date_intake: new Date().toISOString(),
       intake_photos: intakePhotos,
+      intake_by_user_id: state.currentUser?.id,
+      intake_by_name: state.currentUser?.name,
     };
     dispatch({ type: 'ADD_REPAIR', payload: repair });
     setSuccessRepair(repair);

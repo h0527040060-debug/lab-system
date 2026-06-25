@@ -75,6 +75,7 @@ export default function OfficeRepairsList() {
                   <th className="text-right p-3 font-semibold text-slate-700">מכשיר</th>
                   <th className="text-right p-3 font-semibold text-slate-700">תלונה</th>
                   <th className="text-right p-3 font-semibold text-slate-700">אחריות</th>
+                  <th className="text-right p-3 font-semibold text-slate-700">עובדים</th>
                   <th className="text-right p-3 font-semibold text-slate-700">סטטוס</th>
                 </tr>
               </thead>
@@ -96,6 +97,10 @@ export default function OfficeRepairsList() {
                       </td>
                       <td className="p-3 text-xs max-w-xs truncate">{r.complaint}</td>
                       <td className="p-3 text-xs">{WARRANTY_LABELS[r.warranty_type] || '—'}</td>
+                      <td className="p-3 text-xs text-slate-500">
+                        {r.intake_by_name && <div>קליטה: {r.intake_by_name}</div>}
+                        {r.performed_by_name && <div>ביצוע: {r.performed_by_name}</div>}
+                      </td>
                       <td className="p-3"><StatusBadge status={r.status} size="sm" /></td>
                     </tr>
                   );

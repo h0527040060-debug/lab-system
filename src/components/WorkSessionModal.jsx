@@ -92,6 +92,8 @@ export default function WorkSessionModal({ repair, onClose }) {
         used_parts: allAllocations,
         internal_parts_cost: internalPartsCost,
         has_unapproved_changes: hasChanges,
+        performed_by_user_id: state.currentUser?.id,
+        performed_by_name: state.currentUser?.name,
       }
     });
 
