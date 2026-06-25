@@ -7,7 +7,8 @@ import { formatDateTime, formatMoney } from '../../utils/formatters';
 import PageHeader from '../../components/PageHeader';
 import SearchInput from '../../components/SearchInput';
 import AutocompleteInput from '../../components/AutocompleteInput';
-import { User, Wrench, FileText, ShieldCheck, Camera, Check, Plus } from 'lucide-react';
+import { User, Wrench, FileText, ShieldCheck, Camera, Check, Plus, Printer } from 'lucide-react';
+import PrintStickerModal from '../../components/PrintStickerModal';
 
 export default function OfficeIntake() {
   const { state, dispatch } = useAppContext();
@@ -36,6 +37,7 @@ export default function OfficeIntake() {
   const [diagnosticFeeConfirmed, setDiagnosticFeeConfirmed] = useState(false);
 
   const [successRepair, setSuccessRepair] = useState(null);
+  const [printRepair, setPrintRepair] = useState(null);
 
   const filteredCustomers = state.customers.filter(c =>
     !customerSearch ||
@@ -136,6 +138,7 @@ export default function OfficeIntake() {
     const customer = state.customers.find(c => c.id === successRepair.customer_id);
     const device = state.devices.find(d => d.id === successRepair.device_id);
     return (
+      <>
       <div className="max-w-2xl mx-auto">
         <div className="bg-white rounded-xl shadow-lg p-8 text-center">
           <div className="w-20 h-20 bg-green-100 rounded-full mx-auto mb-4 flex items-center justify-center">
@@ -152,12 +155,30 @@ export default function OfficeIntake() {
               <div className="col-span-2"><span className="text-slate-500">תלונה:</span> <span>{successRepair.complaint}</span></div>
             </div>
           </div>
-          <button onClick={resetForm} className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-lg font-bold">
-            <Plus size={18} className="inline ml-1" />
-            קליטת קריאה נוספת
-          </button>
+          <div className="flex flex-wrap gap-3 justify-center">
+            <button
+              onClick={() => setPrintRepair({ repair: successRepair, customer, device })}
+              className="bg-slate-800 hover:bg-slate-900 text-white px-6 py-3 rounded-lg font-bold flex items-center gap-2"
+            >
+              <Printer size={18} />
+              הדפס מדבקה
+            </button>
+            <button onClick={resetForm} className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-lg font-bold flex items-center gap-2">
+              <Plus size={18} />
+              קליטת קריאה נוספת
+            </button>
+          </div>
         </div>
       </div>
+      {printRepair && (
+        <PrintStickerModal
+          repair={printRepair.repair}
+          customer={printRepair.customer}
+          device={printRepair.device}
+          onClose={() => setPrintRepair(null)}
+        />
+      )}
+      </>
     );
   }
 
