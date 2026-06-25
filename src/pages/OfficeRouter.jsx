@@ -18,7 +18,6 @@ import OfficeSettings from './office/OfficeSettings';
 import { OfficeUsers } from './office/OfficeUsers';
 import PartsPage from './office/PartsPage';
 import OfficeSearch from './office/OfficeSearch';
-import ProfilePage from './ProfilePage';
 
 const PAGE_COMPONENTS = {
   dashboard: OfficeDashboard,
@@ -36,7 +35,6 @@ const PAGE_COMPONENTS = {
   settings: OfficeSettings,
   users: OfficeUsers,
   search: OfficeSearch,
-  profile: ProfilePage,
 };
 
 export default function OfficeRouter() {

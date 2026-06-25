@@ -5,13 +5,11 @@ import { LAB_TABS } from '../constants/tabs';
 import LabDashboard from './lab/LabDashboard';
 import LabSearch from './lab/LabSearch';
 import LabHistory from './lab/LabHistory';
-import ProfilePage from './ProfilePage';
 
 const PAGE_COMPONENTS = {
   dashboard: LabDashboard,
   search: LabSearch,
   history: LabHistory,
-  profile: ProfilePage,
 };
 
 export default function LabRouter() {
