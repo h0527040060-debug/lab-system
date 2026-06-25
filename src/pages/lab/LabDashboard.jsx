@@ -4,11 +4,13 @@ import { REPAIR_STATUSES } from '../../constants/statuses';
 import { formatDateTime } from '../../utils/formatters';
 import PageHeader from '../../components/PageHeader';
 import DiagnosisModal from '../../components/DiagnosisModal';
+import WorkSessionModal from '../../components/WorkSessionModal';
 import { AlertTriangle, Clock } from 'lucide-react';
 
 export default function LabDashboard() {
   const { state } = useAppContext();
   const [diagnosingRepair, setDiagnosingRepair] = useState(null);
+  const [workingOnRepair, setWorkingOnRepair] = useState(null);
 
   const newRepairs = state.repairs.filter(r => r.status === REPAIR_STATUSES.RED_INTAKE);
   const inDiagnosis = state.repairs.filter(r =>
@@ -59,18 +61,16 @@ export default function LabDashboard() {
           count={readyForWork.length}
           repairs={readyForWork}
           state={state}
-          onSelect={() => {}}
+          onSelect={setWorkingOnRepair}
           color="green"
-          disabled
         />
         <KanbanColumn
           title="בעבודה"
           count={inWork.length}
           repairs={inWork}
           state={state}
-          onSelect={() => {}}
+          onSelect={setWorkingOnRepair}
           color="blue"
-          disabled
         />
       </div>
 
@@ -78,6 +78,13 @@ export default function LabDashboard() {
         <DiagnosisModal
           repair={diagnosingRepair}
           onClose={() => setDiagnosingRepair(null)}
+        />
+      )}
+
+      {workingOnRepair && (
+        <WorkSessionModal
+          repair={workingOnRepair}
+          onClose={() => setWorkingOnRepair(null)}
         />
       )}
     </div>
