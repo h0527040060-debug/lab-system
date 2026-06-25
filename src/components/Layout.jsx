@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAppContext } from '../store/AppContext';
 import { ROLE_LABELS } from '../constants/userRoles';
-import { LogOut, Menu, X } from 'lucide-react';
+import { LogOut, Menu, X, Search } from 'lucide-react';
 import NotificationBell from './NotificationBell';
 
 export default function Layout({ children, currentTab, onTabChange, tabs }) {
@@ -110,8 +110,15 @@ export default function Layout({ children, currentTab, onTabChange, tabs }) {
             {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => onTabChange('search')}
+              className="p-2 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-slate-800"
+              title="חיפוש גלובלי"
+            >
+              <Search size={20} />
+            </button>
             <NotificationBell onNavigate={onTabChange} />
-            <div className="text-sm text-slate-600">
+            <div className="text-sm text-slate-600 hidden sm:block">
               {state.settings.business_phone}
             </div>
           </div>

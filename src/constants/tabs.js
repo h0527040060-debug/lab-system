@@ -13,6 +13,7 @@ export const OFFICE_TABS = [
   { id: 'reports', label: 'דוחות', icon: '📈' },
   { id: 'settings', label: 'הגדרות', icon: '⚙️' },
   { id: 'users', label: 'משתמשים', icon: '👤' },
+  { id: 'search', label: 'חיפוש', icon: '🔍', hidden: true },
 ];
 
 export const LAB_TABS = [
