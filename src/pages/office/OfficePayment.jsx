@@ -15,6 +15,7 @@ import EditInvoiceModal from '../../components/EditInvoiceModal';
 import CustomerQuickModal from '../../components/CustomerQuickModal';
 import DeviceQuickModal from '../../components/DeviceQuickModal';
 import { DollarSign, User, Wrench, Camera, Check, Receipt, FileText, Pencil } from 'lucide-react';
+import WhatsAppButton from '../../components/WhatsAppButton';
 
 export default function OfficePayment() {
   const { state } = useAppContext();
@@ -138,16 +139,19 @@ export default function OfficePayment() {
                 </div>
 
                 <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-between items-center">
-                  {!isRefused && (
-                    <button
-                      onClick={() => setEditingInvoiceRepair(r)}
-                      className="text-sm text-orange-600 hover:text-orange-700 font-semibold flex items-center gap-1"
-                    >
-                      <Pencil size={15} />
-                      ערוך חשבון
-                    </button>
-                  )}
-                  <div className={!isRefused ? '' : 'mr-auto'}>
+                  <div className="flex items-center gap-2">
+                    {!isRefused && (
+                      <button
+                        onClick={() => setEditingInvoiceRepair(r)}
+                        className="text-sm text-orange-600 hover:text-orange-700 font-semibold flex items-center gap-1"
+                      >
+                        <Pencil size={15} />
+                        ערוך חשבון
+                      </button>
+                    )}
+                    <WhatsAppButton repair={r} customer={customer} device={device} type="customer" />
+                  </div>
+                  <div>
                     <button
                       onClick={() => setSelectedRepair(r)}
                       className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-lg font-bold flex items-center gap-2"

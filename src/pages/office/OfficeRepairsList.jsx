@@ -14,6 +14,7 @@ import PrintStickerModal from '../../components/PrintStickerModal';
 import CustomerQuickModal from '../../components/CustomerQuickModal';
 import DeviceQuickModal from '../../components/DeviceQuickModal';
 import StatusPickerPopover from '../../components/StatusPickerPopover';
+import WhatsAppButton from '../../components/WhatsAppButton';
 import { FileText, Stethoscope, Wrench, Camera, Printer } from 'lucide-react';
 
 const getActionForStatus = (status) => {
@@ -178,6 +179,7 @@ export default function OfficeRepairsList() {
                           >
                             <Printer size={13} /> QR
                           </button>
+                          <WhatsAppButton repair={r} customer={customer} device={device} type="customer" />
                           {getActionForStatus(r.status) === 'diagnosis' && (
                             <button
                               onClick={() => openModal(r.id, 'diagnosis')}

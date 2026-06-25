@@ -12,6 +12,7 @@ import PriceBreakdown from '../../components/PriceBreakdown';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import CustomerQuickModal from '../../components/CustomerQuickModal';
 import DeviceQuickModal from '../../components/DeviceQuickModal';
+import WhatsAppButton from '../../components/WhatsAppButton';
 import { DollarSign, Wrench, FileText, Check, X, ShoppingCart } from 'lucide-react';
 
 export default function OfficeApproval() {
@@ -153,12 +154,15 @@ export default function OfficeApproval() {
                 </div>
 
                 <div className="p-4 bg-slate-50 border-t border-slate-200 flex flex-wrap gap-2 justify-between items-center">
-                  <button
-                    onClick={() => setEditingRepair(r)}
-                    className="text-sm text-orange-600 hover:text-orange-700 font-semibold"
-                  >
-                    ✏️ ערוך הצעה
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => setEditingRepair(r)}
+                      className="text-sm text-orange-600 hover:text-orange-700 font-semibold"
+                    >
+                      ✏️ ערוך הצעה
+                    </button>
+                    <WhatsAppButton repair={r} customer={customer} device={device} type="customer" />
+                  </div>
 
                   <div className="flex gap-2 flex-wrap">
                     {r.warranty_type === WARRANTY_TYPES.PAID && (
