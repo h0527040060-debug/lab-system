@@ -4,6 +4,7 @@ export default function AutocompleteInput({
   value,
   onChange,
   suggestions = [],
+  suggestionImages = [],
   placeholder = '',
   allowNew = false,
   className = '',
@@ -42,17 +43,27 @@ export default function AutocompleteInput({
       />
       {open && (filtered.length > 0 || showAddNew) && (
         <ul className="absolute z-50 w-full bg-white border border-slate-200 rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto">
-          {filtered.map(s => (
-            <li key={s}>
-              <button
-                type="button"
-                onMouseDown={() => select(s)}
-                className="w-full text-right px-3 py-2 text-sm hover:bg-orange-50 hover:text-orange-800"
-              >
-                {s}
-              </button>
-            </li>
-          ))}
+          {filtered.map(s => {
+            const imgIdx = suggestions.indexOf(s);
+            const img = suggestionImages[imgIdx];
+            const isReal = img?.startsWith('data:image/');
+            return (
+              <li key={s}>
+                <button
+                  type="button"
+                  onMouseDown={() => select(s)}
+                  className="w-full text-right px-3 py-2 text-sm hover:bg-orange-50 hover:text-orange-800 flex items-center gap-2"
+                >
+                  {img && (
+                    isReal
+                      ? <img src={img} alt="" className="w-5 h-5 rounded object-contain flex-shrink-0 border border-slate-200 bg-slate-50" />
+                      : <span className="text-sm flex-shrink-0 leading-none">{img}</span>
+                  )}
+                  <span>{s}</span>
+                </button>
+              </li>
+            );
+          })}
           {showAddNew && (
             <li>
               <button
