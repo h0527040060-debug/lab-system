@@ -137,6 +137,16 @@ export default function OfficeSettings() {
               />
               <p className="text-xs text-slate-500 mt-1">תצוגה בלבד במסך גביה</p>
             </div>
+            <div>
+              <label className="text-sm font-semibold block mb-1">דמי בדיקה (₪)</label>
+              <input
+                type="number"
+                value={form.diagnostic_fee ?? 180}
+                onChange={(e) => setForm({ ...form, diagnostic_fee: parseFloat(e.target.value) || 0 })}
+                className="w-full border border-slate-300 rounded-lg px-3 py-2"
+              />
+              <p className="text-xs text-slate-500 mt-1">נגבים בתיקון בתשלום, מזוכים עם אישור הצעה</p>
+            </div>
           </div>
           <div>
             <label className="text-sm font-semibold block mb-1">ימי תקיעה להתראה</label>

@@ -39,4 +39,6 @@ export const DEFAULT_STATUS_CONFIG = [
   { id: 'pending_payment',         label: 'ממתין תשלום',           emoji: '💰', color: 'orange', is_system: true },
   { id: 'green_complete',          label: 'הושלם',                 emoji: '✅', color: 'green',  is_system: true },
   { id: 'red_cancelled',           label: 'בוטל',                  emoji: '❌', color: 'slate',  is_system: true },
+  { id: 'customer_refused',        label: 'לקוח מסרב',             emoji: '🚫', color: 'red',    is_system: true },
+  { id: 'bought_new',              label: 'קנה חדש',               emoji: '🛒', color: 'slate',  is_system: true },
 ];

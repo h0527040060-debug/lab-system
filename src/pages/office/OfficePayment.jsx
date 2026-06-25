@@ -20,8 +20,8 @@ export default function OfficePayment() {
   const [editingInvoiceRepair, setEditingInvoiceRepair] = useState(null);
 
   const pendingPayments = state.repairs
-    .filter(r => r.status === REPAIR_STATUSES.PENDING_PAYMENT)
-    .sort((a, b) => new Date(b.work_end || b.date_intake) - new Date(a.work_end || a.date_intake));
+    .filter(r => r.status === REPAIR_STATUSES.PENDING_PAYMENT || r.status === REPAIR_STATUSES.CUSTOMER_REFUSED)
+    .sort((a, b) => new Date(b.work_end || b.refused_at || b.date_intake) - new Date(a.work_end || a.refused_at || a.date_intake));
 
   return (
     <div>
@@ -43,10 +43,14 @@ export default function OfficePayment() {
           {pendingPayments.map(r => {
             const customer = state.customers.find(c => c.id === r.customer_id);
             const device = state.devices.find(d => d.id === r.device_id);
-            const breakdown = calculateInvoiceBreakdown(r, state);
+            const isRefused = r.status === REPAIR_STATUSES.CUSTOMER_REFUSED;
+            const breakdown = isRefused ? null : calculateInvoiceBreakdown(r, state);
             const vatPercent = state.settings.vat_percent_display || 17;
-            const vatAmount = breakdown.grandTotal * (vatPercent / 100);
-            const totalWithVat = breakdown.grandTotal + vatAmount;
+            const diagnosticFee = r.diagnostic_fee || 0;
+            const diagnosticCredit = (!isRefused && r.diagnostic_fee_credited) ? diagnosticFee : 0;
+            const baseTotal = isRefused ? diagnosticFee : (breakdown.grandTotal - diagnosticCredit);
+            const vatAmount = baseTotal * (vatPercent / 100);
+            const totalWithVat = baseTotal + vatAmount;
             const isWarrantyFree = r.warranty_type === WARRANTY_TYPES.FULL_WARRANTY;
 
             return (
@@ -58,14 +62,26 @@ export default function OfficePayment() {
                         <span className="font-mono text-sm font-bold text-orange-600">{r.id}</span>
                         <span className="text-xs text-slate-400">•</span>
                         <span className="font-mono text-xs text-slate-500">{device?.id}</span>
+                        {isRefused && (
+                          <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-semibold">🚫 לקוח מסרב</span>
+                        )}
                       </div>
                       <p className="font-semibold">{customer?.name}</p>
                       <p className="text-xs text-slate-500">{customer?.phone}</p>
                       <p className="text-xs text-slate-500 mt-1">{device?.brand} {device?.model}</p>
                     </div>
                     <div className="text-left">
-                      <p className="text-xs text-slate-500">תיעוד הסתיים</p>
-                      <p className="text-xs font-semibold">{formatDateTime(r.release_docs_at)}</p>
+                      {isRefused ? (
+                        <>
+                          <p className="text-xs text-slate-500">סירב בתאריך</p>
+                          <p className="text-xs font-semibold">{formatDateTime(r.refused_at)}</p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-xs text-slate-500">תיעוד הסתיים</p>
+                          <p className="text-xs font-semibold">{formatDateTime(r.release_docs_at)}</p>
+                        </>
+                      )}
                       {isWarrantyFree && (
                         <p className="text-xs font-bold text-green-600 mt-1">✓ ללא תשלום (אחריות מלאה)</p>
                       )}
@@ -74,8 +90,20 @@ export default function OfficePayment() {
                 </div>
 
                 <div className="p-4">
-                  <h4 className="font-bold text-slate-800 mb-2">פירוט המחיר:</h4>
-                  <PriceBreakdown breakdown={breakdown} />
+                  {isRefused ? (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                      <p className="text-xs font-bold text-red-900 mb-2">🚫 לקוח מסרב — גביית דמי בדיקה:</p>
+                      <div className="flex justify-between text-sm font-bold text-red-800">
+                        <span>דמי בדיקה:</span>
+                        <span>{formatMoney(diagnosticFee)}</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <h4 className="font-bold text-slate-800 mb-2">פירוט המחיר:</h4>
+                      <PriceBreakdown breakdown={breakdown} diagnosticCredit={diagnosticCredit} />
+                    </>
+                  )}
 
                   {!isWarrantyFree && (
                     <div className="mt-3 bg-blue-50 border border-blue-200 rounded-lg p-3">
@@ -83,7 +111,7 @@ export default function OfficePayment() {
                       <div className="space-y-1 text-sm">
                         <div className="flex justify-between">
                           <span className="text-slate-700">סה"כ:</span>
-                          <span className="font-semibold">{formatMoney(breakdown.grandTotal)}</span>
+                          <span className="font-semibold">{formatMoney(baseTotal)}</span>
                         </div>
                         <div className="flex justify-between text-blue-700">
                           <span>מע"מ ({vatPercent}%):</span>
@@ -102,20 +130,24 @@ export default function OfficePayment() {
                 </div>
 
                 <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-between items-center">
-                  <button
-                    onClick={() => setEditingInvoiceRepair(r)}
-                    className="text-sm text-orange-600 hover:text-orange-700 font-semibold flex items-center gap-1"
-                  >
-                    <Pencil size={15} />
-                    ערוך חשבון
-                  </button>
-                  <button
-                    onClick={() => setSelectedRepair(r)}
-                    className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-lg font-bold flex items-center gap-2"
-                  >
-                    <Receipt size={18} />
-                    מסך גביה ושחרור
-                  </button>
+                  {!isRefused && (
+                    <button
+                      onClick={() => setEditingInvoiceRepair(r)}
+                      className="text-sm text-orange-600 hover:text-orange-700 font-semibold flex items-center gap-1"
+                    >
+                      <Pencil size={15} />
+                      ערוך חשבון
+                    </button>
+                  )}
+                  <div className={!isRefused ? '' : 'mr-auto'}>
+                    <button
+                      onClick={() => setSelectedRepair(r)}
+                      className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-lg font-bold flex items-center gap-2"
+                    >
+                      <Receipt size={18} />
+                      מסך גביה ושחרור
+                    </button>
+                  </div>
                 </div>
               </div>
             );
@@ -145,15 +177,26 @@ function PaymentModal({ repair, onClose }) {
   const customer = state.customers.find(c => c.id === repair.customer_id);
   const device = state.devices.find(d => d.id === repair.device_id);
 
-  const breakdown = calculateInvoiceBreakdown(repair, state);
-  const vatPercent = state.settings.vat_percent_display || 17;
-  const vatAmount = breakdown.grandTotal * (vatPercent / 100);
-  const totalWithVat = breakdown.grandTotal + vatAmount;
+  const isRefused = repair.status === REPAIR_STATUSES.CUSTOMER_REFUSED;
   const isWarrantyFree = repair.warranty_type === WARRANTY_TYPES.FULL_WARRANTY;
+  const vatPercent = state.settings.vat_percent_display || 17;
+  const diagnosticFee = repair.diagnostic_fee || 0;
 
+  const breakdown = isRefused ? null : calculateInvoiceBreakdown(repair, state);
+  const diagnosticCredit = (!isRefused && repair.diagnostic_fee_credited) ? diagnosticFee : 0;
+
+  const [feeWaived, setFeeWaived] = useState(false);
+  const [waiverNote, setWaiverNote] = useState('');
   const [signature, setSignature] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [confirmAction, setConfirmAction] = useState(null);
+
+  const chargedAmount = isRefused
+    ? (feeWaived ? 0 : diagnosticFee)
+    : (breakdown.grandTotal - diagnosticCredit);
+  const vatAmount = chargedAmount * (vatPercent / 100);
+  const totalWithVat = chargedAmount + vatAmount;
+  const noCharge = isWarrantyFree || (isRefused && feeWaived);
 
   const handleComplete = () => {
     dispatch({
@@ -162,10 +205,11 @@ function PaymentModal({ repair, onClose }) {
         id: repair.id,
         status: REPAIR_STATUSES.GREEN_COMPLETE,
         customer_signature: signature,
-        payment_method: isWarrantyFree ? 'warranty' : paymentMethod,
-        final_price: breakdown.grandTotal,
+        payment_method: noCharge ? 'waived' : paymentMethod,
+        final_price: chargedAmount,
         payment_at: new Date().toISOString(),
         released_at: new Date().toISOString(),
+        ...(isRefused && feeWaived && { diagnostic_fee_waived: true, diagnostic_fee_waiver_note: waiverNote }),
       }
     });
     setConfirmAction(null);
@@ -186,11 +230,11 @@ function PaymentModal({ repair, onClose }) {
           </button>
           <button
             onClick={() => setConfirmAction({ action: 'complete' })}
-            disabled={!signature}
+            disabled={!signature || (isRefused && feeWaived && !waiverNote.trim())}
             className="bg-green-600 hover:bg-green-700 disabled:bg-slate-300 text-white px-6 py-2 rounded-lg font-bold flex items-center gap-2"
           >
             <Check size={18} />
-            {isWarrantyFree ? 'שחרר ללקוח' : 'שולם - שחרר ללקוח'}
+            {noCharge ? 'שחרר ללקוח' : 'שולם - שחרר ללקוח'}
           </button>
         </div>
       }
@@ -208,18 +252,45 @@ function PaymentModal({ repair, onClose }) {
             </InfoCard>
           </div>
 
-          <div>
-            <h4 className="font-bold text-sm mb-2">פירוט המחיר:</h4>
-            <PriceBreakdown breakdown={breakdown} />
-          </div>
+          {isRefused ? (
+            <div className="space-y-2">
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                <p className="text-xs font-bold text-red-900 mb-2">🚫 לקוח מסרב — דמי בדיקה</p>
+                <div className="flex justify-between text-sm font-bold text-red-800">
+                  <span>דמי בדיקה:</span>
+                  <span className={feeWaived ? 'line-through text-slate-400' : ''}>{formatMoney(diagnosticFee)}</span>
+                </div>
+              </div>
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                <label className="flex items-center gap-2 cursor-pointer text-sm font-semibold text-amber-900">
+                  <input type="checkbox" checked={feeWaived} onChange={e => setFeeWaived(e.target.checked)} className="w-4 h-4" />
+                  זיכוי דמי הבדיקה (גמישות משרדית)
+                </label>
+                {feeWaived && (
+                  <textarea
+                    value={waiverNote}
+                    onChange={e => setWaiverNote(e.target.value)}
+                    placeholder="סיבת הזיכוי (חובה)..."
+                    rows={2}
+                    className="mt-2 w-full border border-amber-300 rounded px-2 py-1 text-xs resize-none focus:outline-none focus:ring-1 focus:ring-amber-400"
+                  />
+                )}
+              </div>
+            </div>
+          ) : (
+            <div>
+              <h4 className="font-bold text-sm mb-2">פירוט המחיר:</h4>
+              <PriceBreakdown breakdown={breakdown} diagnosticCredit={diagnosticCredit} />
+            </div>
+          )}
 
-          {!isWarrantyFree && (
+          {!noCharge && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
               <p className="text-xs font-bold text-blue-900 mb-2">💰 חישוב כולל מע"מ:</p>
               <div className="space-y-1 text-sm">
                 <div className="flex justify-between">
                   <span>סה"כ:</span>
-                  <span>{formatMoney(breakdown.grandTotal)}</span>
+                  <span>{formatMoney(chargedAmount)}</span>
                 </div>
                 <div className="flex justify-between text-blue-700">
                   <span>מע"מ ({vatPercent}%):</span>
@@ -233,9 +304,11 @@ function PaymentModal({ repair, onClose }) {
             </div>
           )}
 
-          {isWarrantyFree && (
+          {noCharge && (
             <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
-              <p className="font-bold text-green-800">✓ ללא תשלום - אחריות מלאה</p>
+              <p className="font-bold text-green-800">
+                ✓ ללא תשלום{isRefused ? ' — דמי בדיקה מזוכים' : ' - אחריות מלאה'}
+              </p>
             </div>
           )}
 
@@ -262,7 +335,7 @@ function PaymentModal({ repair, onClose }) {
 
         {/* תשלום וחתימה */}
         <div className="space-y-3">
-          {!isWarrantyFree && (
+          {!noCharge && (
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-2">שיטת תשלום:</label>
               <div className="grid grid-cols-3 gap-2">
@@ -290,7 +363,7 @@ function PaymentModal({ repair, onClose }) {
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-2">
               <FileText className="inline ml-1" size={14} />
-              חתימת לקוח (אישור קבלת מכשיר תקין) *
+              חתימת לקוח (אישור קבלת מכשיר) *
             </label>
             <SignaturePad onChange={setSignature} initialSignature={repair.customer_signature} />
             <p className="text-xs text-slate-500 mt-1">חובה לחתום לפני שחרור</p>
@@ -311,9 +384,11 @@ function PaymentModal({ repair, onClose }) {
       <ConfirmDialog
         open={!!confirmAction}
         title="אישור שחרור ללקוח"
-        message={isWarrantyFree
-          ? 'הלקוח חתם וקיבל את המכשיר. הקריאה תיסגר.'
-          : `הלקוח שילם ${formatMoney(totalWithVat)} וקיבל את המכשיר. הקריאה תיסגר.`}
+        message={
+          noCharge
+            ? 'הלקוח חתם וקיבל את המכשיר. הקריאה תיסגר ללא חיוב.'
+            : `הלקוח שילם ${formatMoney(totalWithVat)} וקיבל את המכשיר. הקריאה תיסגר.`
+        }
         confirmLabel="כן, אשר"
         onConfirm={handleComplete}
         onCancel={() => setConfirmAction(null)}

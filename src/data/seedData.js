@@ -69,6 +69,7 @@ export const SEED_SETTINGS = {
   business_phone: '03-553-5303',
   vat_percent_display: 17, // לתצוגה בלבד במסך גביה
   alert_stuck_repair_days: 7,
+  diagnostic_fee: 180,
 };
 
 // ייצוא ריק של ה-imports כדי למנוע אזהרות

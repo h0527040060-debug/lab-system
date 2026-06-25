@@ -10,7 +10,7 @@ import Modal from '../../components/Modal';
 import InfoCard from '../../components/InfoCard';
 import PriceBreakdown from '../../components/PriceBreakdown';
 import ConfirmDialog from '../../components/ConfirmDialog';
-import { DollarSign, Wrench, FileText, Check, X } from 'lucide-react';
+import { DollarSign, Wrench, FileText, Check, X, ShoppingCart } from 'lucide-react';
 
 export default function OfficeApproval() {
   const { state, dispatch } = useAppContext();
@@ -21,7 +21,10 @@ export default function OfficeApproval() {
     .filter(r => r.status === REPAIR_STATUSES.YELLOW_DIAGNOSIS)
     .sort((a, b) => new Date(b.diagnosed_at || b.date_intake) - new Date(a.diagnosed_at || a.date_intake));
 
+  const diagnosticFee = state.settings.diagnostic_fee || 180;
+
   const handleApprove = (repair) => {
+    const isPaid = repair.warranty_type === WARRANTY_TYPES.PAID;
     dispatch({
       type: 'UPDATE_REPAIR',
       payload: {
@@ -29,19 +32,36 @@ export default function OfficeApproval() {
         status: REPAIR_STATUSES.YELLOW_READY_TO_WORK,
         approved_at: new Date().toISOString(),
         quoted_breakdown: calculateQuoteBreakdown(repair, state),
+        ...(isPaid && { diagnostic_fee: diagnosticFee, diagnostic_fee_credited: true }),
       },
     });
     setConfirmAction(null);
   };
 
-  const handleCancel = (repair) => {
+  const handleCustomerRefused = (repair) => {
     dispatch({
       type: 'UPDATE_REPAIR',
       payload: {
         id: repair.id,
-        status: REPAIR_STATUSES.RED_CANCELLED,
-        cancelled_at: new Date().toISOString(),
-        cancel_reason: 'הלקוח לא אישר את הצעת המחיר',
+        status: REPAIR_STATUSES.CUSTOMER_REFUSED,
+        refused_at: new Date().toISOString(),
+        diagnostic_fee: diagnosticFee,
+        diagnostic_fee_credited: false,
+      },
+    });
+    setConfirmAction(null);
+  };
+
+  const handleBoughtNew = (repair) => {
+    dispatch({
+      type: 'UPDATE_REPAIR',
+      payload: {
+        id: repair.id,
+        status: REPAIR_STATUSES.BOUGHT_NEW,
+        bought_new_at: new Date().toISOString(),
+        diagnostic_fee: diagnosticFee,
+        diagnostic_fee_credited: true,
+        diagnostic_fee_waived: true,
       },
     });
     setConfirmAction(null);
@@ -116,6 +136,11 @@ export default function OfficeApproval() {
                         ✓ הלקוח לא משלם — תיקון באחריות מלאה
                       </div>
                     )}
+                    {r.warranty_type === WARRANTY_TYPES.PAID && (
+                      <div className="mt-2 bg-blue-50 border border-blue-200 rounded-lg p-2 text-xs text-blue-800">
+                        🔍 דמי בדיקה: {formatMoney(diagnosticFee)} — יזוכו אם הלקוח יאשר תיקון
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -127,15 +152,24 @@ export default function OfficeApproval() {
                     ✏️ ערוך הצעה
                   </button>
 
-                  <div className="flex gap-2">
-                    {!isWarrantyFree && (
-                      <button
-                        onClick={() => setConfirmAction({ repair: r, action: 'cancel' })}
-                        className="px-4 py-2 bg-red-100 hover:bg-red-200 text-red-800 rounded-lg font-semibold text-sm flex items-center gap-1"
-                      >
-                        <X size={16} />
-                        הלקוח דחה
-                      </button>
+                  <div className="flex gap-2 flex-wrap">
+                    {r.warranty_type === WARRANTY_TYPES.PAID && (
+                      <>
+                        <button
+                          onClick={() => setConfirmAction({ repair: r, action: 'refused' })}
+                          className="px-3 py-2 bg-red-100 hover:bg-red-200 text-red-800 rounded-lg font-semibold text-sm flex items-center gap-1"
+                        >
+                          <X size={16} />
+                          לקוח מסרב
+                        </button>
+                        <button
+                          onClick={() => setConfirmAction({ repair: r, action: 'bought_new' })}
+                          className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold text-sm flex items-center gap-1"
+                        >
+                          <ShoppingCart size={16} />
+                          קנה חדש
+                        </button>
+                      </>
                     )}
                     <button
                       onClick={() => setConfirmAction({ repair: r, action: 'approve' })}
@@ -161,17 +195,28 @@ export default function OfficeApproval() {
 
       <ConfirmDialog
         open={!!confirmAction}
-        title={confirmAction?.action === 'approve' ? 'אישור הצעה' : 'ביטול קריאה'}
+        title={
+          confirmAction?.action === 'approve' ? 'אישור הצעה' :
+          confirmAction?.action === 'refused' ? 'לקוח מסרב' :
+          'לקוח קנה חדש'
+        }
         message={
           confirmAction?.action === 'approve'
-            ? 'האם הלקוח אישר את ההצעה? הקריאה תועבר למעבדה לביצוע.'
-            : 'האם בטוח שברצונך לבטל את הקריאה?'
+            ? 'האם הלקוח אישר את ההצעה? הקריאה תועבר למעבדה לביצוע. דמי הבדיקה יזוכו מהחשבון.'
+            : confirmAction?.action === 'refused'
+            ? `הלקוח מסרב לתיקון. הקריאה תועבר לגביה של ${formatMoney(diagnosticFee)} דמי בדיקה.`
+            : 'הלקוח קנה מכשיר חדש. הקריאה תיסגר ללא חיוב — דמי הבדיקה מזוכים.'
         }
-        confirmLabel={confirmAction?.action === 'approve' ? 'כן, אושר' : 'כן, בטל'}
-        variant={confirmAction?.action === 'cancel' ? 'danger' : 'default'}
+        confirmLabel={
+          confirmAction?.action === 'approve' ? 'כן, אושר' :
+          confirmAction?.action === 'refused' ? 'העבר לגביה' :
+          'סגור קריאה'
+        }
+        variant={confirmAction?.action === 'refused' ? 'danger' : 'default'}
         onConfirm={() => {
           if (confirmAction.action === 'approve') handleApprove(confirmAction.repair);
-          else handleCancel(confirmAction.repair);
+          else if (confirmAction.action === 'refused') handleCustomerRefused(confirmAction.repair);
+          else handleBoughtNew(confirmAction.repair);
         }}
         onCancel={() => setConfirmAction(null)}
       />
