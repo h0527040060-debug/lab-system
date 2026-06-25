@@ -5,16 +5,20 @@ import { LAB_TABS } from '../constants/tabs';
 import LabDashboard from './lab/LabDashboard';
 import LabSearch from './lab/LabSearch';
 import LabHistory from './lab/LabHistory';
+import ProfilePage from './ProfilePage';
+import KanbanBoard from './office/KanbanBoard';
 
 const PAGE_COMPONENTS = {
+  kanban: () => <KanbanBoard role="lab" />,
   dashboard: LabDashboard,
   search: LabSearch,
   history: LabHistory,
+  profile: ProfilePage,
 };
 
 export default function LabRouter() {
-  const [currentTab, setCurrentTab] = useState('dashboard');
-  const PageComponent = PAGE_COMPONENTS[currentTab] || LabDashboard;
+  const [currentTab, setCurrentTab] = useState('kanban');
+  const PageComponent = PAGE_COMPONENTS[currentTab] || KanbanBoard;
 
   return (
     <Layout currentTab={currentTab} onTabChange={setCurrentTab} tabs={LAB_TABS}>

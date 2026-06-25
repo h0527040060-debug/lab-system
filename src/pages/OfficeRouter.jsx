@@ -19,8 +19,11 @@ import { OfficeUsers } from './office/OfficeUsers';
 import PartsPage from './office/PartsPage';
 import OfficeSearch from './office/OfficeSearch';
 import OfficeLogs from './office/OfficeLogs';
+import ProfilePage from './ProfilePage';
+import KanbanBoard from './office/KanbanBoard';
 
 const PAGE_COMPONENTS = {
+  kanban: (props) => <KanbanBoard role={props.role || 'office'} />,
   dashboard: OfficeDashboard,
   intake: OfficeIntake,
   approval: OfficeApproval,
@@ -37,19 +40,20 @@ const PAGE_COMPONENTS = {
   users: OfficeUsers,
   logs: OfficeLogs,
   search: OfficeSearch,
+  profile: ProfilePage,
 };
 
 export default function OfficeRouter() {
   const { state } = useAppContext();
-  const [currentTab, setCurrentTab] = useState('dashboard');
-  const PageComponent = PAGE_COMPONENTS[currentTab] || OfficeDashboard;
+  const [currentTab, setCurrentTab] = useState('kanban');
+  const PageComponent = PAGE_COMPONENTS[currentTab] || KanbanBoard;
 
   const isAdmin = state.currentUser?.role === 'admin';
   const visibleTabs = OFFICE_TABS.filter(t => !t.hidden && (!t.adminOnly || isAdmin));
 
   return (
     <Layout currentTab={currentTab} onTabChange={setCurrentTab} tabs={visibleTabs}>
-      <PageComponent onNavigate={setCurrentTab} />
+      <PageComponent onNavigate={setCurrentTab} role={isAdmin ? 'admin' : 'office'} />
     </Layout>
   );
 }
