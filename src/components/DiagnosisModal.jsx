@@ -307,13 +307,16 @@ export default function DiagnosisModal({ repair, onClose }) {
 
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-1">תמונות הוכחה * (לפחות תמונה אחת)</label>
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={handleAppealPhotoUpload}
-              className="block w-full text-sm file:ml-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-red-50 file:text-red-700 hover:file:bg-red-100"
-            />
+            <div className="flex flex-wrap gap-2">
+              <label className="cursor-pointer bg-red-50 hover:bg-red-100 text-red-700 font-semibold text-sm px-4 py-2 rounded-lg border border-red-200">
+                📁 בחר קבצים
+                <input type="file" accept="image/*" multiple onChange={handleAppealPhotoUpload} className="hidden" />
+              </label>
+              <label className="cursor-pointer bg-slate-800 hover:bg-slate-900 text-white font-semibold text-sm px-4 py-2 rounded-lg flex items-center gap-1">
+                📷 צלם
+                <input type="file" accept="image/*" capture="environment" onChange={handleAppealPhotoUpload} className="hidden" />
+              </label>
+            </div>
             {appealEvidence.length > 0 && (
               <div className="grid grid-cols-4 gap-2 mt-2">
                 {appealEvidence.map((p, idx) => (

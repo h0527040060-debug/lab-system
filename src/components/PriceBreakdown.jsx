@@ -1,7 +1,7 @@
 import { formatMoney } from '../utils/formatters';
 import { Wrench, Package, Sparkles } from 'lucide-react';
 
-export default function PriceBreakdown({ breakdown, showHeaders = true }) {
+export default function PriceBreakdown({ breakdown, showHeaders = true, diagnosticCredit = 0 }) {
   const { works, worksTotal, parts, partsTotal, services, servicesTotal, grandTotal } = breakdown;
 
   return (
@@ -84,9 +84,15 @@ export default function PriceBreakdown({ breakdown, showHeaders = true }) {
       )}
 
       <div className="p-4 bg-orange-50 border-t-2 border-orange-300">
+        {diagnosticCredit > 0 && (
+          <div className="flex justify-between text-sm text-green-700 mb-2">
+            <span>זיכוי דמי בדיקה:</span>
+            <span className="font-semibold">-{formatMoney(diagnosticCredit)}</span>
+          </div>
+        )}
         <div className="flex justify-between items-center">
-          <span className="text-base font-bold text-slate-800">סה"כ הצעת מחיר:</span>
-          <span className="text-2xl font-bold text-orange-700">{formatMoney(grandTotal)}</span>
+          <span className="text-base font-bold text-slate-800">סה"כ לתשלום:</span>
+          <span className="text-2xl font-bold text-orange-700">{formatMoney(grandTotal - diagnosticCredit)}</span>
         </div>
         <p className="text-xs text-slate-500 text-left mt-1">ללא מע"מ</p>
       </div>

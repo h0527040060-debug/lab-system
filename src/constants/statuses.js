@@ -10,6 +10,8 @@ export const REPAIR_STATUSES = {
   PENDING_PAYMENT: 'pending_payment',
   GREEN_COMPLETE: 'green_complete',
   RED_CANCELLED: 'red_cancelled',
+  CUSTOMER_REFUSED: 'customer_refused',
+  BOUGHT_NEW: 'bought_new',
 };
 
 export const STATUS_LABELS = {
@@ -23,6 +25,8 @@ export const STATUS_LABELS = {
   [REPAIR_STATUSES.PENDING_PAYMENT]: 'ממתין תשלום',
   [REPAIR_STATUSES.GREEN_COMPLETE]: 'הושלם',
   [REPAIR_STATUSES.RED_CANCELLED]: 'בוטל',
+  [REPAIR_STATUSES.CUSTOMER_REFUSED]: 'לקוח מסרב',
+  [REPAIR_STATUSES.BOUGHT_NEW]: 'קנה חדש',
 };
 
 export const STATUS_COLORS = {
@@ -36,4 +40,6 @@ export const STATUS_COLORS = {
   [REPAIR_STATUSES.PENDING_PAYMENT]: { bg: 'bg-orange-100', text: 'text-orange-800', border: 'border-orange-300', emoji: '💰' },
   [REPAIR_STATUSES.GREEN_COMPLETE]: { bg: 'bg-green-100', text: 'text-green-800', border: 'border-green-300', emoji: '✅' },
   [REPAIR_STATUSES.RED_CANCELLED]: { bg: 'bg-slate-200', text: 'text-slate-700', border: 'border-slate-400', emoji: '❌' },
+  [REPAIR_STATUSES.CUSTOMER_REFUSED]: { bg: 'bg-red-100', text: 'text-red-800', border: 'border-red-300', emoji: '🚫' },
+  [REPAIR_STATUSES.BOUGHT_NEW]: { bg: 'bg-slate-100', text: 'text-slate-700', border: 'border-slate-300', emoji: '🛒' },
 };

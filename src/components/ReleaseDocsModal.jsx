@@ -91,13 +91,16 @@ export default function ReleaseDocsModal({ repair, onClose }) {
             <Upload className="inline ml-1" size={16} />
             העלאת תמונה / וידאו *
           </label>
-          <input
-            type="file"
-            accept="image/*,video/*"
-            multiple
-            onChange={handleMediaUpload}
-            className="block w-full text-sm text-slate-600 file:ml-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
-          />
+          <div className="flex flex-wrap gap-2">
+            <label className="cursor-pointer bg-green-50 hover:bg-green-100 text-green-700 font-semibold text-sm px-4 py-2 rounded-lg border border-green-200">
+              📁 בחר קבצים
+              <input type="file" accept="image/*,video/*" multiple onChange={handleMediaUpload} className="hidden" />
+            </label>
+            <label className="cursor-pointer bg-slate-800 hover:bg-slate-900 text-white font-semibold text-sm px-4 py-2 rounded-lg flex items-center gap-1">
+              📷 צלם
+              <input type="file" accept="image/*" capture="environment" onChange={handleMediaUpload} className="hidden" />
+            </label>
+          </div>
           <p className="text-xs text-slate-500 mt-1">תמונות או וידאו עד 10MB לקובץ</p>
         </div>
 
