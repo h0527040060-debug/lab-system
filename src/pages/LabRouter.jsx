@@ -5,7 +5,6 @@ import { LAB_TABS } from '../constants/tabs';
 import LabDashboard from './lab/LabDashboard';
 import LabSearch from './lab/LabSearch';
 import LabHistory from './lab/LabHistory';
-import ProfilePage from './ProfilePage';
 import KanbanBoard from './office/KanbanBoard';
 
 const PAGE_COMPONENTS = {
@@ -13,7 +12,6 @@ const PAGE_COMPONENTS = {
   dashboard: LabDashboard,
   search: LabSearch,
   history: LabHistory,
-  profile: ProfilePage,
 };
 
 export default function LabRouter() {
