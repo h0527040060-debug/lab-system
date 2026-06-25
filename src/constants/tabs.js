@@ -13,6 +13,7 @@ export const OFFICE_TABS = [
   { id: 'general-expenses', label: 'רכש כללי', icon: '💵' },
   { id: 'reports', label: 'דוחות', icon: '📈' },
   { id: 'settings', label: 'הגדרות', icon: '⚙️' },
+  { id: 'users', label: 'משתמשים', icon: '👤' },
 ];
 
 export const LAB_TABS = [

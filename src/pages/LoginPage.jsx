@@ -1,20 +1,112 @@
+import { useEffect, useRef, useState } from 'react';
 import { useAppContext } from '../store/AppContext';
-import { USER_ROLES } from '../constants/userRoles';
-import { Building2, Wrench } from 'lucide-react';
+
+// יש להחליף ב-Client ID אמיתי מ-Google Cloud Console
+const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
+
+// פענוח JWT מגוגל ללא ספרייה חיצונית
+const parseJwt = (token) => {
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    return JSON.parse(jsonPayload);
+  } catch {
+    return null;
+  }
+};
+
+const generateUserId = (users) => {
+  const num = String(users.length + 1).padStart(4, '0');
+  return `USR-${num}`;
+};
 
 export default function LoginPage() {
   const { state, dispatch } = useAppContext();
+  const googleBtnRef = useRef(null);
+  const [error, setError] = useState('');
+  const [pendingEmail, setPendingEmail] = useState('');
 
-  const handleLogin = (role) => {
-    dispatch({
-      type: 'SET_CURRENT_USER',
-      payload: { role, login_time: new Date().toISOString() },
-    });
+  const handleCredentialResponse = (response) => {
+    const payload = parseJwt(response.credential);
+    if (!payload) {
+      setError('שגיאה בקבלת פרטים מגוגל. נסה שוב.');
+      return;
+    }
+
+    const { email, name, picture } = payload;
+
+    // חיפוש משתמש קיים לפי מייל
+    let user = state.users.find(u => u.email === email);
+
+    if (!user) {
+      // יצירת משתמש חדש
+      const isFirst = state.users.length === 0;
+      user = {
+        id: generateUserId(state.users),
+        name,
+        email,
+        picture: picture || '',
+        role: isFirst ? 'office' : 'pending',
+        created_at: new Date().toISOString(),
+      };
+      dispatch({ type: 'ADD_USER', payload: user });
+    }
+
+    if (user.role === 'pending') {
+      setPendingEmail(email);
+      return;
+    }
+
+    dispatch({ type: 'SET_CURRENT_USER', payload: user });
   };
+
+  useEffect(() => {
+    if (!window.google || !googleBtnRef.current) return;
+
+    window.google.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      callback: handleCredentialResponse,
+    });
+
+    window.google.accounts.id.renderButton(googleBtnRef.current, {
+      theme: 'outline',
+      size: 'large',
+      locale: 'he',
+      width: 300,
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.users]);
+
+  // המתנה לטעינת סקריפט גוגל
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (window.google && googleBtnRef.current) {
+        window.google.accounts.id.initialize({
+          client_id: GOOGLE_CLIENT_ID,
+          callback: handleCredentialResponse,
+        });
+        window.google.accounts.id.renderButton(googleBtnRef.current, {
+          theme: 'outline',
+          size: 'large',
+          locale: 'he',
+          width: 300,
+        });
+        clearInterval(interval);
+      }
+    }, 300);
+    return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-slate-100 to-slate-200">
-      <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-2xl w-full">
+      <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full">
         {/* לוגו */}
         <div className="text-center mb-8">
           <div className="w-20 h-20 bg-orange-500 rounded-2xl mx-auto mb-4 flex items-center justify-center text-3xl font-bold text-white shadow-lg">
@@ -24,51 +116,89 @@ export default function LoginPage() {
             {state.settings.business_name}
           </h1>
           <p className="text-slate-600 text-sm">{state.settings.business_address}</p>
-          <p className="text-slate-500 text-xs mt-1">{state.settings.business_phone}</p>
         </div>
 
         <div className="border-t border-slate-200 pt-6">
-          <h2 className="text-xl font-bold text-center text-slate-800 mb-6">
-            בחר תפקיד להתחברות
-          </h2>
-
-          <div className="grid md:grid-cols-2 gap-4">
-            {/* משרד */}
-            <button
-              onClick={() => handleLogin(USER_ROLES.OFFICE)}
-              className="bg-blue-50 hover:bg-blue-100 border-2 border-blue-200 hover:border-blue-400 rounded-xl p-6 transition-all group"
-            >
-              <div className="flex flex-col items-center text-center">
-                <div className="w-16 h-16 bg-blue-500 group-hover:bg-blue-600 rounded-xl flex items-center justify-center mb-3 transition-colors">
-                  <Building2 size={32} className="text-white" />
-                </div>
-                <h3 className="text-lg font-bold text-blue-900 mb-1">משרד</h3>
-                <p className="text-xs text-blue-700">
-                  קליטה, תמחור, גביה, דוחות פיננסיים
-                </p>
+          {pendingEmail ? (
+            // מסך ממתין אישור
+            <div className="text-center">
+              <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-3xl">⏳</span>
               </div>
-            </button>
+              <h2 className="text-xl font-bold text-slate-800 mb-2">ממתין לאישור</h2>
+              <p className="text-slate-600 text-sm mb-1">
+                החשבון <strong>{pendingEmail}</strong> נרשם בהצלחה.
+              </p>
+              <p className="text-slate-500 text-sm mb-6">
+                מנהל המערכת צריך לאשר את גישתך לפני שתוכל להיכנס.
+              </p>
+              <button
+                onClick={() => setPendingEmail('')}
+                className="text-sm text-blue-600 hover:underline"
+              >
+                חזרה לכניסה
+              </button>
+            </div>
+          ) : (
+            // מסך כניסה רגיל
+            <div className="text-center">
+              <h2 className="text-xl font-bold text-slate-800 mb-2">כניסה למערכת</h2>
+              <p className="text-slate-500 text-sm mb-6">
+                {state.users.length === 0
+                  ? 'הכניסה הראשונה תיצור חשבון מנהל'
+                  : 'הכנס עם חשבון Google שלך'}
+              </p>
 
-            {/* מעבדה */}
-            <button
-              onClick={() => handleLogin(USER_ROLES.LAB)}
-              className="bg-amber-50 hover:bg-amber-100 border-2 border-amber-200 hover:border-amber-400 rounded-xl p-6 transition-all group"
-            >
-              <div className="flex flex-col items-center text-center">
-                <div className="w-16 h-16 bg-amber-500 group-hover:bg-amber-600 rounded-xl flex items-center justify-center mb-3 transition-colors">
-                  <Wrench size={32} className="text-white" />
+              {error && (
+                <div className="bg-red-50 text-red-700 text-sm rounded-lg px-4 py-3 mb-4 text-right">
+                  {error}
                 </div>
-                <h3 className="text-lg font-bold text-amber-900 mb-1">מעבדה</h3>
-                <p className="text-xs text-amber-700">
-                  אבחון, ביצוע תיקונים, תיעוד
-                </p>
-              </div>
-            </button>
-          </div>
+              )}
 
-          <p className="text-xs text-slate-400 text-center mt-6">
-            * אין סיסמה בשלב זה - מערכת פנימית
-          </p>
+              <div className="flex justify-center">
+                <div ref={googleBtnRef} />
+              </div>
+
+              {GOOGLE_CLIENT_ID === 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com' && (
+                <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-right">
+                  <p className="text-xs text-amber-700 font-medium mb-1">⚠️ מצב פיתוח</p>
+                  <p className="text-xs text-amber-600 mb-2">
+                    יש להגדיר Google Client ID אמיתי ב-LoginPage.jsx
+                  </p>
+                  <div className="flex gap-2 justify-center">
+                    <button
+                      onClick={() => handleCredentialResponse({
+                        credential: btoa(JSON.stringify({ alg: 'RS256' })) + '.' +
+                          btoa(JSON.stringify({
+                            email: 'admin@example.com',
+                            name: 'מנהל מערכת',
+                            picture: '',
+                            sub: '123456',
+                          })) + '.sig'
+                      })}
+                      className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700"
+                    >
+                      כניסת ניסיון — משרד
+                    </button>
+                    <button
+                      onClick={() => handleCredentialResponse({
+                        credential: btoa(JSON.stringify({ alg: 'RS256' })) + '.' +
+                          btoa(JSON.stringify({
+                            email: 'tech@example.com',
+                            name: 'טכנאי ראשי',
+                            picture: '',
+                            sub: '654321',
+                          })) + '.sig'
+                      })}
+                      className="text-xs bg-amber-600 text-white px-3 py-1.5 rounded-lg hover:bg-amber-700"
+                    >
+                      כניסת ניסיון — מעבדה
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

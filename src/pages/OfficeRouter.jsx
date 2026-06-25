@@ -16,6 +16,7 @@ import OfficeWorkCatalog from './office/OfficeWorkCatalog';
 import OfficeGeneralExpenses from './office/OfficeGeneralExpenses';
 import OfficeReports from './office/OfficeReports';
 import OfficeSettings from './office/OfficeSettings';
+import { OfficeUsers } from './office/OfficeUsers';
 
 const PAGE_COMPONENTS = {
   dashboard: OfficeDashboard,
@@ -32,6 +33,7 @@ const PAGE_COMPONENTS = {
   'general-expenses': OfficeGeneralExpenses,
   reports: OfficeReports,
   settings: OfficeSettings,
+  users: OfficeUsers,
 };
 
 export default function OfficeRouter() {
