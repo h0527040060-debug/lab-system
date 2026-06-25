@@ -4,12 +4,14 @@ import PageHeader from '../../components/PageHeader';
 import SearchInput from '../../components/SearchInput';
 import EmptyState from '../../components/EmptyState';
 import { formatDateTime } from '../../utils/formatters';
+import DeviceQuickModal from '../../components/DeviceQuickModal';
 import { Users, Phone, Mail, MapPin, Wrench, FileText } from 'lucide-react';
 
 export default function OfficeCustomers() {
   const { state } = useAppContext();
   const [search, setSearch] = useState('');
   const [selectedCustomerId, setSelectedCustomerId] = useState(null);
+  const [quickDevice, setQuickDevice] = useState(null);
 
   const filteredCustomers = state.customers.filter(c =>
     !search ||
@@ -122,16 +124,20 @@ export default function OfficeCustomers() {
                     {customerDevices.map(d => {
                       const deviceRepairs = state.repairs.filter(r => r.device_id === d.id);
                       return (
-                        <div key={d.id} className="border border-slate-200 rounded-lg p-3 text-sm">
+                        <button
+                          key={d.id}
+                          onClick={() => setQuickDevice({ device: d, customer: selectedCustomer })}
+                          className="w-full text-right border border-slate-200 rounded-lg p-3 text-sm hover:border-blue-300 hover:bg-blue-50 transition-colors group"
+                        >
                           <div className="flex justify-between mb-1">
-                            <p className="font-semibold">{d.brand} {d.model}</p>
+                            <p className="font-semibold group-hover:text-blue-700">{d.brand} {d.model}</p>
                             <span className="text-xs font-mono text-slate-400">{d.id}</span>
                           </div>
                           <p className="text-xs text-slate-500">{d.type} {d.manufacturer_serial && `• Serial: ${d.manufacturer_serial}`}</p>
                           {deviceRepairs.length > 0 && (
                             <p className="text-xs text-orange-600 mt-1">{deviceRepairs.length} תיקונים</p>
                           )}
-                        </div>
+                        </button>
                       );
                     })}
                   </div>
@@ -168,6 +174,14 @@ export default function OfficeCustomers() {
           )}
         </div>
       </div>
+      {quickDevice && (
+        <DeviceQuickModal
+          device={quickDevice.device}
+          customer={quickDevice.customer}
+          repairs={state.repairs}
+          onClose={() => setQuickDevice(null)}
+        />
+      )}
     </div>
   );
 }

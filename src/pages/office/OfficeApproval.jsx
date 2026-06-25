@@ -10,12 +10,16 @@ import Modal from '../../components/Modal';
 import InfoCard from '../../components/InfoCard';
 import PriceBreakdown from '../../components/PriceBreakdown';
 import ConfirmDialog from '../../components/ConfirmDialog';
+import CustomerQuickModal from '../../components/CustomerQuickModal';
+import DeviceQuickModal from '../../components/DeviceQuickModal';
 import { DollarSign, Wrench, FileText, Check, X, ShoppingCart } from 'lucide-react';
 
 export default function OfficeApproval() {
   const { state, dispatch } = useAppContext();
   const [editingRepair, setEditingRepair] = useState(null);
   const [confirmAction, setConfirmAction] = useState(null);
+  const [quickCustomer, setQuickCustomer] = useState(null);
+  const [quickDevice, setQuickDevice] = useState(null);
 
   const pendingRepairs = state.repairs
     .filter(r => r.status === REPAIR_STATUSES.YELLOW_DIAGNOSIS)
@@ -100,8 +104,10 @@ export default function OfficeApproval() {
                         <span className="text-xs text-slate-400">•</span>
                         <span className="font-mono text-xs text-slate-500">{device?.id}</span>
                       </div>
-                      <p className="font-semibold text-slate-900">{customer?.name}</p>
-                      <p className="text-xs text-slate-500">{customer?.phone}</p>
+                      <button onClick={() => setQuickCustomer(customer)} className="text-right hover:text-blue-600 group">
+                        <p className="font-semibold text-slate-900 group-hover:underline">{customer?.name}</p>
+                        <p className="text-xs text-slate-500" dir="ltr">{customer?.phone}</p>
+                      </button>
                     </div>
                     <div className="text-left">
                       <p className="text-xs text-slate-500">אובחן ב-</p>
@@ -116,8 +122,10 @@ export default function OfficeApproval() {
                 <div className="p-4 grid lg:grid-cols-2 gap-4">
                   <div className="space-y-3">
                     <InfoCard title="מכשיר" icon={Wrench}>
-                      <p className="font-semibold">{device?.brand} {device?.model}</p>
-                      <p className="text-xs text-slate-500">{device?.type}</p>
+                      <button onClick={() => setQuickDevice({ device, customer })} className="text-right hover:text-blue-600 group w-full">
+                        <p className="font-semibold group-hover:underline">{device?.brand} {device?.model}</p>
+                        <p className="text-xs text-slate-500">{device?.type}</p>
+                      </button>
                     </InfoCard>
 
                     <InfoCard title="תלונה" icon={FileText}>
@@ -184,6 +192,13 @@ export default function OfficeApproval() {
             );
           })}
         </div>
+      )}
+
+      {quickCustomer && (
+        <CustomerQuickModal customer={quickCustomer} repairs={state.repairs} devices={state.devices} onClose={() => setQuickCustomer(null)} />
+      )}
+      {quickDevice && (
+        <DeviceQuickModal device={quickDevice.device} customer={quickDevice.customer} repairs={state.repairs} onClose={() => setQuickDevice(null)} />
       )}
 
       {editingRepair && (
