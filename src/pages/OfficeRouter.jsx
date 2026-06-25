@@ -19,6 +19,7 @@ import { OfficeUsers } from './office/OfficeUsers';
 import PartsPage from './office/PartsPage';
 import OfficeSearch from './office/OfficeSearch';
 import OfficeLogs from './office/OfficeLogs';
+import ProfilePage from './ProfilePage';
 import KanbanBoard from './office/KanbanBoard';
 
 const PAGE_COMPONENTS = {
@@ -39,6 +40,7 @@ const PAGE_COMPONENTS = {
   users: OfficeUsers,
   logs: OfficeLogs,
   search: OfficeSearch,
+  profile: ProfilePage,
 };
 
 export default function OfficeRouter() {

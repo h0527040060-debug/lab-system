@@ -15,6 +15,7 @@ export const OFFICE_TABS = [
   { id: 'settings', label: 'הגדרות', icon: '⚙️' },
   { id: 'users', label: 'משתמשים', icon: '👤' },
   { id: 'logs', label: 'לוגים', icon: '📜', adminOnly: true },
+  { id: 'profile', label: 'הפרופיל שלי', icon: '🙋' },
   { id: 'search', label: 'חיפוש', icon: '🔍', hidden: true },
 ];
 
@@ -23,4 +24,5 @@ export const LAB_TABS = [
   { id: 'dashboard', label: 'דשבורד מעבדה', icon: '🏠' },
   { id: 'search', label: 'חיפוש מהיר', icon: '🔍' },
   { id: 'history', label: 'היסטוריית מכשירים', icon: '📜' },
+  { id: 'profile', label: 'הפרופיל שלי', icon: '🙋' },
 ];
