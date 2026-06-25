@@ -3,7 +3,7 @@ import { useAppContext } from '../../store/AppContext';
 import { generateCustomerId, generateDeviceId, generateRepairId } from '../../utils/idGenerators';
 import { REPAIR_STATUSES } from '../../constants/statuses';
 import { WARRANTY_TYPES, WARRANTY_LABELS } from '../../constants/warranty';
-import { formatDateTime } from '../../utils/formatters';
+import { formatDateTime, formatMoney } from '../../utils/formatters';
 import PageHeader from '../../components/PageHeader';
 import SearchInput from '../../components/SearchInput';
 import { User, Wrench, FileText, ShieldCheck, Camera, Check, Plus } from 'lucide-react';
@@ -32,6 +32,7 @@ export default function OfficeIntake() {
   const [complaint, setComplaint] = useState('');
   const [warrantyType, setWarrantyType] = useState(WARRANTY_TYPES.PAID);
   const [intakePhotos, setIntakePhotos] = useState([]);
+  const [diagnosticFeeConfirmed, setDiagnosticFeeConfirmed] = useState(false);
 
   const [successRepair, setSuccessRepair] = useState(null);
 
@@ -114,6 +115,7 @@ export default function OfficeIntake() {
     setComplaint('');
     setWarrantyType(WARRANTY_TYPES.PAID);
     setIntakePhotos([]);
+    setDiagnosticFeeConfirmed(false);
     setSuccessRepair(null);
   };
 
@@ -125,7 +127,8 @@ export default function OfficeIntake() {
     ? !!selectedDeviceId
     : !!(newDevice.type && newDevice.brand);
 
-  const canSave = !!complaint && intakePhotos.length >= 1;
+  const requiresFeeConfirm = warrantyType !== WARRANTY_TYPES.FULL_WARRANTY;
+  const canSave = !!complaint && intakePhotos.length >= 1 && (!requiresFeeConfirm || diagnosticFeeConfirmed);
 
   // מסך הצלחה
   if (successRepair) {
@@ -431,7 +434,7 @@ export default function OfficeIntake() {
                 {Object.entries(WARRANTY_LABELS).map(([key, label]) => (
                   <button
                     key={key}
-                    onClick={() => setWarrantyType(key)}
+                    onClick={() => { setWarrantyType(key); setDiagnosticFeeConfirmed(false); }}
                     className={`p-3 rounded-lg border-2 text-sm font-semibold ${warrantyType === key ? 'border-orange-500 bg-orange-50 text-orange-900' : 'border-slate-200 hover:border-slate-300'}`}
                   >
                     {label}
@@ -443,6 +446,19 @@ export default function OfficeIntake() {
                 {warrantyType === WARRANTY_TYPES.FULL_WARRANTY && 'אחריות מלאה — הלקוח לא משלם (כשל טכני)'}
                 {warrantyType === WARRANTY_TYPES.PAID_WARRANTY && 'באחריות, אך בתשלום (נזק/שבר/שימוש לא נכון)'}
               </p>
+              {requiresFeeConfirm && (
+                <label className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-lg p-3 cursor-pointer mt-2">
+                  <input
+                    type="checkbox"
+                    checked={diagnosticFeeConfirmed}
+                    onChange={e => setDiagnosticFeeConfirmed(e.target.checked)}
+                    className="w-5 h-5 accent-orange-500 flex-shrink-0"
+                  />
+                  <span className="text-sm font-semibold text-amber-900">
+                    הלקוח אישר דמי בדיקה {formatMoney(state.settings.diagnostic_fee || 180)} + מע"מ *
+                  </span>
+                </label>
+              )}
             </div>
 
             <div>
