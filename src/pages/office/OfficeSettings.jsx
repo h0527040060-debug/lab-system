@@ -3,13 +3,54 @@ import { useAppContext } from '../../store/AppContext';
 import { exportAllData, importAllData, clearAllStorage } from '../../store/storage';
 import PageHeader from '../../components/PageHeader';
 import ConfirmDialog from '../../components/ConfirmDialog';
-import { Save, Download, Upload, Trash2 } from 'lucide-react';
+import { getStatusDisplay, COLOR_MAP } from '../../utils/statusConfig';
+import { Save, Download, Upload, Trash2, Edit2, Check, X, Plus } from 'lucide-react';
+
+const COLOR_OPTIONS = [
+  { value: 'red',    label: 'אדום' },
+  { value: 'yellow', label: 'צהוב' },
+  { value: 'orange', label: 'כתום' },
+  { value: 'green',  label: 'ירוק' },
+  { value: 'blue',   label: 'כחול' },
+  { value: 'slate',  label: 'אפור' },
+];
 
 export default function OfficeSettings() {
   const { state, dispatch } = useAppContext();
   const [form, setForm] = useState({ ...state.settings });
   const [saved, setSaved] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
+
+  // ניהול סטטוסים
+  const [editingStatusId, setEditingStatusId] = useState(null);
+  const [editStatusForm, setEditStatusForm] = useState({});
+  const [showAddStatus, setShowAddStatus] = useState(false);
+  const [newStatusForm, setNewStatusForm] = useState({ label: '', emoji: '🔵', color: 'blue' });
+
+  const startEditStatus = (s) => {
+    setEditStatusForm({ label: s.label, emoji: s.emoji, color: s.color });
+    setEditingStatusId(s.id);
+    setShowAddStatus(false);
+  };
+
+  const saveEditStatus = (id) => {
+    dispatch({ type: 'UPDATE_STATUS', payload: { id, ...editStatusForm } });
+    setEditingStatusId(null);
+  };
+
+  const deleteStatus = (id) => {
+    dispatch({ type: 'DELETE_STATUS', payload: id });
+  };
+
+  const addStatus = () => {
+    if (!newStatusForm.label.trim()) return;
+    const id = 'custom_' + Date.now();
+    dispatch({ type: 'ADD_STATUS', payload: { id, ...newStatusForm, is_system: false } });
+    setNewStatusForm({ label: '', emoji: '🔵', color: 'blue' });
+    setShowAddStatus(false);
+  };
+
+  const getUsageCount = (statusId) => state.repairs.filter(r => r.status === statusId).length;
 
   const handleSave = () => {
     dispatch({ type: 'UPDATE_SETTINGS', payload: form });
@@ -115,6 +156,116 @@ export default function OfficeSettings() {
           <Save size={18} />
           {saved ? '✓ נשמר!' : 'שמור הגדרות'}
         </button>
+      </div>
+
+      {/* ניהול סטטוסים */}
+      <div className="bg-white rounded-xl shadow-sm p-6 mb-4">
+        <h2 className="font-bold text-slate-800 mb-4">ניהול סטטוסים</h2>
+        <div className="border border-slate-200 rounded-lg overflow-hidden mb-3">
+          <table className="w-full text-sm">
+            <thead className="bg-slate-50 border-b border-slate-200">
+              <tr>
+                <th className="text-right p-3 font-semibold">אמוג'י</th>
+                <th className="text-right p-3 font-semibold">שם</th>
+                <th className="text-right p-3 font-semibold">צבע / תצוגה</th>
+                <th className="text-center p-3 font-semibold">סוג</th>
+                <th className="text-center p-3 font-semibold">תיקונים</th>
+                <th className="p-3"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {state.statusConfig.map(s => {
+                const usage = getUsageCount(s.id);
+                const display = getStatusDisplay(s.id, state.statusConfig);
+                const isEditing = editingStatusId === s.id;
+
+                return (
+                  <tr key={s.id} className={`border-b border-slate-100 ${isEditing ? 'bg-orange-50' : 'hover:bg-slate-50'}`}>
+                    <td className="p-3">
+                      {isEditing ? (
+                        <input value={editStatusForm.emoji} onChange={e => setEditStatusForm(f => ({ ...f, emoji: e.target.value }))}
+                          className="w-14 border border-orange-300 rounded px-2 py-1 text-center" />
+                      ) : (
+                        <span className="text-xl">{display.emoji}</span>
+                      )}
+                    </td>
+                    <td className="p-3">
+                      {isEditing ? (
+                        <input value={editStatusForm.label} onChange={e => setEditStatusForm(f => ({ ...f, label: e.target.value }))}
+                          className="border border-orange-300 rounded px-2 py-1 w-44" />
+                      ) : (
+                        <span className="font-semibold">{display.label}</span>
+                      )}
+                    </td>
+                    <td className="p-3">
+                      {isEditing ? (
+                        <select value={editStatusForm.color} onChange={e => setEditStatusForm(f => ({ ...f, color: e.target.value }))}
+                          className="border border-orange-300 rounded px-2 py-1">
+                          {COLOR_OPTIONS.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                        </select>
+                      ) : (
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-semibold border ${display.bg} ${display.text} ${display.border}`}>
+                          {display.emoji} {display.label}
+                        </span>
+                      )}
+                    </td>
+                    <td className="p-3 text-center">
+                      <span className={`text-xs px-2 py-0.5 rounded font-semibold ${s.is_system ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'}`}>
+                        {s.is_system ? 'מערכת' : 'מותאם'}
+                      </span>
+                    </td>
+                    <td className="p-3 text-center">
+                      <span className={`text-xs font-bold ${usage > 0 ? 'text-slate-700' : 'text-slate-400'}`}>{usage}</span>
+                    </td>
+                    <td className="p-3">
+                      {isEditing ? (
+                        <div className="flex gap-1">
+                          <button onClick={() => saveEditStatus(s.id)} className="text-green-600 hover:text-green-800 p-1"><Check size={16} /></button>
+                          <button onClick={() => setEditingStatusId(null)} className="text-slate-400 hover:text-red-600 p-1"><X size={16} /></button>
+                        </div>
+                      ) : (
+                        <div className="flex gap-1">
+                          <button onClick={() => startEditStatus(s)} className="text-slate-400 hover:text-orange-600 p-1" title="ערוך">
+                            <Edit2 size={15} />
+                          </button>
+                          <button
+                            onClick={() => usage === 0 ? deleteStatus(s.id) : alert(`לא ניתן למחוק — ${usage} תיקונים משתמשים בסטטוס זה`)}
+                            className={`p-1 ${usage === 0 ? 'text-slate-400 hover:text-red-600' : 'text-slate-200 cursor-not-allowed'}`}
+                            title={usage > 0 ? `${usage} תיקונים בשימוש` : 'מחק'}
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        {showAddStatus ? (
+          <div className="border border-orange-200 bg-orange-50 rounded-lg p-3 flex items-center gap-3 flex-wrap">
+            <input value={newStatusForm.emoji} onChange={e => setNewStatusForm(f => ({ ...f, emoji: e.target.value }))}
+              placeholder="אמוג'י" className="w-14 border border-slate-300 rounded px-2 py-1.5 text-center" />
+            <input value={newStatusForm.label} onChange={e => setNewStatusForm(f => ({ ...f, label: e.target.value }))}
+              placeholder="שם הסטטוס" className="border border-slate-300 rounded px-2 py-1.5 flex-1 min-w-32" />
+            <select value={newStatusForm.color} onChange={e => setNewStatusForm(f => ({ ...f, color: e.target.value }))}
+              className="border border-slate-300 rounded px-2 py-1.5">
+              {COLOR_OPTIONS.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+            </select>
+            <button onClick={addStatus} className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-1.5 rounded-lg font-semibold flex items-center gap-1">
+              <Check size={15} /> הוסף
+            </button>
+            <button onClick={() => setShowAddStatus(false)} className="text-slate-500 hover:text-slate-700 p-1"><X size={16} /></button>
+          </div>
+        ) : (
+          <button onClick={() => { setShowAddStatus(true); setEditingStatusId(null); }}
+            className="text-sm text-orange-600 hover:text-orange-700 font-semibold flex items-center gap-1">
+            <Plus size={16} /> הוסף סטטוס מותאם אישית
+          </button>
+        )}
       </div>
 
       {/* גיבוי ושחזור */}

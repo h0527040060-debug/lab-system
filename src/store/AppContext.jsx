@@ -4,6 +4,7 @@ import {
   SEED_TECHNICIANS, SEED_SUPPLIERS, SEED_WORK_CATALOG,
   SEED_SERVICES, SEED_PARTS, SEED_STOCK_BATCHES, SEED_SETTINGS,
 } from '../data/seedData';
+import { DEFAULT_STATUS_CONFIG } from '../utils/statusConfig';
 
 // ============================================================
 // STATE INITIAL
@@ -24,6 +25,7 @@ const buildInitialState = () => ({
   settings:         loadFromStorage(storageKeys.SETTINGS, SEED_SETTINGS),
   currentUser:      loadFromStorage(storageKeys.CURRENT_USER, null),
   users:            loadFromStorage(storageKeys.USERS, []),
+  statusConfig:     loadFromStorage(storageKeys.STATUS_CONFIG, DEFAULT_STATUS_CONFIG),
 });
 
 // ============================================================
@@ -133,6 +135,14 @@ const appReducer = (state, action) => {
     case 'UPDATE_USER':
       return { ...state, users: state.users.map(u => u.id === action.payload.id ? { ...u, ...action.payload } : u) };
 
+    // --- קונפיגורציית סטטוסים ---
+    case 'ADD_STATUS':
+      return { ...state, statusConfig: [...state.statusConfig, action.payload] };
+    case 'UPDATE_STATUS':
+      return { ...state, statusConfig: state.statusConfig.map(s => s.id === action.payload.id ? { ...s, ...action.payload } : s) };
+    case 'DELETE_STATUS':
+      return { ...state, statusConfig: state.statusConfig.filter(s => s.id !== action.payload) };
+
     // --- משתמש נוכחי ---
     case 'SET_CURRENT_USER':
       return { ...state, currentUser: action.payload };
@@ -179,6 +189,7 @@ export const AppProvider = ({ children }) => {
   useEffect(() => { scheduleSave(storageKeys.SETTINGS, state.settings); }, [state.settings, scheduleSave]);
   useEffect(() => { scheduleSave(storageKeys.CURRENT_USER, state.currentUser); }, [state.currentUser, scheduleSave]);
   useEffect(() => { scheduleSave(storageKeys.USERS, state.users); }, [state.users, scheduleSave]);
+  useEffect(() => { scheduleSave(storageKeys.STATUS_CONFIG, state.statusConfig); }, [state.statusConfig, scheduleSave]);
 
   return (
     <AppContext.Provider value={{ state, dispatch }}>
