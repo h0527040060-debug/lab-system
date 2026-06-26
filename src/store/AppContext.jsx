@@ -1,6 +1,6 @@
 import { createContext, useContext, useReducer, useEffect, useCallback, useRef, useState } from 'react';
 import { storageKeys, loadFromStorage, saveToStorage, appendLog } from './storage';
-import { isSupabaseConfigured, loadAllFromDB, saveKeyToDB, saveAllToDB, STATE_TO_DB_KEY, DB_TO_STATE_KEY } from './supabase';
+import { supabase, isSupabaseConfigured, loadAllFromDB, saveKeyToDB, saveAllToDB, STATE_TO_DB_KEY, DB_TO_STATE_KEY } from './supabase';
 import {
   SEED_TECHNICIANS, SEED_SUPPLIERS, SEED_WORK_CATALOG,
   SEED_SERVICES, SEED_PARTS, SEED_STOCK_BATCHES, SEED_SETTINGS,
@@ -175,6 +175,13 @@ const appReducer = (state, action) => {
     case 'LOGOUT':
       return { ...state, currentUser: null };
 
+    // --- עדכון entity בודד מ-Realtime ---
+    case 'LOAD_ONE': {
+      const stateKey = DB_TO_STATE_KEY[action.payload.key];
+      if (!stateKey) return state;
+      return { ...state, [stateKey]: action.payload.data };
+    }
+
     // --- טעינה מ-Supabase ---
     case 'LOAD_ALL': {
       const p = action.payload;
@@ -315,6 +322,24 @@ export const AppProvider = ({ children }) => {
       initializedRef.current = true;
       setDbLoading(false);
     });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Realtime — עדכון אוטומטי כשמשתמש אחר משנה נתונים
+  useEffect(() => {
+    if (!isSupabaseConfigured()) return;
+    const channel = supabase
+      .channel('lab_realtime')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'lab_data' },
+        (payload) => {
+          if (payload.new?.key && payload.new?.data !== undefined) {
+            dispatch({ type: 'LOAD_ONE', payload: { key: payload.new.key, data: payload.new.data } });
+          }
+        }
+      )
+      .subscribe();
+    return () => supabase.removeChannel(channel);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
