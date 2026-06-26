@@ -6,11 +6,12 @@ import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
 import Modal from '../../components/Modal';
 import ConfirmDialog from '../../components/ConfirmDialog';
-import { DollarSign, Plus, Trash2, Calendar, Tag } from 'lucide-react';
+import { DollarSign, Plus, Trash2, Calendar, Tag, Edit2 } from 'lucide-react';
 
 export default function OfficeGeneralExpenses() {
   const { state, dispatch } = useApp();
   const [showAdd, setShowAdd] = useState(false);
+  const [editingExpense, setEditingExpense] = useState(null);
   const [deleting, setDeleting] = useState(null);
   const [filterCategory, setFilterCategory] = useState('all');
 
@@ -38,6 +39,11 @@ export default function OfficeGeneralExpenses() {
     if (!deleting) return;
     dispatch({ type: 'DELETE_GENERAL_EXPENSE', payload: deleting.id });
     setDeleting(null);
+  };
+
+  const handleEditExpense = (updatedExpense) => {
+    dispatch({ type: 'UPDATE_GENERAL_EXPENSE', payload: updatedExpense });
+    setEditingExpense(null);
   };
 
   return (
@@ -126,12 +132,21 @@ export default function OfficeGeneralExpenses() {
                   <td className="p-3 text-sm text-slate-600">{e.supplier || '—'}</td>
                   <td className="p-3 font-bold">{formatMoney(e.amount)}</td>
                   <td className="p-3 text-center">
-                    <button
-                      onClick={() => setDeleting(e)}
-                      className="text-slate-400 hover:text-red-600 p-1"
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    <div className="flex items-center justify-center gap-1">
+                      <button
+                        onClick={() => setEditingExpense(e)}
+                        className="text-slate-400 hover:text-orange-600 p-1"
+                        title="ערוך הוצאה"
+                      >
+                        <Edit2 size={15} />
+                      </button>
+                      <button
+                        onClick={() => setDeleting(e)}
+                        className="text-slate-400 hover:text-red-600 p-1"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -150,6 +165,9 @@ export default function OfficeGeneralExpenses() {
       {showAdd && (
         <AddExpenseModal onSave={handleAddExpense} onClose={() => setShowAdd(false)} />
       )}
+      {editingExpense && (
+        <AddExpenseModal initialData={editingExpense} onSave={handleEditExpense} onClose={() => setEditingExpense(null)} />
+      )}
 
       <ConfirmDialog
         open={!!deleting}
@@ -164,8 +182,12 @@ export default function OfficeGeneralExpenses() {
   );
 }
 
-function AddExpenseModal({ onSave, onClose }) {
-  const [form, setForm] = useState({
+function AddExpenseModal({ onSave, onClose, initialData }) {
+  const isEdit = !!initialData;
+  const [form, setForm] = useState(initialData ? {
+    ...initialData,
+    date: initialData.date ? initialData.date.split('T')[0] : new Date().toISOString().split('T')[0],
+  } : {
     date: new Date().toISOString().split('T')[0],
     category: EXPENSE_CATEGORIES[0],
     description: '',
@@ -180,8 +202,8 @@ function AddExpenseModal({ onSave, onClose }) {
     <Modal
       open={true}
       onClose={onClose}
-      title="הוספת הוצאה כללית"
-      subtitle="רכש לעסק שאינו לתיקון ספציפי"
+      title={isEdit ? 'עריכת הוצאה' : 'הוספת הוצאה כללית'}
+      subtitle={isEdit ? undefined : 'רכש לעסק שאינו לתיקון ספציפי'}
       maxWidth="max-w-xl"
       footer={
         <div className="flex justify-end gap-2">
@@ -191,7 +213,7 @@ function AddExpenseModal({ onSave, onClose }) {
             disabled={!canSave}
             className="bg-orange-500 hover:bg-orange-600 disabled:bg-slate-300 text-white px-6 py-2 rounded-lg font-semibold"
           >
-            הוסף
+            {isEdit ? 'שמור' : 'הוסף'}
           </button>
         </div>
       }

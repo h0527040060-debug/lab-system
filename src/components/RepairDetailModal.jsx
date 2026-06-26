@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { X, User, Smartphone, FileText, Wrench, Camera, Stethoscope, Clock, Package } from 'lucide-react';
+import { X, User, Smartphone, FileText, Wrench, Camera, Stethoscope, Clock, Package, Edit2 } from 'lucide-react';
 import { useAppContext } from '../store/AppContext';
 import { getStatusDisplay } from '../utils/statusConfig';
 import { formatDateTime } from '../utils/formatters';
 import WhatsAppButton from './WhatsAppButton';
 import CustomerQuickModal from './CustomerQuickModal';
 import DeviceQuickModal from './DeviceQuickModal';
+import { RepairEditModal } from './RepairEditModal';
 
 const WARRANTY_LABELS = {
   paid: 'תשלום רגיל',
@@ -24,6 +25,7 @@ function formatSeconds(sec) {
 export default function RepairDetailModal({ repair, customer, device, onClose, onAction }) {
   const { state } = useAppContext();
   const [innerModal, setInnerModal] = useState(null); // 'customer' | 'device'
+  const [showEditRepair, setShowEditRepair] = useState(false);
   const statusDisplay = getStatusDisplay(repair.status, state.statusConfig);
 
   const diagnosedParts = repair.diagnosed_parts || [];
@@ -176,12 +178,26 @@ export default function RepairDetailModal({ repair, customer, device, onClose, o
             {/* פעולות */}
             <div className="flex flex-wrap gap-2 pt-1 border-t border-slate-100">
               <WhatsAppButton repair={repair} customer={customer} device={device} type="customer" />
+              <button
+                onClick={() => setShowEditRepair(true)}
+                className="flex items-center gap-1.5 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg font-semibold"
+              >
+                <Edit2 size={12} /> ערוך פרטים
+              </button>
               {canDiagnosis && (
                 <button
                   onClick={() => { onAction(repair.id, 'diagnosis'); onClose(); }}
                   className="flex items-center gap-1.5 text-xs bg-yellow-100 hover:bg-yellow-200 text-yellow-800 px-3 py-1.5 rounded-lg font-semibold"
                 >
                   <Stethoscope size={12} /> אבחון
+                </button>
+              )}
+              {repair.diagnosis_notes && !canDiagnosis && (
+                <button
+                  onClick={() => { onAction(repair.id, 'diagnosis'); onClose(); }}
+                  className="flex items-center gap-1.5 text-xs bg-yellow-50 hover:bg-yellow-100 text-yellow-700 px-3 py-1.5 rounded-lg font-semibold border border-yellow-200"
+                >
+                  <Stethoscope size={12} /> ערוך אבחון
                 </button>
               )}
               {canWork && (
@@ -221,6 +237,9 @@ export default function RepairDetailModal({ repair, customer, device, onClose, o
           repairs={state.repairs}
           onClose={() => setInnerModal(null)}
         />
+      )}
+      {showEditRepair && (
+        <RepairEditModal repair={repair} onClose={() => setShowEditRepair(false)} />
       )}
     </>
   );

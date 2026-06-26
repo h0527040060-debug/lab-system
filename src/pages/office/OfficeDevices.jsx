@@ -6,15 +6,15 @@ import SearchInput from '../../components/SearchInput';
 import EmptyState from '../../components/EmptyState';
 import CustomerQuickModal from '../../components/CustomerQuickModal';
 import DeviceQuickModal from '../../components/DeviceQuickModal';
+import { DeviceEditModal } from '../../components/DeviceEditModal';
 import { Wrench, ShieldCheck, AlertCircle, Edit2 } from 'lucide-react';
-import DeviceEditModal from '../../components/DeviceEditModal';
 
 export default function OfficeDevices() {
   const { state } = useAppContext();
   const [search, setSearch] = useState('');
   const [quickCustomer, setQuickCustomer] = useState(null);
   const [quickDevice, setQuickDevice] = useState(null);
-  const [editDevice, setEditDevice] = useState(null);
+  const [editingDevice, setEditingDevice] = useState(null);
 
   const filteredDevices = [...state.devices]
     .filter(d => {
@@ -119,11 +119,11 @@ export default function OfficeDevices() {
                         <span className="text-xs text-slate-400">—</span>
                       )}
                     </td>
-                    <td className="p-3">
+                    <td className="p-3 text-center">
                       <button
-                        onClick={() => setEditDevice(d)}
-                        className="text-slate-400 hover:text-orange-600 p-1 rounded transition-colors"
-                        title="עריכה"
+                        onClick={() => setEditingDevice(d)}
+                        className="p-1.5 hover:bg-orange-100 rounded-lg text-slate-400 hover:text-orange-600"
+                        title="ערוך מכשיר"
                       >
                         <Edit2 size={14} />
                       </button>
@@ -135,14 +135,14 @@ export default function OfficeDevices() {
           </table>
         )}
       </div>
-      {editDevice && (
-        <DeviceEditModal device={editDevice} onClose={() => setEditDevice(null)} />
-      )}
       {quickCustomer && (
         <CustomerQuickModal customer={quickCustomer} repairs={state.repairs} devices={state.devices} onClose={() => setQuickCustomer(null)} />
       )}
       {quickDevice && (
         <DeviceQuickModal device={quickDevice.device} customer={quickDevice.customer} repairs={state.repairs} onClose={() => setQuickDevice(null)} />
+      )}
+      {editingDevice && (
+        <DeviceEditModal device={editingDevice} onClose={() => setEditingDevice(null)} />
       )}
     </div>
   );

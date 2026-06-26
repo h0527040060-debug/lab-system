@@ -1,8 +1,11 @@
-import { X, Phone, Mail, MapPin, FileText } from 'lucide-react';
+import { useState } from 'react';
+import { X, Phone, Mail, MapPin, FileText, Edit2 } from 'lucide-react';
 import { formatDateTime } from '../utils/formatters';
 import StatusBadge from './StatusBadge';
+import { CustomerEditModal } from './CustomerEditModal';
 
 export default function CustomerQuickModal({ customer, repairs = [], devices = [], onClose }) {
+  const [showEdit, setShowEdit] = useState(false);
   if (!customer) return null;
 
   const customerDevices = devices.filter(d => d.customer_id === customer.id);
@@ -12,6 +15,7 @@ export default function CustomerQuickModal({ customer, repairs = [], devices = [
     .slice(0, 8);
 
   return (
+    <>
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div
         className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto"
@@ -19,9 +23,18 @@ export default function CustomerQuickModal({ customer, repairs = [], devices = [
       >
         <div className="flex items-center justify-between p-4 border-b border-slate-200">
           <h2 className="font-bold text-lg text-slate-800">{customer.name}</h2>
-          <button onClick={onClose} className="p-1 hover:bg-slate-100 rounded-lg text-slate-500">
-            <X size={18} />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setShowEdit(true)}
+              className="p-1.5 hover:bg-orange-100 rounded-lg text-slate-400 hover:text-orange-600"
+              title="ערוך לקוח"
+            >
+              <Edit2 size={16} />
+            </button>
+            <button onClick={onClose} className="p-1 hover:bg-slate-100 rounded-lg text-slate-500">
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
         <div className="p-4 space-y-4">
@@ -90,5 +103,7 @@ export default function CustomerQuickModal({ customer, repairs = [], devices = [
         </div>
       </div>
     </div>
+    {showEdit && <CustomerEditModal customer={customer} onClose={() => setShowEdit(false)} />}
+    </>
   );
 }
