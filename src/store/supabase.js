@@ -26,6 +26,7 @@ export const STATE_TO_DB_KEY = {
   settings:        'settings',
   users:           'users',
   statusConfig:    'status_config',
+  roleConfig:      'role_config',
 };
 
 export const DB_TO_STATE_KEY = Object.fromEntries(

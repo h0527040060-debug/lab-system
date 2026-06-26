@@ -18,6 +18,7 @@ export const storageKeys = {
   CURRENT_USER: 'current_user',
   USERS: 'users',
   STATUS_CONFIG: 'status_config',
+  ROLE_CONFIG: 'role_config',
 };
 
 // טעינה
