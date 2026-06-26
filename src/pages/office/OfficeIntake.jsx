@@ -122,9 +122,12 @@ export default function OfficeIntake() {
     setSuccessRepair(null);
   };
 
+  const emailValid = !newCustomer.email || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newCustomer.email);
+  const phoneValid = /^[\d\s\-\+\(\)]{7,15}$/.test(newCustomer.phone.trim());
+
   const canProceedFromStep1 = customerMode === 'select'
     ? !!selectedCustomerId
-    : !!(newCustomer.name && newCustomer.phone);
+    : !!(newCustomer.name.trim() && newCustomer.phone.trim() && phoneValid && emailValid);
 
   const canProceedFromStep2 = deviceMode === 'select'
     ? !!selectedDeviceId
@@ -270,20 +273,30 @@ export default function OfficeIntake() {
                 onChange={(e) => setNewCustomer({ ...newCustomer, name: e.target.value })}
                 className="border border-slate-300 rounded-lg px-3 py-2 col-span-2"
               />
-              <input
-                type="tel"
-                placeholder="טלפון *"
-                value={newCustomer.phone}
-                onChange={(e) => setNewCustomer({ ...newCustomer, phone: e.target.value })}
-                className="border border-slate-300 rounded-lg px-3 py-2"
-              />
-              <input
-                type="email"
-                placeholder="מייל"
-                value={newCustomer.email}
-                onChange={(e) => setNewCustomer({ ...newCustomer, email: e.target.value })}
-                className="border border-slate-300 rounded-lg px-3 py-2"
-              />
+              <div>
+                <input
+                  type="tel"
+                  placeholder="טלפון *"
+                  value={newCustomer.phone}
+                  onChange={(e) => setNewCustomer({ ...newCustomer, phone: e.target.value })}
+                  className={`w-full border rounded-lg px-3 py-2 ${newCustomer.phone && !phoneValid ? 'border-red-400' : 'border-slate-300'}`}
+                />
+                {newCustomer.phone && !phoneValid && (
+                  <p className="text-xs text-red-500 mt-0.5">מספר טלפון לא תקין (ספרות בלבד)</p>
+                )}
+              </div>
+              <div>
+                <input
+                  type="email"
+                  placeholder="מייל"
+                  value={newCustomer.email}
+                  onChange={(e) => setNewCustomer({ ...newCustomer, email: e.target.value })}
+                  className={`w-full border rounded-lg px-3 py-2 ${newCustomer.email && !emailValid ? 'border-red-400' : 'border-slate-300'}`}
+                />
+                {newCustomer.email && !emailValid && (
+                  <p className="text-xs text-red-500 mt-0.5">כתובת מייל לא תקינה</p>
+                )}
+              </div>
               <input
                 type="text"
                 placeholder="כתובת"

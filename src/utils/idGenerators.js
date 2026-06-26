@@ -33,7 +33,10 @@ export const generateRepairId = (existingIds = []) => {
     .filter(id => id?.startsWith(`QR_${dateStr}_`))
     .map(id => parseInt(id.split('_')[2]))
     .filter(n => !isNaN(n));
-  const next = todaysIds.length > 0 ? Math.max(...todaysIds) + 1 : 1;
+  let next = todaysIds.length > 0 ? Math.max(...todaysIds) + 1 : 1;
+  // ערובה לייחודיות — דלג על IDים תפוסים
+  const existingSet = new Set(existingIds);
+  while (existingSet.has(`QR_${dateStr}_${String(next).padStart(3, '0')}`)) next++;
   return `QR_${dateStr}_${String(next).padStart(3, '0')}`;
 };
 

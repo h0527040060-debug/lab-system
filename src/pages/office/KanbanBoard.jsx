@@ -19,7 +19,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { useAppContext } from '../../store/AppContext';
 import { loadFromStorage, saveToStorage } from '../../store/storage';
-import { REPAIR_STATUSES } from '../../constants/statuses';
+import { REPAIR_STATUSES, ALLOWED_TRANSITIONS } from '../../constants/statuses';
 import { getStatusDisplay } from '../../utils/statusConfig';
 import { formatDateTime } from '../../utils/formatters';
 import WhatsAppButton from '../../components/WhatsAppButton';
@@ -456,6 +456,8 @@ export default function KanbanBoard({ role = 'office' }) {
           setSortMode('manual');
         }
       } else {
+        const allowed = ALLOWED_TRANSITIONS[fromStatus] ?? [];
+        if (!allowed.includes(toStatus)) return;
         dispatch({ type: 'UPDATE_REPAIR', payload: { id: active.id, status: toStatus } });
         const destIds = (columnRepairs[toStatus] || []).map(r => r.id);
         const overIdx = destIds.indexOf(over.id);
