@@ -94,136 +94,168 @@ export function OfficeUsers() {
         </div>
       ) : (
         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-slate-200 bg-slate-50 text-right">
-                <th className="px-4 py-3 text-xs font-semibold text-slate-500">משתמש</th>
-                <th className="px-4 py-3 text-xs font-semibold text-slate-500">מייל</th>
-                <th className="px-4 py-3 text-xs font-semibold text-slate-500">טלפון</th>
-                <th className="px-4 py-3 text-xs font-semibold text-slate-500">תפקיד</th>
-                <th className="px-4 py-3 text-xs font-semibold text-slate-500">הצטרף</th>
-                <th className="px-4 py-3 text-xs font-semibold text-slate-500">פעולות</th>
-              </tr>
-            </thead>
-            <tbody>
-              {state.users.map((user) => {
-                const isSelf = user.id === currentUserId;
-                const isResetting = resetUserId === user.id;
-                const isEditing = editUserId === user.id;
-                return (
-                  <tr key={user.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        {user.picture ? (
-                          <img src={user.picture} alt={user.name}
-                            className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
+          {/* Desktop table */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-slate-200 bg-slate-50 text-right">
+                  <th className="px-4 py-3 text-xs font-semibold text-slate-500">משתמש</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-slate-500">מייל</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-slate-500">טלפון</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-slate-500">תפקיד</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-slate-500">הצטרף</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-slate-500">פעולות</th>
+                </tr>
+              </thead>
+              <tbody>
+                {state.users.map((user) => {
+                  const isSelf = user.id === currentUserId;
+                  const isResetting = resetUserId === user.id;
+                  const isEditing = editUserId === user.id;
+                  return (
+                    <tr key={user.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          {user.picture ? (
+                            <img src={user.picture} alt={user.name}
+                              className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
+                          ) : (
+                            <div className="w-9 h-9 rounded-full bg-slate-200 flex items-center justify-center text-sm font-bold text-slate-600 flex-shrink-0">
+                              {user.name?.charAt(0) || '?'}
+                            </div>
+                          )}
+                          <div>
+                            <p className="text-sm font-medium text-slate-900">{user.name}</p>
+                            <p className="text-xs text-slate-400">{user.id}</p>
+                          </div>
+                          {isSelf && (
+                            <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">אתה</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-slate-600">{user.email}</td>
+                      <td className="px-4 py-3 text-sm text-slate-500">{user.phone || '—'}</td>
+                      <td className="px-4 py-3">
+                        <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${ROLE_BADGE[user.role] || ROLE_BADGE.pending}`}>
+                          {ROLE_OPTIONS.find(r => r.value === user.role)?.label || user.role}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-slate-500">{formatDate(user.created_at)}</td>
+                      <td className="px-4 py-3">
+                        {isEditing ? (
+                          <div className="space-y-1.5 min-w-[220px]">
+                            <input type="text" value={editForm.name} onChange={e => { setEditForm(f => ({ ...f, name: e.target.value })); setEditError(''); }} placeholder="שם מלא" className="border border-slate-300 rounded px-2 py-1 text-xs w-full" />
+                            <input type="tel" value={editForm.phone} onChange={e => { setEditForm(f => ({ ...f, phone: e.target.value })); setEditError(''); }} placeholder="טלפון" className="border border-slate-300 rounded px-2 py-1 text-xs w-full" dir="ltr" />
+                            <input type="email" value={editForm.email} onChange={e => { setEditForm(f => ({ ...f, email: e.target.value })); setEditError(''); }} placeholder="מייל" className="border border-slate-300 rounded px-2 py-1 text-xs w-full" dir="ltr" />
+                            {editError && <p className="text-xs text-red-600">{editError}</p>}
+                            <div className="flex gap-1">
+                              <button onClick={() => handleEditSave(user.id)} className="text-green-600 hover:text-green-800 p-1"><Check size={15} /></button>
+                              <button onClick={() => setEditUserId(null)} className="text-slate-400 hover:text-red-600 p-1"><X size={15} /></button>
+                            </div>
+                          </div>
+                        ) : isResetting ? (
+                          <div className="flex items-center gap-1">
+                            <input type="password" value={newPassword} onChange={e => { setNewPassword(e.target.value); setResetError(''); }} placeholder="סיסמה חדשה" className="border border-slate-300 rounded px-2 py-1 text-xs w-32" dir="ltr" autoFocus />
+                            <button onClick={() => handleReset(user.id)} className="text-green-600 hover:text-green-800 p-1"><Check size={15} /></button>
+                            <button onClick={() => setResetUserId(null)} className="text-slate-400 hover:text-red-600 p-1"><X size={15} /></button>
+                            {resetError && <span className="text-xs text-red-600">{resetError}</span>}
+                          </div>
                         ) : (
-                          <div className="w-9 h-9 rounded-full bg-slate-200 flex items-center justify-center text-sm font-bold text-slate-600 flex-shrink-0">
-                            {user.name?.charAt(0) || '?'}
-                          </div>
-                        )}
-                        <div>
-                          <p className="text-sm font-medium text-slate-900">{user.name}</p>
-                          <p className="text-xs text-slate-400">{user.id}</p>
-                        </div>
-                        {isSelf && (
-                          <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">אתה</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-slate-600">{user.email}</td>
-                    <td className="px-4 py-3 text-sm text-slate-500">{user.phone || '—'}</td>
-                    <td className="px-4 py-3">
-                      <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${ROLE_BADGE[user.role] || ROLE_BADGE.pending}`}>
-                        {ROLE_OPTIONS.find(r => r.value === user.role)?.label || user.role}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-slate-500">{formatDate(user.created_at)}</td>
-                    <td className="px-4 py-3">
-                      {isEditing ? (
-                        <div className="space-y-1.5 min-w-[220px]">
-                          <input
-                            type="text"
-                            value={editForm.name}
-                            onChange={e => { setEditForm(f => ({ ...f, name: e.target.value })); setEditError(''); }}
-                            placeholder="שם מלא"
-                            className="border border-slate-300 rounded px-2 py-1 text-xs w-full"
-                          />
-                          <input
-                            type="tel"
-                            value={editForm.phone}
-                            onChange={e => { setEditForm(f => ({ ...f, phone: e.target.value })); setEditError(''); }}
-                            placeholder="טלפון"
-                            className="border border-slate-300 rounded px-2 py-1 text-xs w-full"
-                            dir="ltr"
-                          />
-                          <input
-                            type="email"
-                            value={editForm.email}
-                            onChange={e => { setEditForm(f => ({ ...f, email: e.target.value })); setEditError(''); }}
-                            placeholder="מייל"
-                            className="border border-slate-300 rounded px-2 py-1 text-xs w-full"
-                            dir="ltr"
-                          />
-                          {editError && <p className="text-xs text-red-600">{editError}</p>}
-                          <div className="flex gap-1">
-                            <button onClick={() => handleEditSave(user.id)} className="text-green-600 hover:text-green-800 p-1"><Check size={15} /></button>
-                            <button onClick={() => setEditUserId(null)} className="text-slate-400 hover:text-red-600 p-1"><X size={15} /></button>
-                          </div>
-                        </div>
-                      ) : isResetting ? (
-                        <div className="flex items-center gap-1">
-                          <input
-                            type="password"
-                            value={newPassword}
-                            onChange={e => { setNewPassword(e.target.value); setResetError(''); }}
-                            placeholder="סיסמה חדשה"
-                            className="border border-slate-300 rounded px-2 py-1 text-xs w-32"
-                            dir="ltr"
-                            autoFocus
-                          />
-                          <button onClick={() => handleReset(user.id)} className="text-green-600 hover:text-green-800 p-1"><Check size={15} /></button>
-                          <button onClick={() => setResetUserId(null)} className="text-slate-400 hover:text-red-600 p-1"><X size={15} /></button>
-                          {resetError && <span className="text-xs text-red-600">{resetError}</span>}
-                        </div>
-                      ) : (
-                        <div className="flex gap-1 flex-wrap">
-                          <button
-                            onClick={() => startEdit(user)}
-                            className="text-xs px-2 py-0.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 flex items-center gap-1"
-                            title="עריכת פרטים"
-                          >
-                            <Pencil size={12} /> עריכה
-                          </button>
-                          {ROLE_OPTIONS.filter(r => r.value !== user.role).map(option => (
-                            <button
-                              key={option.value}
-                              onClick={() => handleRoleChange(user.id, option.value)}
-                              className={`text-xs px-2 py-0.5 rounded-lg border transition-colors ${
-                                option.value === 'admin'  ? 'border-purple-200 text-purple-700 hover:bg-purple-50' :
-                                option.value === 'office' ? 'border-blue-200 text-blue-700 hover:bg-blue-50' :
-                                option.value === 'lab'    ? 'border-amber-200 text-amber-700 hover:bg-amber-50' :
-                                'border-slate-200 text-slate-600 hover:bg-slate-50'
-                              }`}
-                            >
-                              {option.label}
+                          <div className="flex gap-1 flex-wrap">
+                            <button onClick={() => startEdit(user)} className="text-xs px-2 py-0.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 flex items-center gap-1" title="עריכת פרטים">
+                              <Pencil size={12} /> עריכה
                             </button>
-                          ))}
-                          <button
-                            onClick={() => startReset(user.id)}
-                            className="text-xs px-2 py-0.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 flex items-center gap-1"
-                            title="איפוס סיסמה"
-                          >
-                            <KeyRound size={12} /> סיסמה
-                          </button>
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                            {ROLE_OPTIONS.filter(r => r.value !== user.role && !isSelf).map(option => (
+                              <button key={option.value} onClick={() => handleRoleChange(user.id, option.value)} className={`text-xs px-2 py-0.5 rounded-lg border transition-colors ${option.value === 'admin' ? 'border-purple-200 text-purple-700 hover:bg-purple-50' : option.value === 'office' ? 'border-blue-200 text-blue-700 hover:bg-blue-50' : option.value === 'lab' ? 'border-amber-200 text-amber-700 hover:bg-amber-50' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                                {option.label}
+                              </button>
+                            ))}
+                            <button onClick={() => startReset(user.id)} className="text-xs px-2 py-0.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 flex items-center gap-1" title="איפוס סיסמה">
+                              <KeyRound size={12} /> סיסמה
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile cards */}
+          <div className="md:hidden divide-y divide-slate-100">
+            {state.users.map((user) => {
+              const isSelf = user.id === currentUserId;
+              const isResetting = resetUserId === user.id;
+              const isEditing = editUserId === user.id;
+              return (
+                <div key={user.id} className="p-4 space-y-3">
+                  {/* avatar + name + badges + email */}
+                  <div className="flex items-center gap-3">
+                    {user.picture ? (
+                      <img src={user.picture} alt={user.name} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-sm font-bold text-slate-600 flex-shrink-0">
+                        {user.name?.charAt(0) || '?'}
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm font-semibold text-slate-900">{user.name}</p>
+                        {isSelf && <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">אתה</span>}
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${ROLE_BADGE[user.role] || ROLE_BADGE.pending}`}>
+                          {ROLE_OPTIONS.find(r => r.value === user.role)?.label || user.role}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 truncate mt-0.5">{user.email}</p>
+                    </div>
+                  </div>
+
+                  {/* phone + joined */}
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div><span className="text-slate-400">טלפון: </span><span className="text-slate-700">{user.phone || '—'}</span></div>
+                    <div><span className="text-slate-400">הצטרף: </span><span className="text-slate-700">{formatDate(user.created_at)}</span></div>
+                  </div>
+
+                  {/* actions */}
+                  {isEditing ? (
+                    <div className="space-y-1.5">
+                      <input type="text" value={editForm.name} onChange={e => { setEditForm(f => ({ ...f, name: e.target.value })); setEditError(''); }} placeholder="שם מלא" className="border border-slate-300 rounded px-2 py-1 text-xs w-full" />
+                      <input type="tel" value={editForm.phone} onChange={e => { setEditForm(f => ({ ...f, phone: e.target.value })); setEditError(''); }} placeholder="טלפון" className="border border-slate-300 rounded px-2 py-1 text-xs w-full" dir="ltr" />
+                      <input type="email" value={editForm.email} onChange={e => { setEditForm(f => ({ ...f, email: e.target.value })); setEditError(''); }} placeholder="מייל" className="border border-slate-300 rounded px-2 py-1 text-xs w-full" dir="ltr" />
+                      {editError && <p className="text-xs text-red-600">{editError}</p>}
+                      <div className="flex gap-1">
+                        <button onClick={() => handleEditSave(user.id)} className="text-green-600 hover:text-green-800 p-1"><Check size={15} /></button>
+                        <button onClick={() => setEditUserId(null)} className="text-slate-400 hover:text-red-600 p-1"><X size={15} /></button>
+                      </div>
+                    </div>
+                  ) : isResetting ? (
+                    <div className="flex items-center gap-1 flex-wrap">
+                      <input type="password" value={newPassword} onChange={e => { setNewPassword(e.target.value); setResetError(''); }} placeholder="סיסמה חדשה" className="border border-slate-300 rounded px-2 py-1 text-xs w-36" dir="ltr" autoFocus />
+                      <button onClick={() => handleReset(user.id)} className="text-green-600 hover:text-green-800 p-1"><Check size={15} /></button>
+                      <button onClick={() => setResetUserId(null)} className="text-slate-400 hover:text-red-600 p-1"><X size={15} /></button>
+                      {resetError && <span className="text-xs text-red-600">{resetError}</span>}
+                    </div>
+                  ) : (
+                    <div className="flex gap-1 flex-wrap">
+                      <button onClick={() => startEdit(user)} className="text-xs px-2 py-0.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 flex items-center gap-1">
+                        <Pencil size={12} /> עריכה
+                      </button>
+                      {ROLE_OPTIONS.filter(r => r.value !== user.role && !isSelf).map(option => (
+                        <button key={option.value} onClick={() => handleRoleChange(user.id, option.value)} className={`text-xs px-2 py-0.5 rounded-lg border transition-colors ${option.value === 'admin' ? 'border-purple-200 text-purple-700 hover:bg-purple-50' : option.value === 'office' ? 'border-blue-200 text-blue-700 hover:bg-blue-50' : option.value === 'lab' ? 'border-amber-200 text-amber-700 hover:bg-amber-50' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                          {option.label}
+                        </button>
+                      ))}
+                      <button onClick={() => startReset(user.id)} className="text-xs px-2 py-0.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 flex items-center gap-1">
+                        <KeyRound size={12} /> סיסמה
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>
