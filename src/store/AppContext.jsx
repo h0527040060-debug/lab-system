@@ -23,15 +23,26 @@ export const DEFAULT_ROLE_CONFIG = {
 // ============================================================
 // STATE INITIAL
 // ============================================================
-// מוודא שיצחק הורוביץ הוא תמיד אדמין
 const OWNER_EMAIL = 'h0527040060@gmail.com';
 
-const ensureOwnerIsAdmin = (users) => {
+// משתמש הבעלים — קבוע בקוד, לא ניתן למחיקה לעולם
+const OWNER_USER = {
+  id: 'USR-OWNER',
+  name: 'יצחק הורוביץ',
+  email: OWNER_EMAIL,
+  password: '3646',
+  role: 'admin',
+  created_date: '2024-01-01T00:00:00.000Z',
+};
+
+// מוודא שהבעלים תמיד קיים ברשימת המשתמשים עם הרשאת אדמין
+const ensureOwnerExists = (users) => {
   const idx = users.findIndex(u => u.email.toLowerCase() === OWNER_EMAIL);
-  if (idx === -1) return users;
-  if (users[idx].role === 'admin') return users;
+  if (idx === -1) return [OWNER_USER, ...users];
+  const existing = users[idx];
+  if (existing.role === 'admin' && existing.id === OWNER_USER.id) return users;
   const updated = [...users];
-  updated[idx] = { ...updated[idx], role: 'admin' };
+  updated[idx] = { ...OWNER_USER, ...existing, role: 'admin', id: OWNER_USER.id };
   return updated;
 };
 
@@ -42,7 +53,7 @@ const buildInitialState = () => {
   const usersWithCurrent = (storedUsers.length === 0 && rawCurrentUser)
     ? [rawCurrentUser]
     : storedUsers;
-  const users = ensureOwnerIsAdmin(usersWithCurrent);
+  const users = ensureOwnerExists(usersWithCurrent);
   // סנכרון currentUser עם הנתון המעודכן מ-users
   const currentUser = rawCurrentUser
     ? (users.find(u => u.id === rawCurrentUser.id) || rawCurrentUser)
@@ -171,7 +182,11 @@ const appReducer = (state, action) => {
 
     // --- רשימת משתמשים ---
     case 'ADD_USER':
+      if (action.payload.email?.toLowerCase() === OWNER_EMAIL) return state;
       return { ...state, users: [...state.users, action.payload] };
+    case 'DELETE_USER':
+      if (action.payload === OWNER_USER.id || action.payload?.toLowerCase?.() === OWNER_EMAIL) return state;
+      return { ...state, users: state.users.filter(u => u.id !== action.payload) };
     case 'UPDATE_USER': {
       const updatedUsers = state.users.map(u => u.id === action.payload.id ? { ...u, ...action.payload } : u);
       const updatedCurrent = state.currentUser?.id === action.payload.id
@@ -208,7 +223,7 @@ const appReducer = (state, action) => {
     // --- טעינה מ-Supabase ---
     case 'LOAD_ALL': {
       const p = action.payload;
-      const users = ensureOwnerIsAdmin(p[DB_TO_STATE_KEY.users] ?? state.users);
+      const users = ensureOwnerExists(p[DB_TO_STATE_KEY.users] ?? state.users);
       const rawCurrentUser = state.currentUser;
       const currentUser = rawCurrentUser
         ? (users.find(u => u.id === rawCurrentUser.id) || rawCurrentUser)
