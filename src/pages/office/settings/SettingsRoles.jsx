@@ -27,6 +27,10 @@ function RolePanel({ roleKey, roleData, statusConfig, onSave }) {
   };
 
   const handleSave = () => {
+    if (selected.size === 0) {
+      alert('יש לבחור לפחות סטטוס אחד לתפקיד זה');
+      return;
+    }
     onSave(roleKey, Array.from(selected));
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);

@@ -89,7 +89,7 @@ export default function EditInvoiceModal({ repair, onClose }) {
   };
   const removeWork = (id) => setWorks(prev => prev.filter(w => w.id !== id));
   const updateWorkPrice = (id, price) => {
-    setWorks(prev => prev.map(w => w.id === id ? { ...w, price: parseFloat(price) || 0 } : w));
+    setWorks(prev => prev.map(w => w.id === id ? { ...w, price: Math.max(0, parseFloat(price) || 0) } : w));
     setEditingWork(null);
   };
 
@@ -107,7 +107,9 @@ export default function EditInvoiceModal({ repair, onClose }) {
   };
   const removePart = (partId) => setParts(prev => prev.filter(p => p.part_id !== partId));
   const updatePart = (partId, field, value) => {
-    setParts(prev => prev.map(p => p.part_id === partId ? { ...p, [field]: parseFloat(value) || (field === 'quantity' ? 1 : 0) } : p));
+    const parsed = parseFloat(value) || (field === 'quantity' ? 1 : 0);
+    const safe = field === 'quantity' ? Math.max(1, parsed) : Math.max(0, parsed);
+    setParts(prev => prev.map(p => p.part_id === partId ? { ...p, [field]: safe } : p));
     if (field === 'unit_price') setEditingPart(null);
   };
 
@@ -120,7 +122,7 @@ export default function EditInvoiceModal({ repair, onClose }) {
   };
   const removeService = (id) => setServices(prev => prev.filter(s => s.id !== id));
   const updateServicePrice = (id, price) => {
-    setServices(prev => prev.map(s => s.id === id ? { ...s, price: parseFloat(price) || 0 } : s));
+    setServices(prev => prev.map(s => s.id === id ? { ...s, price: Math.max(0, parseFloat(price) || 0) } : s));
     setEditingService(null);
   };
 

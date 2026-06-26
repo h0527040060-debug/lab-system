@@ -49,7 +49,7 @@ export function SettingsBusiness() {
             <input
               type="number"
               value={form.vat_percent_display}
-              onChange={(e) => setForm({ ...form, vat_percent_display: parseFloat(e.target.value) || 0 })}
+              onChange={(e) => setForm({ ...form, vat_percent_display: Math.max(0, parseFloat(e.target.value) || 0) })}
               className="w-full border border-slate-300 rounded-lg px-3 py-2"
             />
             <p className="text-xs text-slate-500 mt-1">תצוגה בלבד במסך גביה</p>
@@ -59,7 +59,7 @@ export function SettingsBusiness() {
             <input
               type="number"
               value={form.diagnostic_fee ?? 180}
-              onChange={(e) => setForm({ ...form, diagnostic_fee: parseFloat(e.target.value) || 0 })}
+              onChange={(e) => setForm({ ...form, diagnostic_fee: Math.max(0, parseFloat(e.target.value) || 0) })}
               className="w-full border border-slate-300 rounded-lg px-3 py-2"
             />
             <p className="text-xs text-slate-500 mt-1">נגבים בתיקון בתשלום, מזוכים עם אישור הצעה</p>
