@@ -27,6 +27,7 @@ import DiagnosisModal from '../../components/DiagnosisModal';
 import WorkSessionModal from '../../components/WorkSessionModal';
 import ReleaseDocsModal from '../../components/ReleaseDocsModal';
 import RepairDetailModal from '../../components/RepairDetailModal';
+import FloatingScrollbar from '../../components/FloatingScrollbar';
 import {
   Stethoscope, Wrench, Camera, RotateCcw, Search,
   ChevronLeft, ChevronRight, GripVertical, MoreVertical, Pencil,
@@ -338,6 +339,7 @@ export default function KanbanBoard({ role = 'office' }) {
   const [activeModal, setActiveModal] = useState(null);
   const [activeRepairId, setActiveRepairId] = useState(null);
   const [detailRepairId, setDetailRepairId] = useState(null);
+  const columnsRef = useRef(null);
 
   const [cardOrders, setCardOrders] = useState(() => {
     const orders = {};
@@ -499,7 +501,7 @@ export default function KanbanBoard({ role = 'office' }) {
       {/* לוח */}
       <DndContext sensors={sensors} collisionDetection={pointerWithin} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <SortableContext items={columnOrder} strategy={horizontalListSortingStrategy}>
-          <div className="flex gap-3 overflow-x-auto pb-4 flex-1 items-start">
+          <div ref={columnsRef} className="flex gap-3 overflow-x-auto pb-4 flex-1 items-start">
             {columnOrder.map(statusId => (
               <KanbanColumn
                 key={statusId}
@@ -545,6 +547,7 @@ export default function KanbanBoard({ role = 'office' }) {
           onAction={handleAction}
         />
       )}
+      <FloatingScrollbar targetRef={columnsRef} />
     </div>
   );
 }
