@@ -5,13 +5,15 @@ import SearchInput from '../../components/SearchInput';
 import EmptyState from '../../components/EmptyState';
 import { formatDateTime } from '../../utils/formatters';
 import DeviceQuickModal from '../../components/DeviceQuickModal';
-import { Users, Phone, Mail, MapPin, Wrench, FileText } from 'lucide-react';
+import { Users, Phone, Mail, MapPin, Wrench, FileText, Edit2 } from 'lucide-react';
+import CustomerEditModal from '../../components/CustomerEditModal';
 
 export default function OfficeCustomers() {
   const { state } = useAppContext();
   const [search, setSearch] = useState('');
   const [selectedCustomerId, setSelectedCustomerId] = useState(null);
   const [quickDevice, setQuickDevice] = useState(null);
+  const [editCustomer, setEditCustomer] = useState(null);
 
   const filteredCustomers = state.customers.filter(c =>
     !search ||
@@ -83,8 +85,17 @@ export default function OfficeCustomers() {
                     <h2 className="text-xl font-bold text-slate-900">{selectedCustomer.name}</h2>
                     <p className="text-xs font-mono text-slate-400 mt-1">{selectedCustomer.id}</p>
                   </div>
-                  <div className="text-left text-xs text-slate-500">
-                    <p>נוצר ב-{formatDateTime(selectedCustomer.created_date)}</p>
+                  <div className="flex items-center gap-2">
+                    <div className="text-left text-xs text-slate-500">
+                      <p>נוצר ב-{formatDateTime(selectedCustomer.created_date)}</p>
+                    </div>
+                    <button
+                      onClick={() => setEditCustomer(selectedCustomer)}
+                      className="flex items-center gap-1 text-xs bg-slate-100 hover:bg-orange-100 text-slate-600 hover:text-orange-700 px-2 py-1.5 rounded-lg font-semibold transition-colors"
+                      title="עריכת לקוח"
+                    >
+                      <Edit2 size={13} /> עריכה
+                    </button>
                   </div>
                 </div>
 
@@ -174,6 +185,9 @@ export default function OfficeCustomers() {
           )}
         </div>
       </div>
+      {editCustomer && (
+        <CustomerEditModal customer={editCustomer} onClose={() => setEditCustomer(null)} />
+      )}
       {quickDevice && (
         <DeviceQuickModal
           device={quickDevice.device}
