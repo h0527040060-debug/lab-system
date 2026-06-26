@@ -96,93 +96,125 @@ export default function OfficeInventory() {
         {filteredParts.length === 0 ? (
           <EmptyState icon={Package} title="אין חלקים בקטלוג" />
         ) : (
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 border-b">
-              <tr>
-                <th className="text-right p-3 font-semibold">חלק</th>
-                <th className="text-right p-3 font-semibold">ברקוד פנימי</th>
-                <th className="text-right p-3 font-semibold">מיקום</th>
-                <th className="text-right p-3 font-semibold">ספק ברירת מחדל</th>
-                <th className="text-center p-3 font-semibold">מלאי</th>
-                <th className="text-right p-3 font-semibold">עלות ממוצעת</th>
-                <th className="text-right p-3 font-semibold">פעולות</th>
-              </tr>
-            </thead>
-            <tbody>
+          <>
+            {/* Desktop table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-slate-50 border-b">
+                  <tr>
+                    <th className="text-right p-3 font-semibold">חלק</th>
+                    <th className="text-right p-3 font-semibold">ברקוד פנימי</th>
+                    <th className="text-right p-3 font-semibold">מיקום</th>
+                    <th className="text-right p-3 font-semibold">ספק ברירת מחדל</th>
+                    <th className="text-center p-3 font-semibold">מלאי</th>
+                    <th className="text-right p-3 font-semibold">עלות ממוצעת</th>
+                    <th className="text-right p-3 font-semibold">פעולות</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredParts.map(part => {
+                    const stock = getTotalStock(part.id, state.stockBatches);
+                    const lowStock = isPartLowStock(part, state.stockBatches);
+                    const supplier = getDefaultSupplier(part);
+                    const avgCost = calculateWeightedAvgCost(part.id, state.stockBatches);
+                    const batchesCount = state.stockBatches.filter(b => b.part_id === part.id && b.quantity_remaining > 0).length;
+                    return (
+                      <tr key={part.id} className={`border-b border-slate-100 hover:bg-slate-50 ${lowStock ? 'bg-red-50' : ''}`}>
+                        <td className="p-3">
+                          <div className="flex items-center gap-2">
+                            <span className="text-2xl">{part.images?.[0] || '📦'}</span>
+                            <div>
+                              <p className="font-semibold">{part.name}</p>
+                              <p className="text-xs text-slate-500">{part.manufacturer} • {part.manufacturer_sku}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="p-3 font-mono text-xs">{part.internal_barcode}</td>
+                        <td className="p-3 text-xs">
+                          {part.shelf && <div className="flex items-center gap-1 text-slate-600"><MapPin size={12} /><span>מדף {part.shelf}{part.bin && `, תא ${part.bin}`}</span></div>}
+                          {part.zone && <p className="text-slate-500 mt-0.5">{part.zone}</p>}
+                        </td>
+                        <td className="p-3 text-xs">
+                          {supplier ? (<><p className="font-semibold">{supplier.supplier_name}</p><p className="text-slate-500">{formatMoney(supplier.price)} • {supplier.lead_time_days} ימים</p></>) : <span className="text-slate-400">—</span>}
+                        </td>
+                        <td className="p-3 text-center">
+                          <button onClick={() => setViewingBatches(part)} className={`font-bold text-lg ${lowStock ? 'text-red-600' : stock > 0 ? 'text-green-600' : 'text-slate-400'} hover:underline`}>{stock}</button>
+                          <p className="text-xs text-slate-500">מינ׳ {part.min_stock} • {batchesCount} אצוות</p>
+                          {lowStock && <div className="flex items-center justify-center gap-1 text-red-600 text-xs mt-1"><AlertTriangle size={10} />חוסר</div>}
+                        </td>
+                        <td className="p-3">
+                          <p className="font-semibold">{formatMoney(avgCost)}</p>
+                          <p className="text-xs text-slate-500">+ {part.selling_markup_percent || 0}% מרווח</p>
+                        </td>
+                        <td className="p-3">
+                          <div className="flex gap-1">
+                            <button onClick={() => setEditingPart(part)} className="text-slate-500 hover:text-orange-600 p-1"><Edit2 size={16} /></button>
+                            <button onClick={() => setDeletingPart(part)} className="text-slate-500 hover:text-red-600 p-1"><Trash2 size={16} /></button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile cards */}
+            <div className="md:hidden divide-y divide-slate-100">
               {filteredParts.map(part => {
                 const stock = getTotalStock(part.id, state.stockBatches);
                 const lowStock = isPartLowStock(part, state.stockBatches);
                 const supplier = getDefaultSupplier(part);
                 const avgCost = calculateWeightedAvgCost(part.id, state.stockBatches);
                 const batchesCount = state.stockBatches.filter(b => b.part_id === part.id && b.quantity_remaining > 0).length;
-
                 return (
-                  <tr key={part.id} className={`border-b border-slate-100 hover:bg-slate-50 ${lowStock ? 'bg-red-50' : ''}`}>
-                    <td className="p-3">
-                      <div className="flex items-center gap-2">
-                        <span className="text-2xl">{part.images?.[0] || '📦'}</span>
-                        <div>
-                          <p className="font-semibold">{part.name}</p>
-                          <p className="text-xs text-slate-500">{part.manufacturer} • {part.manufacturer_sku}</p>
+                  <div key={part.id} className={`p-4 space-y-3 ${lowStock ? 'bg-red-50' : ''}`}>
+                    {/* שורה 1: תמונה + שם + פעולות */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-2xl flex-shrink-0">{part.images?.[0] || '📦'}</span>
+                        <div className="min-w-0">
+                          <p className="font-semibold text-slate-900 truncate">{part.name}</p>
+                          <p className="text-xs text-slate-500 truncate">{part.manufacturer} • {part.manufacturer_sku}</p>
+                          {part.internal_barcode && <p className="font-mono text-xs text-slate-400">{part.internal_barcode}</p>}
                         </div>
                       </div>
-                    </td>
-                    <td className="p-3 font-mono text-xs">{part.internal_barcode}</td>
-                    <td className="p-3 text-xs">
-                      {part.shelf && (
-                        <div className="flex items-center gap-1 text-slate-600">
-                          <MapPin size={12} />
-                          <span>מדף {part.shelf}{part.bin && `, תא ${part.bin}`}</span>
-                        </div>
-                      )}
-                      {part.zone && <p className="text-slate-500 mt-0.5">{part.zone}</p>}
-                    </td>
-                    <td className="p-3 text-xs">
-                      {supplier ? (
-                        <>
-                          <p className="font-semibold">{supplier.supplier_name}</p>
-                          <p className="text-slate-500">{formatMoney(supplier.price)} • {supplier.lead_time_days} ימים</p>
-                        </>
-                      ) : (
-                        <span className="text-slate-400">—</span>
-                      )}
-                    </td>
-                    <td className="p-3 text-center">
-                      <button
-                        onClick={() => setViewingBatches(part)}
-                        className={`font-bold text-lg ${lowStock ? 'text-red-600' : stock > 0 ? 'text-green-600' : 'text-slate-400'} hover:underline`}
-                      >
-                        {stock}
-                      </button>
-                      <p className="text-xs text-slate-500">
-                        מינ׳ {part.min_stock} • {batchesCount} אצוות
-                      </p>
-                      {lowStock && (
-                        <div className="flex items-center justify-center gap-1 text-red-600 text-xs mt-1">
-                          <AlertTriangle size={10} />
-                          חוסר
-                        </div>
-                      )}
-                    </td>
-                    <td className="p-3">
-                      <p className="font-semibold">{formatMoney(avgCost)}</p>
-                      <p className="text-xs text-slate-500">+ {part.selling_markup_percent || 0}% מרווח</p>
-                    </td>
-                    <td className="p-3">
-                      <div className="flex gap-1">
-                        <button onClick={() => setEditingPart(part)} className="text-slate-500 hover:text-orange-600 p-1">
-                          <Edit2 size={16} />
-                        </button>
-                        <button onClick={() => setDeletingPart(part)} className="text-slate-500 hover:text-red-600 p-1">
-                          <Trash2 size={16} />
-                        </button>
+                      <div className="flex gap-1 flex-shrink-0">
+                        <button onClick={() => setEditingPart(part)} className="text-slate-500 hover:text-orange-600 p-1"><Edit2 size={16} /></button>
+                        <button onClick={() => setDeletingPart(part)} className="text-slate-500 hover:text-red-600 p-1"><Trash2 size={16} /></button>
                       </div>
-                    </td>
-                  </tr>
+                    </div>
+                    {/* שורה 2: מלאי + מיקום */}
+                    <div className="grid grid-cols-2 gap-3 text-xs">
+                      <div>
+                        <p className="text-slate-400 mb-0.5">מלאי</p>
+                        <button onClick={() => setViewingBatches(part)} className={`font-bold text-xl hover:underline ${lowStock ? 'text-red-600' : stock > 0 ? 'text-green-600' : 'text-slate-400'}`}>{stock}</button>
+                        <p className="text-slate-500">מינ׳ {part.min_stock} • {batchesCount} אצוות</p>
+                        {lowStock && <div className="flex items-center gap-1 text-red-600 mt-0.5"><AlertTriangle size={10} />חוסר</div>}
+                      </div>
+                      <div>
+                        <p className="text-slate-400 mb-0.5">מיקום</p>
+                        {part.shelf ? <div className="flex items-center gap-1 text-slate-600"><MapPin size={11} /><span>מדף {part.shelf}{part.bin && `, תא ${part.bin}`}</span></div> : <span className="text-slate-400">—</span>}
+                        {part.zone && <p className="text-slate-500">{part.zone}</p>}
+                      </div>
+                    </div>
+                    {/* שורה 3: ספק + עלות */}
+                    <div className="grid grid-cols-2 gap-3 text-xs">
+                      <div>
+                        <p className="text-slate-400 mb-0.5">ספק ברירת מחדל</p>
+                        {supplier ? (<><p className="font-semibold">{supplier.supplier_name}</p><p className="text-slate-500">{formatMoney(supplier.price)} • {supplier.lead_time_days} ימים</p></>) : <span className="text-slate-400">—</span>}
+                      </div>
+                      <div>
+                        <p className="text-slate-400 mb-0.5">עלות ממוצעת</p>
+                        <p className="font-semibold">{formatMoney(avgCost)}</p>
+                        <p className="text-slate-500">+ {part.selling_markup_percent || 0}% מרווח</p>
+                      </div>
+                    </div>
+                  </div>
                 );
               })}
-            </tbody>
-          </table>
+            </div>
+          </>
         )}
       </div>
 
@@ -488,7 +520,8 @@ function BatchesModal({ part, onClose }) {
       {allBatches.length === 0 ? (
         <EmptyState icon={Package} title="אין אצוות לחלק זה" />
       ) : (
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto">
+        <table className="w-full text-sm min-w-[500px]">
           <thead className="bg-slate-50 border-b">
             <tr>
               <th className="text-right p-2">קוד אצווה</th>
@@ -522,6 +555,7 @@ function BatchesModal({ part, onClose }) {
             ))}
           </tbody>
         </table>
+        </div>
       )}
     </Modal>
   );
