@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import {
   DndContext,
   PointerSensor,
@@ -26,11 +26,7 @@ import WhatsAppButton from '../../components/WhatsAppButton';
 import DiagnosisModal from '../../components/DiagnosisModal';
 import WorkSessionModal from '../../components/WorkSessionModal';
 import ReleaseDocsModal from '../../components/ReleaseDocsModal';
-import RepairDetailModal from '../../components/RepairDetailModal';
-import {
-  Stethoscope, Wrench, Camera, RotateCcw, Search,
-  ChevronLeft, ChevronRight, GripVertical, MoreVertical, Pencil,
-} from 'lucide-react';
+import { Stethoscope, Wrench, Camera, RotateCcw, Search, ChevronLeft, ChevronRight, GripVertical } from 'lucide-react';
 
 const DEFAULT_COLUMNS = {
   office: [
@@ -81,73 +77,8 @@ function getRepairAge(dateIntake) {
   return { label: `נקלט לפני ${days} ימים`, color: 'text-red-600 font-bold' };
 }
 
-// ─── תפריט 3 נקודות ───────────────────────────────────────────────────────────
-function CardMenu({ repair, customer, device, onAction, onOpenDetail }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef(null);
-  const action = getActionForStatus(repair.status);
-
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [open]);
-
-  return (
-    <div ref={ref} className="relative">
-      <button
-        onClick={(e) => { e.stopPropagation(); setOpen(o => !o); }}
-        className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
-        title="פעולות"
-      >
-        <MoreVertical size={16} />
-      </button>
-
-      {open && (
-        <div className="absolute left-0 top-7 z-30 bg-white border border-slate-200 rounded-xl shadow-xl w-44 py-1 text-right"
-          onClick={e => e.stopPropagation()}>
-          <button
-            className="w-full px-3 py-2 text-xs text-slate-700 hover:bg-slate-50 text-right flex items-center gap-2"
-            onClick={() => { setOpen(false); onOpenDetail(repair.id); }}
-          >
-            <span>📋</span> פרטים מלאים
-          </button>
-          {action === 'diagnosis' && (
-            <button
-              className="w-full px-3 py-2 text-xs text-yellow-800 hover:bg-yellow-50 text-right flex items-center gap-2"
-              onClick={() => { setOpen(false); onAction(repair.id, 'diagnosis'); }}
-            >
-              <Stethoscope size={11} /> אבחון
-            </button>
-          )}
-          {action === 'work' && (
-            <button
-              className="w-full px-3 py-2 text-xs text-blue-800 hover:bg-blue-50 text-right flex items-center gap-2"
-              onClick={() => { setOpen(false); onAction(repair.id, 'work'); }}
-            >
-              <Wrench size={11} /> ביצוע
-            </button>
-          )}
-          {action === 'docs' && (
-            <button
-              className="w-full px-3 py-2 text-xs text-purple-800 hover:bg-purple-50 text-right flex items-center gap-2"
-              onClick={() => { setOpen(false); onAction(repair.id, 'docs'); }}
-            >
-              <Camera size={11} /> תיעוד
-            </button>
-          )}
-          <div className="border-t border-slate-100 mt-1 pt-1 px-2">
-            <WhatsAppButton repair={repair} customer={customer} device={device} type="customer" />
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
 // ─── כרטיס תיקון ──────────────────────────────────────────────────────────────
-function KanbanCard({ repair, customer, device, isDragging, onAction, onOpenDetail, search }) {
+function KanbanCard({ repair, customer, device, isDragging, onAction, search }) {
   const { state } = useAppContext();
   const statusDisplay = getStatusDisplay(repair.status, state.statusConfig);
   const action = getActionForStatus(repair.status);
@@ -162,34 +93,23 @@ function KanbanCard({ repair, customer, device, isDragging, onAction, onOpenDeta
 
   return (
     <div
-      className={`bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden transition-all cursor-pointer hover:shadow-md hover:border-slate-300
+      className={`bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden transition-all
         ${isDragging ? 'opacity-50 rotate-1 shadow-lg' : ''}
         ${dimmed ? 'opacity-20' : 'opacity-100'}
       `}
-      onClick={() => onOpenDetail(repair.id)}
     >
       <div className={`h-1 ${statusDisplay.bg.replace('-100', '-400')}`} />
       <div className="p-3">
         <div className="flex items-center justify-between mb-1.5">
           <span className="font-mono text-xs font-bold text-orange-600">{repair.id}</span>
-          <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
-            <span className="text-xs text-slate-400">{formatDateTime(repair.date_intake).slice(0, 10)}</span>
-            <CardMenu repair={repair} customer={customer} device={device} onAction={onAction} onOpenDetail={onOpenDetail} />
-          </div>
+          <span className="text-xs text-slate-400">{formatDateTime(repair.date_intake).slice(0, 10)}</span>
         </div>
         <p className="font-semibold text-sm text-slate-800 truncate">{customer?.name || '—'}</p>
         <p className="text-xs text-slate-500 truncate">{device?.brand} {device?.model}</p>
         {repair.complaint && (
           <p className="text-xs text-slate-600 mt-1.5 line-clamp-2 leading-relaxed">{repair.complaint}</p>
         )}
-        <div className="flex gap-1 mt-2 flex-wrap items-center" onClick={e => e.stopPropagation()}>
-          {/* כפתור עריכה/פרטים תמיד גלוי */}
-          <button
-            onClick={() => onOpenDetail(repair.id)}
-            className="flex items-center gap-1 text-xs bg-slate-100 hover:bg-orange-100 text-slate-600 hover:text-orange-700 px-2 py-1 rounded-lg font-semibold border border-slate-200 hover:border-orange-300 transition-colors"
-          >
-            <Pencil size={11} /> עריכה
-          </button>
+        <div className="flex gap-1 mt-2 flex-wrap">
           <WhatsAppButton repair={repair} customer={customer} device={device} type="customer" />
           {action === 'diagnosis' && (
             <button
@@ -225,7 +145,7 @@ function KanbanCard({ repair, customer, device, isDragging, onAction, onOpenDeta
 }
 
 // ─── כרטיס Sortable ───────────────────────────────────────────────────────────
-function SortableCard({ repair, customer, device, onAction, onOpenDetail, search }) {
+function SortableCard({ repair, customer, device, onAction, search }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: repair.id,
     data: { type: 'card', statusId: repair.status },
@@ -234,34 +154,17 @@ function SortableCard({ repair, customer, device, onAction, onOpenDetail, search
   return (
     <div
       ref={setNodeRef}
-      style={{ transform: CSS.Transform.toString(transform), transition }}
-      className="relative"
+      style={{ transform: CSS.Transform.toString(transform), transition, cursor: isDragging ? 'grabbing' : 'grab' }}
       {...attributes}
+      {...listeners}
     >
-      {/* drag handle — רק כאן מחוברים listeners */}
-      <div
-        {...listeners}
-        className="absolute bottom-2 left-2 z-10 p-1 cursor-grab touch-none text-slate-300 hover:text-slate-500"
-        onClick={e => e.stopPropagation()}
-        title="גרור"
-      >
-        <GripVertical size={13} />
-      </div>
-      <KanbanCard
-        repair={repair}
-        customer={customer}
-        device={device}
-        isDragging={isDragging}
-        onAction={onAction}
-        onOpenDetail={onOpenDetail}
-        search={search}
-      />
+      <KanbanCard repair={repair} customer={customer} device={device} isDragging={isDragging} onAction={onAction} search={search} />
     </div>
   );
 }
 
 // ─── עמודת סטטוס ──────────────────────────────────────────────────────────────
-function KanbanColumn({ statusId, repairs, customers, devices, collapsed, onToggleCollapse, onAction, onOpenDetail, search }) {
+function KanbanColumn({ statusId, repairs, customers, devices, collapsed, onToggleCollapse, onAction, search }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: statusId,
     data: { type: 'column' },
@@ -309,7 +212,7 @@ function KanbanColumn({ statusId, repairs, customers, devices, collapsed, onTogg
             const customer = customers.find(c => c.id === r.customer_id);
             const device = devices.find(d => d.id === r.device_id);
             return (
-              <SortableCard key={r.id} repair={r} customer={customer} device={device} onAction={onAction} onOpenDetail={onOpenDetail} search={search} />
+              <SortableCard key={r.id} repair={r} customer={customer} device={device} onAction={onAction} search={search} />
             );
           })}
           {repairs.length === 0 && (
@@ -337,7 +240,6 @@ export default function KanbanBoard({ role = 'office' }) {
   const [activeType, setActiveType] = useState(null);
   const [activeModal, setActiveModal] = useState(null);
   const [activeRepairId, setActiveRepairId] = useState(null);
-  const [detailRepairId, setDetailRepairId] = useState(null);
 
   const [cardOrders, setCardOrders] = useState(() => {
     const orders = {};
@@ -372,6 +274,7 @@ export default function KanbanBoard({ role = 'office' }) {
     const result = {};
     columnOrder.forEach(statusId => {
       const all = state.repairs.filter(r => r.status === statusId);
+      // כשיש מיון פעיל — ממיינים, אחרת משתמשים בסדר ידני שמור
       if (sortMode !== 'manual') {
         result[statusId] = sortRepairs(all, state.customers);
       } else {
@@ -449,14 +352,10 @@ export default function KanbanBoard({ role = 'office' }) {
   };
 
   const handleAction = (repairId, modal) => { setActiveRepairId(repairId); setActiveModal(modal); };
-  const handleOpenDetail = (repairId) => setDetailRepairId(repairId);
   const toggleCollapse = (statusId) => setCollapsed(prev => ({ ...prev, [statusId]: !prev[statusId] }));
   const resetOrder = () => saveColumnOrder(DEFAULT_COLUMNS[effectiveRole] || DEFAULT_COLUMNS.office);
 
   const activeRepair = activeRepairId ? state.repairs.find(r => r.id === activeRepairId) : null;
-  const detailRepair = detailRepairId ? state.repairs.find(r => r.id === detailRepairId) : null;
-  const detailCustomer = detailRepair ? state.customers.find(c => c.id === detailRepair.customer_id) : null;
-  const detailDevice = detailRepair ? state.devices.find(d => d.id === detailRepair.device_id) : null;
   const draggedRepair = activeId && activeType === 'card' ? state.repairs.find(r => r.id === activeId) : null;
   const draggedCustomer = draggedRepair ? state.customers.find(c => c.id === draggedRepair.customer_id) : null;
   const draggedDevice = draggedRepair ? state.devices.find(d => d.id === draggedRepair.device_id) : null;
@@ -510,7 +409,6 @@ export default function KanbanBoard({ role = 'office' }) {
                 collapsed={!!collapsed[statusId]}
                 onToggleCollapse={() => toggleCollapse(statusId)}
                 onAction={handleAction}
-                onOpenDetail={handleOpenDetail}
                 search={search}
               />
             ))}
@@ -521,7 +419,7 @@ export default function KanbanBoard({ role = 'office' }) {
           {draggedRepair && (
             <div className="w-72 rotate-2 shadow-2xl">
               <KanbanCard repair={draggedRepair} customer={draggedCustomer} device={draggedDevice}
-                isDragging={false} onAction={() => {}} onOpenDetail={() => {}} search="" />
+                isDragging={false} onAction={() => {}} search="" />
             </div>
           )}
         </DragOverlay>
@@ -535,15 +433,6 @@ export default function KanbanBoard({ role = 'office' }) {
       )}
       {activeRepair && activeModal === 'docs' && (
         <ReleaseDocsModal repair={activeRepair} onClose={() => { setActiveRepairId(null); setActiveModal(null); }} />
-      )}
-      {detailRepair && (
-        <RepairDetailModal
-          repair={detailRepair}
-          customer={detailCustomer}
-          device={detailDevice}
-          onClose={() => setDetailRepairId(null)}
-          onAction={handleAction}
-        />
       )}
     </div>
   );
