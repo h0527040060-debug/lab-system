@@ -30,9 +30,9 @@ export default function PartsStock() {
         </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {/* רשימת חלקים */}
-        <div className="col-span-1 bg-white rounded-xl border border-slate-200 overflow-hidden">
+        <div className="md:col-span-1 bg-white rounded-xl border border-slate-200 overflow-hidden">
           <div className="p-3 border-b border-slate-200 bg-slate-50">
             <p className="text-xs font-semibold text-slate-600">סינון לפי חלק</p>
           </div>
@@ -61,11 +61,12 @@ export default function PartsStock() {
         </div>
 
         {/* טבלת אצוות */}
-        <div className="col-span-3 bg-white rounded-xl border border-slate-200 overflow-hidden">
+        <div className="md:col-span-3 bg-white rounded-xl border border-slate-200 overflow-hidden">
           {displayBatches.length === 0 ? (
             <EmptyState icon={Package} title="אין אצוות" />
           ) : (
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[600px]">
               <thead className="bg-slate-50 border-b border-slate-200">
                 <tr>
                   <th className="text-right p-3 font-semibold">חלק</th>
@@ -107,6 +108,7 @@ export default function PartsStock() {
                 })}
               </tbody>
             </table>
+          </div>
           )}
         </div>
       </div>
