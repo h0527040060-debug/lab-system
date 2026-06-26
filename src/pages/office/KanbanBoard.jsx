@@ -29,7 +29,7 @@ import ReleaseDocsModal from '../../components/ReleaseDocsModal';
 import RepairDetailModal from '../../components/RepairDetailModal';
 import {
   Stethoscope, Wrench, Camera, RotateCcw, Search,
-  ChevronLeft, ChevronRight, GripVertical, MoreVertical, Pencil,
+  ChevronLeft, ChevronRight, GripVertical, MoreVertical,
 } from 'lucide-react';
 
 const DEFAULT_COLUMNS = {
@@ -98,10 +98,10 @@ function CardMenu({ repair, customer, device, onAction, onOpenDetail }) {
     <div ref={ref} className="relative">
       <button
         onClick={(e) => { e.stopPropagation(); setOpen(o => !o); }}
-        className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+        className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
         title="פעולות"
       >
-        <MoreVertical size={16} />
+        <MoreVertical size={14} />
       </button>
 
       {open && (
@@ -182,14 +182,7 @@ function KanbanCard({ repair, customer, device, isDragging, onAction, onOpenDeta
         {repair.complaint && (
           <p className="text-xs text-slate-600 mt-1.5 line-clamp-2 leading-relaxed">{repair.complaint}</p>
         )}
-        <div className="flex gap-1 mt-2 flex-wrap items-center" onClick={e => e.stopPropagation()}>
-          {/* כפתור עריכה/פרטים תמיד גלוי */}
-          <button
-            onClick={() => onOpenDetail(repair.id)}
-            className="flex items-center gap-1 text-xs bg-slate-100 hover:bg-orange-100 text-slate-600 hover:text-orange-700 px-2 py-1 rounded-lg font-semibold border border-slate-200 hover:border-orange-300 transition-colors"
-          >
-            <Pencil size={11} /> עריכה
-          </button>
+        <div className="flex gap-1 mt-2 flex-wrap" onClick={e => e.stopPropagation()}>
           <WhatsAppButton repair={repair} customer={customer} device={device} type="customer" />
           {action === 'diagnosis' && (
             <button
