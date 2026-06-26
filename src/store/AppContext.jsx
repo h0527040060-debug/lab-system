@@ -36,8 +36,13 @@ const ensureOwnerIsAdmin = (users) => {
 };
 
 const buildInitialState = () => {
-  const users = ensureOwnerIsAdmin(loadFromStorage(storageKeys.USERS, []));
   const rawCurrentUser = loadFromStorage(storageKeys.CURRENT_USER, null);
+  const storedUsers = loadFromStorage(storageKeys.USERS, []);
+  // אם מערך המשתמשים ריק אבל יש משתמש מחובר — הוסף אותו אוטומטית
+  const usersWithCurrent = (storedUsers.length === 0 && rawCurrentUser)
+    ? [rawCurrentUser]
+    : storedUsers;
+  const users = ensureOwnerIsAdmin(usersWithCurrent);
   // סנכרון currentUser עם הנתון המעודכן מ-users
   const currentUser = rawCurrentUser
     ? (users.find(u => u.id === rawCurrentUser.id) || rawCurrentUser)
