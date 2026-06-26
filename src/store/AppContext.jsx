@@ -1,5 +1,6 @@
-import { createContext, useContext, useReducer, useEffect, useCallback, useRef } from 'react';
+import { createContext, useContext, useReducer, useEffect, useCallback, useRef, useState } from 'react';
 import { storageKeys, loadFromStorage, saveToStorage, appendLog } from './storage';
+import { isSupabaseConfigured, loadAllFromDB, saveKeyToDB, saveAllToDB, STATE_TO_DB_KEY, DB_TO_STATE_KEY } from './supabase';
 import {
   SEED_TECHNICIANS, SEED_SUPPLIERS, SEED_WORK_CATALOG,
   SEED_SERVICES, SEED_PARTS, SEED_STOCK_BATCHES, SEED_SETTINGS,
@@ -174,6 +175,35 @@ const appReducer = (state, action) => {
     case 'LOGOUT':
       return { ...state, currentUser: null };
 
+    // --- טעינה מ-Supabase ---
+    case 'LOAD_ALL': {
+      const p = action.payload;
+      const users = ensureOwnerIsAdmin(p[DB_TO_STATE_KEY.users] ?? state.users);
+      const rawCurrentUser = state.currentUser;
+      const currentUser = rawCurrentUser
+        ? (users.find(u => u.id === rawCurrentUser.id) || rawCurrentUser)
+        : null;
+      return {
+        ...state,
+        customers:       p[DB_TO_STATE_KEY.customers]        ?? state.customers,
+        devices:         p[DB_TO_STATE_KEY.devices]          ?? state.devices,
+        repairs:         p[DB_TO_STATE_KEY.repairs]          ?? state.repairs,
+        parts:           p[DB_TO_STATE_KEY.parts]            ?? state.parts,
+        stockBatches:    p[DB_TO_STATE_KEY.stock_batches]    ?? state.stockBatches,
+        suppliers:       p[DB_TO_STATE_KEY.suppliers]        ?? state.suppliers,
+        purchaseOrders:  p[DB_TO_STATE_KEY.purchase_orders]  ?? state.purchaseOrders,
+        generalExpenses: p[DB_TO_STATE_KEY.general_expenses] ?? state.generalExpenses,
+        workCatalog:     p[DB_TO_STATE_KEY.work_catalog]     ?? state.workCatalog,
+        services:        p[DB_TO_STATE_KEY.services]         ?? state.services,
+        technicians:     p[DB_TO_STATE_KEY.technicians]      ?? state.technicians,
+        warrantyAppeals: p[DB_TO_STATE_KEY.warranty_appeals] ?? state.warrantyAppeals,
+        settings:        p[DB_TO_STATE_KEY.settings]         ?? state.settings,
+        users,
+        statusConfig:    p[DB_TO_STATE_KEY.status_config]    ?? state.statusConfig,
+        currentUser,
+      };
+    }
+
     default:
       return state;
   }
@@ -258,38 +288,82 @@ const AppContext = createContext(null);
 // ============================================================
 export const AppProvider = ({ children }) => {
   const [state, dispatch] = useReducer(appReducer, null, buildInitialState);
+  const [dbLoading, setDbLoading] = useState(isSupabaseConfigured());
   const saveTimers = useRef({});
+  const initializedRef = useRef(false);
 
-  // שמירה אוטומטית עם debounce של 500ms לכל מפתח
-  const scheduleSave = useCallback((key, value) => {
-    if (saveTimers.current[key]) clearTimeout(saveTimers.current[key]);
-    saveTimers.current[key] = setTimeout(() => {
-      saveToStorage(key, value);
+  // טעינה ראשונית מ-Supabase
+  useEffect(() => {
+    if (!isSupabaseConfigured()) return;
+    loadAllFromDB().then(dbData => {
+      if (dbData && Object.keys(dbData).length > 0) {
+        // Supabase מכיל נתונים — טען אותם
+        dispatch({ type: 'LOAD_ALL', payload: dbData });
+      } else {
+        // ראשון פעם — מגרר נתונים קיימים מ-localStorage ל-Supabase
+        const snapshot = {};
+        Object.entries(STATE_TO_DB_KEY).forEach(([stateKey, dbKey]) => {
+          if (state[stateKey] !== undefined) snapshot[dbKey] = state[stateKey];
+        });
+        if (Object.values(snapshot).some(v => Array.isArray(v) && v.length > 0)) {
+          saveAllToDB(snapshot);
+        }
+      }
+      initializedRef.current = true;
+      setDbLoading(false);
+    }).catch(() => {
+      initializedRef.current = true;
+      setDbLoading(false);
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // שמירה אוטומטית עם debounce של 500ms לכל מפתח (localStorage + Supabase)
+  const scheduleSave = useCallback((storageKey, value, dbKey) => {
+    const timerKey = storageKey;
+    if (saveTimers.current[timerKey]) clearTimeout(saveTimers.current[timerKey]);
+    saveTimers.current[timerKey] = setTimeout(() => {
+      saveToStorage(storageKey, value);
+      if (dbKey && isSupabaseConfigured() && initializedRef.current) {
+        saveKeyToDB(dbKey, value);
+      }
     }, 500);
   }, []);
 
-  useEffect(() => { scheduleSave(storageKeys.CUSTOMERS, state.customers); }, [state.customers, scheduleSave]);
-  useEffect(() => { scheduleSave(storageKeys.DEVICES, state.devices); }, [state.devices, scheduleSave]);
-  useEffect(() => { scheduleSave(storageKeys.REPAIRS, state.repairs); }, [state.repairs, scheduleSave]);
-  useEffect(() => { scheduleSave(storageKeys.PARTS, state.parts); }, [state.parts, scheduleSave]);
-  useEffect(() => { scheduleSave(storageKeys.STOCK_BATCHES, state.stockBatches); }, [state.stockBatches, scheduleSave]);
-  useEffect(() => { scheduleSave(storageKeys.SUPPLIERS, state.suppliers); }, [state.suppliers, scheduleSave]);
-  useEffect(() => { scheduleSave(storageKeys.PURCHASE_ORDERS, state.purchaseOrders); }, [state.purchaseOrders, scheduleSave]);
-  useEffect(() => { scheduleSave(storageKeys.GENERAL_EXPENSES, state.generalExpenses); }, [state.generalExpenses, scheduleSave]);
-  useEffect(() => { scheduleSave(storageKeys.WORK_CATALOG, state.workCatalog); }, [state.workCatalog, scheduleSave]);
-  useEffect(() => { scheduleSave(storageKeys.SERVICES, state.services); }, [state.services, scheduleSave]);
-  useEffect(() => { scheduleSave(storageKeys.TECHNICIANS, state.technicians); }, [state.technicians, scheduleSave]);
-  useEffect(() => { scheduleSave(storageKeys.WARRANTY_APPEALS, state.warrantyAppeals); }, [state.warrantyAppeals, scheduleSave]);
-  useEffect(() => { scheduleSave(storageKeys.SETTINGS, state.settings); }, [state.settings, scheduleSave]);
-  useEffect(() => { scheduleSave(storageKeys.CURRENT_USER, state.currentUser); }, [state.currentUser, scheduleSave]);
-  useEffect(() => { scheduleSave(storageKeys.USERS, state.users); }, [state.users, scheduleSave]);
-  useEffect(() => { scheduleSave(storageKeys.STATUS_CONFIG, state.statusConfig); }, [state.statusConfig, scheduleSave]);
+  useEffect(() => { scheduleSave(storageKeys.CUSTOMERS, state.customers, STATE_TO_DB_KEY.customers); }, [state.customers, scheduleSave]);
+  useEffect(() => { scheduleSave(storageKeys.DEVICES, state.devices, STATE_TO_DB_KEY.devices); }, [state.devices, scheduleSave]);
+  useEffect(() => { scheduleSave(storageKeys.REPAIRS, state.repairs, STATE_TO_DB_KEY.repairs); }, [state.repairs, scheduleSave]);
+  useEffect(() => { scheduleSave(storageKeys.PARTS, state.parts, STATE_TO_DB_KEY.parts); }, [state.parts, scheduleSave]);
+  useEffect(() => { scheduleSave(storageKeys.STOCK_BATCHES, state.stockBatches, STATE_TO_DB_KEY.stockBatches); }, [state.stockBatches, scheduleSave]);
+  useEffect(() => { scheduleSave(storageKeys.SUPPLIERS, state.suppliers, STATE_TO_DB_KEY.suppliers); }, [state.suppliers, scheduleSave]);
+  useEffect(() => { scheduleSave(storageKeys.PURCHASE_ORDERS, state.purchaseOrders, STATE_TO_DB_KEY.purchaseOrders); }, [state.purchaseOrders, scheduleSave]);
+  useEffect(() => { scheduleSave(storageKeys.GENERAL_EXPENSES, state.generalExpenses, STATE_TO_DB_KEY.generalExpenses); }, [state.generalExpenses, scheduleSave]);
+  useEffect(() => { scheduleSave(storageKeys.WORK_CATALOG, state.workCatalog, STATE_TO_DB_KEY.workCatalog); }, [state.workCatalog, scheduleSave]);
+  useEffect(() => { scheduleSave(storageKeys.SERVICES, state.services, STATE_TO_DB_KEY.services); }, [state.services, scheduleSave]);
+  useEffect(() => { scheduleSave(storageKeys.TECHNICIANS, state.technicians, STATE_TO_DB_KEY.technicians); }, [state.technicians, scheduleSave]);
+  useEffect(() => { scheduleSave(storageKeys.WARRANTY_APPEALS, state.warrantyAppeals, STATE_TO_DB_KEY.warrantyAppeals); }, [state.warrantyAppeals, scheduleSave]);
+  useEffect(() => { scheduleSave(storageKeys.SETTINGS, state.settings, STATE_TO_DB_KEY.settings); }, [state.settings, scheduleSave]);
+  useEffect(() => { scheduleSave(storageKeys.CURRENT_USER, state.currentUser, null); }, [state.currentUser, scheduleSave]);
+  useEffect(() => { scheduleSave(storageKeys.USERS, state.users, STATE_TO_DB_KEY.users); }, [state.users, scheduleSave]);
+  useEffect(() => { scheduleSave(storageKeys.STATUS_CONFIG, state.statusConfig, STATE_TO_DB_KEY.statusConfig); }, [state.statusConfig, scheduleSave]);
 
   const loggedDispatch = useCallback((action) => {
     dispatch(action);
     const entry = buildLogEntry(action, state.currentUser, state);
     if (entry) appendLog(entry);
   }, [dispatch, state]);
+
+  if (dbLoading) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-white font-semibold text-lg">מתחבר למסד הנתונים...</p>
+          <p className="text-slate-400 text-sm mt-1">טוען נתונים מהשרת</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <AppContext.Provider value={{ state, dispatch: loggedDispatch }}>
