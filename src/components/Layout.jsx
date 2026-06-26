@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import FloatingScrollbar from './FloatingScrollbar';
 import { useAppContext } from '../store/AppContext';
 import { ROLE_LABELS } from '../constants/userRoles';
 import { LogOut, Menu, X, Search } from 'lucide-react';
@@ -7,6 +8,7 @@ import NotificationBell from './NotificationBell';
 export default function Layout({ children, currentTab, onTabChange, tabs }) {
   const { state, dispatch } = useAppContext();
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 1024);
+  const mainRef = useRef(null);
 
   const handleLogout = () => {
     if (confirm('להתנתק מהמערכת?')) {
@@ -124,9 +126,10 @@ export default function Layout({ children, currentTab, onTabChange, tabs }) {
           </div>
         </header>
 
-        <div className="flex-1 overflow-auto p-4 lg:p-6">
+        <div ref={mainRef} className="flex-1 overflow-auto p-4 lg:p-6">
           {children}
         </div>
+        <FloatingScrollbar targetRef={mainRef} />
       </main>
     </div>
   );
