@@ -84,6 +84,11 @@ export const DEFAULT_STATUS_CONFIG = [
     technician_message: '',
   },
   {
+    id: 'paid_waiting_pickup', label: 'שולם ממתין לאיסוף/משלוח', emoji: '📦', color: 'green', is_system: true,
+    customer_message: 'שלום [שם], התשלום עבור [מכשיר] התקבל! המכשיר מוכן לאיסוף. כתובת: [כתובת] | [טלפון_עסק]',
+    technician_message: '',
+  },
+  {
     id: 'green_complete', label: 'הושלם', emoji: '✅', color: 'green', is_system: true,
     customer_message: 'שלום [שם], קיבלנו את התשלום. תודה על הפנייה! נשמח לשרת אותך שוב. — [טלפון_עסק]',
     technician_message: '',
