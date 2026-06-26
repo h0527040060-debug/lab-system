@@ -222,7 +222,7 @@ function PaymentModal({ repair, onClose }) {
       type: 'UPDATE_REPAIR',
       payload: {
         id: repair.id,
-        status: REPAIR_STATUSES.GREEN_COMPLETE,
+        status: REPAIR_STATUSES.PAID_WAITING_PICKUP,
         customer_signature: signature,
         payment_method: noCharge ? 'waived' : paymentMethod,
         final_price: chargedAmount,

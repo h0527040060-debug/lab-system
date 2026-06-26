@@ -42,6 +42,7 @@ const DEFAULT_COLUMNS = {
     REPAIR_STATUSES.IN_WORK,
     REPAIR_STATUSES.PENDING_RELEASE_DOCS,
     REPAIR_STATUSES.PENDING_PAYMENT,
+    REPAIR_STATUSES.PAID_WAITING_PICKUP,
   ],
   lab: [
     REPAIR_STATUSES.YELLOW_READY_TO_WORK,
@@ -65,6 +66,8 @@ const getActionForStatus = (status) => {
     return 'work';
   if (status === REPAIR_STATUSES.PENDING_RELEASE_DOCS)
     return 'docs';
+  if (status === REPAIR_STATUSES.PAID_WAITING_PICKUP)
+    return 'pickup';
   return null;
 };
 
@@ -135,6 +138,14 @@ function CardMenu({ repair, customer, device, onAction, onOpenDetail }) {
               onClick={() => { setOpen(false); onAction(repair.id, 'docs'); }}
             >
               <Camera size={11} /> תיעוד
+            </button>
+          )}
+          {action === 'pickup' && (
+            <button
+              className="w-full px-3 py-2 text-xs text-green-800 hover:bg-green-50 text-right flex items-center gap-2"
+              onClick={() => { setOpen(false); onAction(repair.id, 'pickup'); }}
+            >
+              <span>✅</span> סמן כנמסר
             </button>
           )}
           <div className="border-t border-slate-100 mt-1 pt-1 px-2">
@@ -441,7 +452,14 @@ export default function KanbanBoard({ role = 'office' }) {
     }
   };
 
-  const handleAction = (repairId, modal) => { setActiveRepairId(repairId); setActiveModal(modal); };
+  const handleAction = (repairId, modal) => {
+    if (modal === 'pickup') {
+      dispatch({ type: 'UPDATE_REPAIR', payload: { id: repairId, status: REPAIR_STATUSES.GREEN_COMPLETE, released_at: new Date().toISOString() } });
+      return;
+    }
+    setActiveRepairId(repairId);
+    setActiveModal(modal);
+  };
   const handleOpenDetail = (repairId) => setDetailRepairId(repairId);
   const toggleCollapse = (statusId) => setCollapsed(prev => ({ ...prev, [statusId]: !prev[statusId] }));
   const resetOrder = () => saveColumnOrder(DEFAULT_COLUMNS[effectiveRole] || DEFAULT_COLUMNS.office);
