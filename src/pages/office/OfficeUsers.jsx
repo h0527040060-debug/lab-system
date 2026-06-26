@@ -195,7 +195,7 @@ export function OfficeUsers() {
                           >
                             <Pencil size={12} /> עריכה
                           </button>
-                          {ROLE_OPTIONS.filter(r => r.value !== user.role).map(option => (
+                          {ROLE_OPTIONS.filter(r => r.value !== user.role && !isSelf).map(option => (
                             <button
                               key={option.value}
                               onClick={() => handleRoleChange(user.id, option.value)}
