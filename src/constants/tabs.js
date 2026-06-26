@@ -5,6 +5,7 @@ export const OFFICE_TABS = [
   { id: 'approval', label: 'אישור תמחור', icon: '💰' },
   { id: 'appeals', label: 'ערעורי אחריות', icon: '⚠️' },
   { id: 'payment', label: 'גביה', icon: '💳' },
+  { id: 'pickup', label: 'איסוף / משלוח', icon: '📦' },
   { id: 'repairs', label: 'כל הקריאות', icon: '📋' },
   { id: 'customers', label: 'לקוחות', icon: '👥' },
   { id: 'devices', label: 'מכשירים', icon: '📱' },

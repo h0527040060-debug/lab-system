@@ -20,6 +20,7 @@ import PartsPage from './office/PartsPage';
 import OfficeSearch from './office/OfficeSearch';
 import OfficeLogs from './office/OfficeLogs';
 import KanbanBoard from './office/KanbanBoard';
+import OfficePickup from './office/OfficePickup';
 
 const PAGE_COMPONENTS = {
   kanban: (props) => <KanbanBoard role={props.role || 'office'} />,
@@ -28,6 +29,7 @@ const PAGE_COMPONENTS = {
   approval: OfficeApproval,
   appeals: OfficeAppeals,
   payment: OfficePayment,
+  pickup: OfficePickup,
   repairs: OfficeRepairsList,
   customers: OfficeCustomers,
   devices: OfficeDevices,
