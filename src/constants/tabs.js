@@ -1,4 +1,5 @@
 export const OFFICE_TABS = [
+  { id: 'kanban', label: 'תצוגת לוח', icon: '🗂️' },
   { id: 'dashboard', label: 'דשבורד', icon: '📊' },
   { id: 'intake', label: 'קליטה', icon: '🔴' },
   { id: 'approval', label: 'אישור תמחור', icon: '💰' },
@@ -18,6 +19,7 @@ export const OFFICE_TABS = [
 ];
 
 export const LAB_TABS = [
+  { id: 'kanban', label: 'תצוגת לוח', icon: '🗂️' },
   { id: 'dashboard', label: 'דשבורד מעבדה', icon: '🏠' },
   { id: 'search', label: 'חיפוש מהיר', icon: '🔍' },
   { id: 'history', label: 'היסטוריית מכשירים', icon: '📜' },
