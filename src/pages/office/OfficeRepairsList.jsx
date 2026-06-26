@@ -16,7 +16,7 @@ import DeviceQuickModal from '../../components/DeviceQuickModal';
 import StatusPickerPopover from '../../components/StatusPickerPopover';
 import WhatsAppButton from '../../components/WhatsAppButton';
 import { FileText, Stethoscope, Wrench, Camera, Printer, Edit2 } from 'lucide-react';
-import RepairEditModal from '../../components/RepairEditModal';
+import { RepairEditModal } from '../../components/RepairEditModal';
 
 const getActionForStatus = (status) => {
   if ([REPAIR_STATUSES.RED_INTAKE, REPAIR_STATUSES.YELLOW_DIAGNOSIS, REPAIR_STATUSES.YELLOW_APPEAL].includes(status))

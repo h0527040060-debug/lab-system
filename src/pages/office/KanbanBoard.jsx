@@ -454,6 +454,40 @@ export default function KanbanBoard({ role = 'office' }) {
   const draggedCustomer = draggedRepair ? state.customers.find(c => c.id === draggedRepair.customer_id) : null;
   const draggedDevice = draggedRepair ? state.devices.find(d => d.id === draggedRepair.device_id) : null;
 
+  // phantom scrollbar — מסנכרן גלילה אופקית ונשאר קבוע בתחתית המסך
+  const scrollRef = useRef(null);
+  const phantomRef = useRef(null);
+  const [phantomWidth, setPhantomWidth] = useState(0);
+  const isSyncingRef = useRef(false);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+
+    const updateWidth = () => setPhantomWidth(el.scrollWidth);
+    updateWidth();
+
+    const ro = new ResizeObserver(updateWidth);
+    ro.observe(el);
+
+    const onRealScroll = () => {
+      if (isSyncingRef.current) return;
+      isSyncingRef.current = true;
+      if (phantomRef.current) phantomRef.current.scrollLeft = el.scrollLeft;
+      isSyncingRef.current = false;
+    };
+    el.addEventListener('scroll', onRealScroll);
+
+    return () => { ro.disconnect(); el.removeEventListener('scroll', onRealScroll); };
+  }, []);
+
+  const handlePhantomScroll = (e) => {
+    if (isSyncingRef.current) return;
+    isSyncingRef.current = true;
+    if (scrollRef.current) scrollRef.current.scrollLeft = e.target.scrollLeft;
+    isSyncingRef.current = false;
+  };
+
   return (
     <div className="flex flex-col h-full -m-6 p-4">
       {/* סרגל עליון */}
@@ -492,7 +526,7 @@ export default function KanbanBoard({ role = 'office' }) {
       {/* לוח */}
       <DndContext sensors={sensors} collisionDetection={pointerWithin} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <SortableContext items={columnOrder} strategy={horizontalListSortingStrategy}>
-          <div className="flex gap-3 overflow-x-auto pb-4 flex-1 items-start">
+          <div ref={scrollRef} className="flex gap-3 overflow-x-auto pb-4 flex-1 items-start" style={{ scrollbarWidth: 'none' }}>
             {columnOrder.map(statusId => (
               <KanbanColumn
                 key={statusId}
@@ -538,6 +572,16 @@ export default function KanbanBoard({ role = 'office' }) {
           onAction={handleAction}
         />
       )}
+
+      {/* phantom scrollbar — קבוע בתחתית המסך, מסנכרן עם הלוח */}
+      <div
+        ref={phantomRef}
+        onScroll={handlePhantomScroll}
+        className="fixed bottom-0 left-0 right-0 overflow-x-auto z-20"
+        style={{ height: 10 }}
+      >
+        <div style={{ width: phantomWidth, height: 1 }} />
+      </div>
     </div>
   );
 }
