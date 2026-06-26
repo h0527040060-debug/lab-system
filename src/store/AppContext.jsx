@@ -317,6 +317,7 @@ export const AppProvider = ({ children }) => {
   const [dbLoading, setDbLoading] = useState(isSupabaseConfigured());
   const saveTimers = useRef({});
   const initializedRef = useRef(false);
+  const pendingSavesRef = useRef(new Set());
 
   // טעינה ראשונית מ-Supabase
   useEffect(() => {
@@ -353,7 +354,9 @@ export const AppProvider = ({ children }) => {
         { event: '*', schema: 'public', table: 'lab_data' },
         (payload) => {
           if (payload.new?.key && payload.new?.data !== undefined) {
-            dispatch({ type: 'LOAD_ONE', payload: { key: payload.new.key, data: payload.new.data } });
+            if (!pendingSavesRef.current.has(payload.new.key)) {
+              dispatch({ type: 'LOAD_ONE', payload: { key: payload.new.key, data: payload.new.data } });
+            }
           }
         }
       )
@@ -366,12 +369,17 @@ export const AppProvider = ({ children }) => {
   const scheduleSave = useCallback((storageKey, value, dbKey) => {
     const timerKey = storageKey;
     if (saveTimers.current[timerKey]) clearTimeout(saveTimers.current[timerKey]);
-    saveTimers.current[timerKey] = setTimeout(() => {
-      saveToStorage(storageKey, value);
-      if (dbKey && isSupabaseConfigured() && initializedRef.current) {
-        saveKeyToDB(dbKey, value);
-      }
-    }, 500);
+    saveToStorage(storageKey, value);
+    if (dbKey && isSupabaseConfigured() && initializedRef.current) {
+      pendingSavesRef.current.add(dbKey);
+      saveTimers.current[timerKey] = setTimeout(() => {
+        saveKeyToDB(dbKey, value).finally(() => {
+          pendingSavesRef.current.delete(dbKey);
+        });
+      }, 500);
+    } else {
+      saveTimers.current[timerKey] = setTimeout(() => {}, 0);
+    }
   }, []);
 
   useEffect(() => { scheduleSave(storageKeys.CUSTOMERS, state.customers, STATE_TO_DB_KEY.customers); }, [state.customers, scheduleSave]);
