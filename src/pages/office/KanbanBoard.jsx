@@ -331,9 +331,23 @@ export default function KanbanBoard({ role = 'office' }) {
   const effectiveRole = role === 'admin' ? 'office' : role;
   const storageKey = 'kanban_columns_' + effectiveRole;
 
-  const [columnOrder, setColumnOrder] = useState(() =>
-    loadFromStorage(storageKey, DEFAULT_COLUMNS[effectiveRole] || DEFAULT_COLUMNS.office)
-  );
+  const [columnOrder, setColumnOrder] = useState(() => {
+    const adminAllowed = state.roleConfig?.[effectiveRole]?.visible_statuses ?? null;
+    const saved = loadFromStorage(storageKey, null);
+    const base = saved ?? adminAllowed ?? DEFAULT_COLUMNS[effectiveRole] ?? DEFAULT_COLUMNS.office;
+    return adminAllowed ? base.filter(s => adminAllowed.includes(s)) : base;
+  });
+
+  // עדכן עמודות כשהאדמין משנה roleConfig
+  useEffect(() => {
+    const adminAllowed = state.roleConfig?.[effectiveRole]?.visible_statuses;
+    if (!adminAllowed) return;
+    setColumnOrder(prev => {
+      const filtered = prev.filter(s => adminAllowed.includes(s));
+      const missing = adminAllowed.filter(s => !prev.includes(s));
+      return [...filtered, ...missing];
+    });
+  }, [state.roleConfig, effectiveRole]);
   const [collapsed, setCollapsed] = useState({});
   const [search, setSearch] = useState('');
   const [sortMode, setSortMode] = useState('newest');

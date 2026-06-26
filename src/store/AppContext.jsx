@@ -7,6 +7,19 @@ import {
 } from '../data/seedData';
 import { DEFAULT_STATUS_CONFIG } from '../utils/statusConfig';
 
+export const DEFAULT_ROLE_CONFIG = {
+  office: {
+    visible_statuses: [
+      'red_intake','yellow_diagnosis','yellow_appeal','yellow_waiting_approval',
+      'yellow_ready_to_work','in_work','pending_release_docs',
+      'pending_payment','paid_waiting_pickup',
+    ],
+  },
+  lab: {
+    visible_statuses: ['yellow_ready_to_work','in_work','pending_release_docs'],
+  },
+};
+
 // ============================================================
 // STATE INITIAL
 // ============================================================
@@ -46,6 +59,7 @@ const buildInitialState = () => {
     currentUser,
     users,
     statusConfig:     loadFromStorage(storageKeys.STATUS_CONFIG, DEFAULT_STATUS_CONFIG),
+    roleConfig:       loadFromStorage(storageKeys.ROLE_CONFIG, DEFAULT_ROLE_CONFIG),
   };
 };
 
@@ -169,6 +183,10 @@ const appReducer = (state, action) => {
     case 'DELETE_STATUS':
       return { ...state, statusConfig: state.statusConfig.filter(s => s.id !== action.payload) };
 
+    // --- קונפיגורציית תפקידים ---
+    case 'UPDATE_ROLE_CONFIG':
+      return { ...state, roleConfig: { ...state.roleConfig, ...action.payload } };
+
     // --- משתמש נוכחי ---
     case 'SET_CURRENT_USER':
       return { ...state, currentUser: action.payload };
@@ -207,6 +225,7 @@ const appReducer = (state, action) => {
         settings:        p[DB_TO_STATE_KEY.settings]         ?? state.settings,
         users,
         statusConfig:    p[DB_TO_STATE_KEY.status_config]    ?? state.statusConfig,
+        roleConfig:      p[DB_TO_STATE_KEY.role_config]      ?? state.roleConfig,
         currentUser,
       };
     }
@@ -371,6 +390,7 @@ export const AppProvider = ({ children }) => {
   useEffect(() => { scheduleSave(storageKeys.CURRENT_USER, state.currentUser, null); }, [state.currentUser, scheduleSave]);
   useEffect(() => { scheduleSave(storageKeys.USERS, state.users, STATE_TO_DB_KEY.users); }, [state.users, scheduleSave]);
   useEffect(() => { scheduleSave(storageKeys.STATUS_CONFIG, state.statusConfig, STATE_TO_DB_KEY.statusConfig); }, [state.statusConfig, scheduleSave]);
+  useEffect(() => { scheduleSave(storageKeys.ROLE_CONFIG, state.roleConfig, STATE_TO_DB_KEY.roleConfig); }, [state.roleConfig, scheduleSave]);
 
   const loggedDispatch = useCallback((action) => {
     dispatch(action);
