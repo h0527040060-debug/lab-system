@@ -6,6 +6,7 @@ import {
   SEED_SERVICES, SEED_PARTS, SEED_STOCK_BATCHES, SEED_SETTINGS,
 } from '../data/seedData';
 import { DEFAULT_STATUS_CONFIG } from '../utils/statusConfig';
+import { useToast } from './ToastContext';
 
 export const DEFAULT_ROLE_CONFIG = {
   office: {
@@ -23,15 +24,26 @@ export const DEFAULT_ROLE_CONFIG = {
 // ============================================================
 // STATE INITIAL
 // ============================================================
-// מוודא שיצחק הורוביץ הוא תמיד אדמין
 const OWNER_EMAIL = 'h0527040060@gmail.com';
 
-const ensureOwnerIsAdmin = (users) => {
+// משתמש הבעלים — קבוע בקוד, לא ניתן למחיקה לעולם
+const OWNER_USER = {
+  id: 'USR-OWNER',
+  name: 'יצחק הורוביץ',
+  email: OWNER_EMAIL,
+  password: '364646',
+  role: 'admin',
+  created_date: '2024-01-01T00:00:00.000Z',
+};
+
+// מוודא שהבעלים תמיד קיים ברשימת המשתמשים עם הרשאת אדמין
+const ensureOwnerExists = (users) => {
   const idx = users.findIndex(u => u.email.toLowerCase() === OWNER_EMAIL);
-  if (idx === -1) return users;
-  if (users[idx].role === 'admin') return users;
+  if (idx === -1) return [OWNER_USER, ...users];
+  const existing = users[idx];
+  if (existing.role === 'admin' && existing.id === OWNER_USER.id) return users;
   const updated = [...users];
-  updated[idx] = { ...updated[idx], role: 'admin' };
+  updated[idx] = { ...OWNER_USER, ...existing, role: 'admin', id: OWNER_USER.id };
   return updated;
 };
 
@@ -42,7 +54,7 @@ const buildInitialState = () => {
   const usersWithCurrent = (storedUsers.length === 0 && rawCurrentUser)
     ? [rawCurrentUser]
     : storedUsers;
-  const users = ensureOwnerIsAdmin(usersWithCurrent);
+  const users = ensureOwnerExists(usersWithCurrent);
   // סנכרון currentUser עם הנתון המעודכן מ-users
   const currentUser = rawCurrentUser
     ? (users.find(u => u.id === rawCurrentUser.id) || rawCurrentUser)
@@ -171,7 +183,11 @@ const appReducer = (state, action) => {
 
     // --- רשימת משתמשים ---
     case 'ADD_USER':
+      if (action.payload.email?.toLowerCase() === OWNER_EMAIL) return state;
       return { ...state, users: [...state.users, action.payload] };
+    case 'DELETE_USER':
+      if (action.payload === OWNER_USER.id || action.payload?.toLowerCase?.() === OWNER_EMAIL) return state;
+      return { ...state, users: state.users.filter(u => u.id !== action.payload) };
     case 'UPDATE_USER': {
       const updatedUsers = state.users.map(u => u.id === action.payload.id ? { ...u, ...action.payload } : u);
       const updatedCurrent = state.currentUser?.id === action.payload.id
@@ -208,7 +224,7 @@ const appReducer = (state, action) => {
     // --- טעינה מ-Supabase ---
     case 'LOAD_ALL': {
       const p = action.payload;
-      const users = ensureOwnerIsAdmin(p[DB_TO_STATE_KEY.users] ?? state.users);
+      const users = ensureOwnerExists(p[DB_TO_STATE_KEY.users] ?? state.users);
       const rawCurrentUser = state.currentUser;
       const currentUser = rawCurrentUser
         ? (users.find(u => u.id === rawCurrentUser.id) || rawCurrentUser)
@@ -310,6 +326,76 @@ const buildLogEntry = (action, currentUser, state) => {
 };
 
 // ============================================================
+// TOAST MESSAGES — הודעת פידבק לכל פעולה
+// ============================================================
+const TOAST_MESSAGES = {
+  ADD_REPAIR:              (p) => ({ msg: `קריאה ${p.id} נקלטה בהצלחה`, type: 'success' }),
+  UPDATE_REPAIR:           ()  => ({ msg: 'תיקון עודכן בהצלחה', type: 'success' }),
+  DELETE_REPAIR:           ()  => ({ msg: 'קריאה נמחקה', type: 'success' }),
+  ADD_CUSTOMER:            (p) => ({ msg: `לקוח "${p.name}" נוסף בהצלחה`, type: 'success' }),
+  UPDATE_CUSTOMER:         ()  => ({ msg: 'פרטי לקוח עודכנו', type: 'success' }),
+  DELETE_CUSTOMER:         ()  => ({ msg: 'לקוח נמחק', type: 'success' }),
+  ADD_DEVICE:              (p) => ({ msg: `מכשיר ${p.id} נרשם בהצלחה`, type: 'success' }),
+  UPDATE_DEVICE:           ()  => ({ msg: 'פרטי מכשיר עודכנו', type: 'success' }),
+  ADD_PART:                (p) => ({ msg: `חלק "${p.name || p.id}" נוסף למלאי`, type: 'success' }),
+  UPDATE_PART:             ()  => ({ msg: 'חלק עודכן בהצלחה', type: 'success' }),
+  DELETE_PART:             ()  => ({ msg: 'חלק נמחק', type: 'success' }),
+  ADD_STOCK_BATCH:         (p) => ({ msg: `אצווה ${p.id} נקלטה בהצלחה`, type: 'success' }),
+  UPDATE_STOCK_BATCH:      ()  => ({ msg: 'אצווה עודכנה', type: 'success' }),
+  UPDATE_STOCK_BATCHES_BULK: () => ({ msg: 'מלאי עודכן בהצלחה', type: 'success' }),
+  ADD_SUPPLIER:            (p) => ({ msg: `ספק "${p.name}" נוסף`, type: 'success' }),
+  UPDATE_SUPPLIER:         ()  => ({ msg: 'ספק עודכן', type: 'success' }),
+  DELETE_SUPPLIER:         ()  => ({ msg: 'ספק נמחק', type: 'success' }),
+  ADD_PURCHASE_ORDER:      (p) => ({ msg: `הזמנת רכש ${p.id} נוצרה`, type: 'success' }),
+  UPDATE_PURCHASE_ORDER:   ()  => ({ msg: 'הזמנת רכש עודכנה', type: 'success' }),
+  ADD_GENERAL_EXPENSE:     ()  => ({ msg: 'הוצאה נרשמה בהצלחה', type: 'success' }),
+  UPDATE_GENERAL_EXPENSE:  ()  => ({ msg: 'הוצאה עודכנה', type: 'success' }),
+  DELETE_GENERAL_EXPENSE:  ()  => ({ msg: 'הוצאה נמחקה', type: 'success' }),
+  ADD_WORK_ITEM:           (p) => ({ msg: `עבודה "${p.name || p.id}" נוספה לקטלוג`, type: 'success' }),
+  UPDATE_WORK_ITEM:        ()  => ({ msg: 'עבודה עודכנה בקטלוג', type: 'success' }),
+  DELETE_WORK_ITEM:        ()  => ({ msg: 'עבודה נמחקה מהקטלוג', type: 'success' }),
+  ADD_SERVICE:             (p) => ({ msg: `שירות "${p.name || p.id}" נוסף`, type: 'success' }),
+  UPDATE_SERVICE:          ()  => ({ msg: 'שירות עודכן', type: 'success' }),
+  ADD_TECHNICIAN:          (p) => ({ msg: `טכנאי "${p.name}" נוסף`, type: 'success' }),
+  UPDATE_TECHNICIAN:       ()  => ({ msg: 'טכנאי עודכן', type: 'success' }),
+  ADD_WARRANTY_APPEAL:     ()  => ({ msg: 'ערעור אחריות נפתח', type: 'success' }),
+  UPDATE_WARRANTY_APPEAL:  ()  => ({ msg: 'ערעור אחריות עודכן', type: 'success' }),
+  UPDATE_SETTINGS:         ()  => ({ msg: 'הגדרות נשמרו בהצלחה', type: 'success' }),
+  ADD_USER:                (p) => ({ msg: `משתמש "${p.name}" נוסף`, type: 'success' }),
+  UPDATE_USER:             ()  => ({ msg: 'פרטי משתמש עודכנו', type: 'success' }),
+  DELETE_USER:             ()  => ({ msg: 'משתמש נמחק', type: 'success' }),
+  ADD_STATUS:              (p) => ({ msg: `סטטוס "${p.label}" נוסף`, type: 'success' }),
+  UPDATE_STATUS:           ()  => ({ msg: 'סטטוס עודכן', type: 'success' }),
+  DELETE_STATUS:           ()  => ({ msg: 'סטטוס נמחק', type: 'success' }),
+  SET_CURRENT_USER:        (p) => ({ msg: `ברוך הבא, ${p?.name || ''}`, type: 'success' }),
+  LOGOUT:                  ()  => ({ msg: 'התנתקת מהמערכת', type: 'info' }),
+};
+
+// מיפוי: action → מפתח ה-storage שנשמר אחריו (לאימות שמירה אמיתי)
+const ACTION_TO_STORAGE_KEY = {
+  ADD_REPAIR: storageKeys.REPAIRS,              UPDATE_REPAIR: storageKeys.REPAIRS,
+  DELETE_REPAIR: storageKeys.REPAIRS,           ADD_CUSTOMER: storageKeys.CUSTOMERS,
+  UPDATE_CUSTOMER: storageKeys.CUSTOMERS,       DELETE_CUSTOMER: storageKeys.CUSTOMERS,
+  ADD_DEVICE: storageKeys.DEVICES,              UPDATE_DEVICE: storageKeys.DEVICES,
+  ADD_PART: storageKeys.PARTS,                  UPDATE_PART: storageKeys.PARTS,
+  DELETE_PART: storageKeys.PARTS,               ADD_STOCK_BATCH: storageKeys.STOCK_BATCHES,
+  UPDATE_STOCK_BATCH: storageKeys.STOCK_BATCHES, UPDATE_STOCK_BATCHES_BULK: storageKeys.STOCK_BATCHES,
+  ADD_SUPPLIER: storageKeys.SUPPLIERS,          UPDATE_SUPPLIER: storageKeys.SUPPLIERS,
+  DELETE_SUPPLIER: storageKeys.SUPPLIERS,       ADD_PURCHASE_ORDER: storageKeys.PURCHASE_ORDERS,
+  UPDATE_PURCHASE_ORDER: storageKeys.PURCHASE_ORDERS, ADD_GENERAL_EXPENSE: storageKeys.GENERAL_EXPENSES,
+  UPDATE_GENERAL_EXPENSE: storageKeys.GENERAL_EXPENSES, DELETE_GENERAL_EXPENSE: storageKeys.GENERAL_EXPENSES,
+  ADD_WORK_ITEM: storageKeys.WORK_CATALOG,      UPDATE_WORK_ITEM: storageKeys.WORK_CATALOG,
+  DELETE_WORK_ITEM: storageKeys.WORK_CATALOG,   ADD_SERVICE: storageKeys.SERVICES,
+  UPDATE_SERVICE: storageKeys.SERVICES,         ADD_TECHNICIAN: storageKeys.TECHNICIANS,
+  UPDATE_TECHNICIAN: storageKeys.TECHNICIANS,   ADD_WARRANTY_APPEAL: storageKeys.WARRANTY_APPEALS,
+  UPDATE_WARRANTY_APPEAL: storageKeys.WARRANTY_APPEALS, UPDATE_SETTINGS: storageKeys.SETTINGS,
+  ADD_USER: storageKeys.USERS,                  UPDATE_USER: storageKeys.USERS,
+  DELETE_USER: storageKeys.USERS,               ADD_STATUS: storageKeys.STATUS_CONFIG,
+  UPDATE_STATUS: storageKeys.STATUS_CONFIG,     DELETE_STATUS: storageKeys.STATUS_CONFIG,
+  SET_CURRENT_USER: storageKeys.CURRENT_USER,
+};
+
+// ============================================================
 // CONTEXT
 // ============================================================
 const AppContext = createContext(null);
@@ -323,6 +409,8 @@ export const AppProvider = ({ children }) => {
   const saveTimers = useRef({});
   const initializedRef = useRef(false);
   const pendingSavesRef = useRef(new Set());
+  const pendingToastRef = useRef(null); // { storageKey, message, type, duration }
+  const { showToast } = useToast();
 
   // טעינה ראשונית מ-Supabase
   useEffect(() => {
@@ -374,7 +462,19 @@ export const AppProvider = ({ children }) => {
   const scheduleSave = useCallback((storageKey, value, dbKey) => {
     const timerKey = storageKey;
     if (saveTimers.current[timerKey]) clearTimeout(saveTimers.current[timerKey]);
-    saveToStorage(storageKey, value);
+    const saved = saveToStorage(storageKey, value);
+
+    // הצג טוסט אם זו השמירה הרלוונטית לפעולה האחרונה
+    const pending = pendingToastRef.current;
+    if (pending && pending.storageKey === storageKey) {
+      pendingToastRef.current = null;
+      if (saved) {
+        showToast(pending.message, pending.type, pending.duration || 2000);
+      } else {
+        showToast('שגיאה: הנתונים לא נשמרו — נסה שנית', 'error', 4000);
+      }
+    }
+
     if (dbKey && isSupabaseConfigured() && initializedRef.current) {
       pendingSavesRef.current.add(dbKey);
       saveTimers.current[timerKey] = setTimeout(() => {
@@ -385,7 +485,7 @@ export const AppProvider = ({ children }) => {
     } else {
       saveTimers.current[timerKey] = setTimeout(() => {}, 0);
     }
-  }, []);
+  }, [showToast]);
 
   useEffect(() => { scheduleSave(storageKeys.CUSTOMERS, state.customers, STATE_TO_DB_KEY.customers); }, [state.customers, scheduleSave]);
   useEffect(() => { scheduleSave(storageKeys.DEVICES, state.devices, STATE_TO_DB_KEY.devices); }, [state.devices, scheduleSave]);
@@ -409,7 +509,21 @@ export const AppProvider = ({ children }) => {
     dispatch(action);
     const entry = buildLogEntry(action, state.currentUser, state);
     if (entry) appendLog(entry);
-  }, [dispatch, state]);
+
+    // הכן טוסט — יופיע לאחר אימות שמירה ב-localStorage
+    const toastFn = TOAST_MESSAGES[action.type];
+    if (toastFn) {
+      const { msg, type } = toastFn(action.payload);
+      const storageKey = ACTION_TO_STORAGE_KEY[action.type];
+      if (storageKey) {
+        // המתן לאישור שמירה ב-scheduleSave
+        pendingToastRef.current = { storageKey, message: msg, type };
+      } else {
+        // פעולות ללא storage (LOGOUT) — הצג מיד
+        showToast(msg, type);
+      }
+    }
+  }, [dispatch, state, showToast]);
 
   if (dbLoading) {
     return (

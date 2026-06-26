@@ -39,7 +39,13 @@ export const saveToStorage = (key, value) => {
     localStorage.setItem(STORAGE_PREFIX + key, JSON.stringify(value));
     return true;
   } catch (error) {
-    console.error(`Failed to save ${key} to localStorage:`, error);
+    if (error.name === 'QuotaExceededError' || error.code === 22) {
+      console.error('localStorage מלא — לא ניתן לשמור נתונים. נסה להקטין גודל תמונות או לנקות נתונים ישנים.');
+      // הצג התראה גלובלית
+      window.dispatchEvent(new CustomEvent('storage-quota-exceeded', { detail: { key } }));
+    } else {
+      console.error(`Failed to save ${key} to localStorage:`, error);
+    }
     return false;
   }
 };
@@ -103,8 +109,16 @@ export const appendLog = (entry) => {
     const current = loadLogs();
     const updated = [entry, ...current].slice(0, MAX_LOGS);
     localStorage.setItem(LOGS_KEY, JSON.stringify(updated));
-  } catch {
-    // שגיאת שמירה — לא קריטי
+  } catch (error) {
+    if (error.name === 'QuotaExceededError' || error.code === 22) {
+      // נסה לשמור רק לוגים אחרונים כדי לפנות מקום
+      try {
+        const trimmed = loadLogs().slice(0, 100);
+        localStorage.setItem(LOGS_KEY, JSON.stringify([entry, ...trimmed]));
+      } catch {
+        // אם עדיין נכשל — דלג בשקט
+      }
+    }
   }
 };
 

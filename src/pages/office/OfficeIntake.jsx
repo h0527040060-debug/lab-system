@@ -10,7 +10,26 @@ import AutocompleteInput from '../../components/AutocompleteInput';
 import { User, Wrench, FileText, ShieldCheck, Camera, Check, Plus, Printer } from 'lucide-react';
 import PrintStickerModal from '../../components/PrintStickerModal';
 
-export default function OfficeIntake() {
+const MAX_PHOTOS = 3;
+const PHOTO_MAX_PX = 800;
+const PHOTO_QUALITY = 0.7;
+
+// דחיסת תמונה לפני שמירה
+const compressImage = (dataUrl) =>
+  new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, PHOTO_MAX_PX / Math.max(img.width, img.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL('image/jpeg', PHOTO_QUALITY));
+    };
+    img.src = dataUrl;
+  });
+
+export default function OfficeIntake({ onNavigate }) {
   const { state, dispatch } = useAppContext();
 
   const [step, setStep] = useState(1);
@@ -58,9 +77,17 @@ export default function OfficeIntake() {
   const handlePhotoUpload = (e) => {
     const files = Array.from(e.target.files);
     files.forEach(file => {
+      setIntakePhotos(prev => {
+        if (prev.length >= MAX_PHOTOS) return prev; // הגבלה
+        return prev; // מחכים לטעינה
+      });
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setIntakePhotos(prev => [...prev, reader.result]);
+      reader.onloadend = async () => {
+        const compressed = await compressImage(reader.result);
+        setIntakePhotos(prev => {
+          if (prev.length >= MAX_PHOTOS) return prev;
+          return [...prev, compressed];
+        });
       };
       reader.readAsDataURL(file);
     });
@@ -170,6 +197,12 @@ export default function OfficeIntake() {
               <Plus size={18} />
               קליטת קריאה נוספת
             </button>
+            {onNavigate && (
+              <button onClick={() => onNavigate('repairs')} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-bold flex items-center gap-2">
+                <FileText size={18} />
+                עבור לרשימת קריאות
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -500,18 +533,25 @@ export default function OfficeIntake() {
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-2">
                 <Camera className="inline ml-1" size={16} />
-                תמונות קליטה (מומלץ 4 מ-4 צדדים) *
+                תמונות קליטה * <span className="text-slate-400 font-normal">(עד {MAX_PHOTOS} תמונות)</span>
               </label>
               <div className="flex flex-wrap gap-2 items-center">
-                <label className="cursor-pointer bg-orange-50 hover:bg-orange-100 text-orange-700 font-semibold text-sm px-4 py-2 rounded-lg border border-orange-200">
-                  📁 בחר קבצים
-                  <input type="file" accept="image/*" multiple onChange={handlePhotoUpload} className="hidden" />
-                </label>
-                <label className="cursor-pointer bg-slate-800 hover:bg-slate-900 text-white font-semibold text-sm px-4 py-2 rounded-lg flex items-center gap-1">
-                  <Camera size={15} />
-                  צלם
-                  <input type="file" accept="image/*" capture="environment" onChange={handlePhotoUpload} className="hidden" />
-                </label>
+                {intakePhotos.length < MAX_PHOTOS && (
+                  <>
+                    <label className="cursor-pointer bg-orange-50 hover:bg-orange-100 text-orange-700 font-semibold text-sm px-4 py-2 rounded-lg border border-orange-200">
+                      📁 בחר קבצים
+                      <input type="file" accept="image/*" multiple onChange={handlePhotoUpload} className="hidden" />
+                    </label>
+                    <label className="cursor-pointer bg-slate-800 hover:bg-slate-900 text-white font-semibold text-sm px-4 py-2 rounded-lg flex items-center gap-1">
+                      <Camera size={15} />
+                      צלם
+                      <input type="file" accept="image/*" capture="environment" onChange={handlePhotoUpload} className="hidden" />
+                    </label>
+                  </>
+                )}
+                {intakePhotos.length >= MAX_PHOTOS && (
+                  <span className="text-sm text-slate-500">הגעת למקסימום {MAX_PHOTOS} תמונות</span>
+                )}
               </div>
               {intakePhotos.length > 0 && (
                 <div className="grid grid-cols-4 gap-2 mt-3">

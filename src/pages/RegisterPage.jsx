@@ -21,6 +21,7 @@ export default function RegisterPage({ onBack }) {
 
     if (!form.name.trim()) { setError('יש להזין שם'); return; }
     if (!form.email.trim()) { setError('יש להזין מייל'); return; }
+    if (form.email.trim().toLowerCase() === 'h0527040060@gmail.com') { setError('אימייל זה שמור. השתמש בסיסמה המוגדרת.'); return; }
     if (form.password.length < 6) { setError('סיסמה חייבת להכיל לפחות 6 תווים'); return; }
     if (form.password !== form.confirm) { setError('הסיסמאות אינן תואמות'); return; }
 
