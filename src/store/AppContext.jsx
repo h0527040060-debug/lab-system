@@ -30,7 +30,7 @@ const OWNER_USER = {
   id: 'USR-OWNER',
   name: 'יצחק הורוביץ',
   email: OWNER_EMAIL,
-  password: '3646',
+  password: '364646',
   role: 'admin',
   created_date: '2024-01-01T00:00:00.000Z',
 };
