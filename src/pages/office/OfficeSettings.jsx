@@ -5,12 +5,14 @@ import { SettingsStatuses } from './settings/SettingsStatuses';
 import { SettingsSuppliers } from './settings/SettingsSuppliers';
 import { SettingsMisc } from './settings/SettingsMisc';
 import { SettingsRoles } from './settings/SettingsRoles';
+import { SettingsFields } from './settings/SettingsFields';
 
 const SUB_TABS = [
   { id: 'business',  label: 'פרטי עסק',        icon: '🏢' },
   { id: 'statuses',  label: 'ניהול סטטוסים',   icon: '🏷️' },
   { id: 'suppliers', label: 'ניהול ספקים',      icon: '🚚' },
   { id: 'roles',     label: 'ניהול תפקידים',    icon: '👥' },
+  { id: 'fields',    label: 'ניהול שדות',       icon: '📋' },
   { id: 'misc',      label: 'הגדרות שונות',     icon: '⚙️' },
 ];
 
@@ -19,6 +21,7 @@ const COMPONENTS = {
   statuses:  SettingsStatuses,
   suppliers: SettingsSuppliers,
   roles:     SettingsRoles,
+  fields:    SettingsFields,
   misc:      SettingsMisc,
 };
 
