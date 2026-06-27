@@ -1,12 +1,8 @@
 import { useState, useRef } from 'react';
 import { useAppContext } from '../store/AppContext';
 import Modal from './Modal';
+import AutocompleteInput from './AutocompleteInput';
 import { X, RefreshCw, Camera } from 'lucide-react';
-
-const DEVICE_TYPES = [
-  'מקרר מסחרי', 'מקפיא מסחרי', 'תנור תעשייתי', 'תנור עגלה', 'מדיח כלים',
-  'משטח בישול', 'גריל', 'פריטוזה', 'במרה', 'מכונת קפה', 'מיקסר', 'מעבד מזון', 'אחר',
-];
 
 const MAX_IMAGES = 4;
 const IMG_MAX_PX = 800;
@@ -34,7 +30,8 @@ const readFile = (file) =>
   });
 
 export function DeviceEditModal({ device, onClose }) {
-  const { dispatch } = useAppContext();
+  const { state, dispatch } = useAppContext();
+  const deviceTypes = state.settings?.fieldLists?.deviceTypes || [];
   const addInputRef = useRef(null);
   const replaceInputRef = useRef(null);
   const [replaceIndex, setReplaceIndex] = useState(null);
@@ -133,14 +130,17 @@ export function DeviceEditModal({ device, onClose }) {
         </div>
         <div>
           <label className="block text-sm font-semibold text-slate-700 mb-1">סוג מכשיר</label>
-          <select
+          <AutocompleteInput
             value={form.type}
-            onChange={e => set('type', e.target.value)}
-            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-400"
-          >
-            <option value="">-- בחר סוג --</option>
-            {DEVICE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-          </select>
+            onChange={val => {
+              set('type', val);
+              if (val && !deviceTypes.includes(val))
+                dispatch({ type: 'ADD_FIELD_VALUE', payload: { field: 'deviceTypes', value: val } });
+            }}
+            suggestions={deviceTypes}
+            placeholder="-- בחר סוג --"
+            allowNew
+          />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>

@@ -3,7 +3,7 @@ import { storageKeys, loadFromStorage, saveToStorage, appendLog } from './storag
 import { supabase, isSupabaseConfigured, loadAllFromDB, saveKeyToDB, saveAllToDB, STATE_TO_DB_KEY, DB_TO_STATE_KEY } from './supabase';
 import {
   SEED_TECHNICIANS, SEED_SUPPLIERS, SEED_WORK_CATALOG,
-  SEED_SERVICES, SEED_PARTS, SEED_STOCK_BATCHES, SEED_SETTINGS,
+  SEED_SERVICES, SEED_PARTS, SEED_STOCK_BATCHES, SEED_SETTINGS, DEFAULT_FIELD_LISTS,
 } from '../data/seedData';
 import { DEFAULT_STATUS_CONFIG } from '../utils/statusConfig';
 import { useToast } from './ToastContext';
@@ -72,7 +72,12 @@ const buildInitialState = () => {
     services:         loadFromStorage(storageKeys.SERVICES, SEED_SERVICES),
     technicians:      loadFromStorage(storageKeys.TECHNICIANS, SEED_TECHNICIANS),
     warrantyAppeals:  loadFromStorage(storageKeys.WARRANTY_APPEALS, []),
-    settings:         loadFromStorage(storageKeys.SETTINGS, SEED_SETTINGS),
+    settings:         (() => {
+      const s = loadFromStorage(storageKeys.SETTINGS, SEED_SETTINGS);
+      // הבטח שfieldLists קיים גם למשתמשים קיימים עם settings ישן
+      if (!s.fieldLists) return { ...s, fieldLists: DEFAULT_FIELD_LISTS };
+      return s;
+    })(),
     currentUser,
     users,
     statusConfig:     loadFromStorage(storageKeys.STATUS_CONFIG, DEFAULT_STATUS_CONFIG),
@@ -180,6 +185,36 @@ const appReducer = (state, action) => {
     // --- הגדרות ---
     case 'UPDATE_SETTINGS':
       return { ...state, settings: { ...state.settings, ...action.payload } };
+
+    // --- ניהול שדות (field lists) ---
+    case 'ADD_FIELD_VALUE': {
+      const { field, value } = action.payload;
+      const lists = state.settings.fieldLists || {};
+      const current = lists[field] || [];
+      if (current.includes(value)) return state;
+      return { ...state, settings: { ...state.settings, fieldLists: { ...lists, [field]: [...current, value] } } };
+    }
+    case 'RENAME_FIELD_VALUE': {
+      const { field, oldValue, newValue } = action.payload;
+      const lists = state.settings.fieldLists || {};
+      const current = lists[field] || [];
+      const updatedList = current.map(v => v === oldValue ? newValue : v);
+      // עדכון היסטוריה במכשירים
+      const updatedDevices = field === 'deviceTypes'
+        ? state.devices.map(d => d.type === oldValue ? { ...d, type: newValue } : d)
+        : state.devices;
+      return {
+        ...state,
+        devices: updatedDevices,
+        settings: { ...state.settings, fieldLists: { ...lists, [field]: updatedList } },
+      };
+    }
+    case 'DELETE_FIELD_VALUE': {
+      const { field, value } = action.payload;
+      const lists = state.settings.fieldLists || {};
+      const current = lists[field] || [];
+      return { ...state, settings: { ...state.settings, fieldLists: { ...lists, [field]: current.filter(v => v !== value) } } };
+    }
 
     // --- רשימת משתמשים ---
     case 'ADD_USER':
