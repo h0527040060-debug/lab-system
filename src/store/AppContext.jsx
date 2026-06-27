@@ -117,6 +117,7 @@ const appReducer = (state, action) => {
 
     // --- תיקונים ---
     case 'ADD_REPAIR':
+      if (state.repairs.some(r => r.id === action.payload.id)) return state;
       return { ...state, repairs: [...state.repairs, action.payload] };
     case 'UPDATE_REPAIR':
       return { ...state, repairs: state.repairs.map(r => r.id === action.payload.id ? { ...r, ...action.payload } : r) };

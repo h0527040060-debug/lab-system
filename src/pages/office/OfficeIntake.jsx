@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAppContext } from '../../store/AppContext';
 import { generateCustomerId, generateDeviceId, generateRepairId } from '../../utils/idGenerators';
+import { loadFromStorage, storageKeys } from '../../store/storage';
 import { REPAIR_STATUSES } from '../../constants/statuses';
 import { WARRANTY_TYPES, WARRANTY_LABELS } from '../../constants/warranty';
 import { formatDateTime, formatMoney } from '../../utils/formatters';
@@ -55,6 +56,7 @@ export default function OfficeIntake({ onNavigate }) {
   const [warrantyType, setWarrantyType] = useState(WARRANTY_TYPES.PAID);
   const [intakePhotos, setIntakePhotos] = useState([]);
   const [diagnosticFeeConfirmed, setDiagnosticFeeConfirmed] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [successRepair, setSuccessRepair] = useState(null);
   const [printRepair, setPrintRepair] = useState(null);
@@ -99,6 +101,8 @@ export default function OfficeIntake({ onNavigate }) {
   };
 
   const handleSave = () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     let customerId = selectedCustomerId;
     if (customerMode === 'new') {
       customerId = generateCustomerId(state.customers.map(c => c.id));
@@ -117,7 +121,9 @@ export default function OfficeIntake({ onNavigate }) {
       });
     }
 
-    const repairId = generateRepairId(state.repairs.map(r => r.id));
+    // קרא מ-localStorage ישיר לוודא freshness (state עלול להיות stale בגלל React batching)
+    const freshRepairs = loadFromStorage(storageKeys.REPAIRS, state.repairs);
+    const repairId = generateRepairId(freshRepairs.map(r => r.id));
     // תמונות שייכות למכשיר
     if (deviceMode === 'new') {
       // כבר נשמרו ב-ADD_DEVICE למעלה
@@ -141,6 +147,7 @@ export default function OfficeIntake({ onNavigate }) {
     };
     dispatch({ type: 'ADD_REPAIR', payload: repair });
     setSuccessRepair(repair);
+    setIsSubmitting(false);
   };
 
   const resetForm = () => {
@@ -653,10 +660,11 @@ export default function OfficeIntake({ onNavigate }) {
             </button>
             <button
               onClick={handleSave}
-              className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-lg font-bold shadow-md"
+              disabled={isSubmitting}
+              className="bg-green-600 hover:bg-green-700 disabled:bg-slate-400 text-white px-8 py-3 rounded-lg font-bold shadow-md"
             >
               <Check className="inline ml-1" size={20} />
-              צור קריאת תיקון
+              {isSubmitting ? 'שומר...' : 'צור קריאת תיקון'}
             </button>
           </div>
         </div>
