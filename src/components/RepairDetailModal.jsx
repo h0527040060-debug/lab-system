@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { X, User, Smartphone, FileText, Wrench, Camera, Stethoscope, Clock, Package, Edit2 } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { X, User, Smartphone, FileText, Wrench, Camera, Stethoscope, Clock, Package, Edit2, Plus, Trash2 } from 'lucide-react';
 import { useAppContext } from '../store/AppContext';
 import { getStatusDisplay } from '../utils/statusConfig';
 import { formatDateTime } from '../utils/formatters';
@@ -23,8 +23,27 @@ function formatSeconds(sec) {
   return `${m} דקות`;
 }
 
+const MAX_DEVICE_PHOTOS = 4;
+const PHOTO_MAX_PX = 800;
+const PHOTO_QUALITY = 0.7;
+
+const compressImage = (dataUrl) =>
+  new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, PHOTO_MAX_PX / Math.max(img.width, img.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL('image/jpeg', PHOTO_QUALITY));
+    };
+    img.src = dataUrl;
+  });
+
 export default function RepairDetailModal({ repair, customer, device, onClose, onAction }) {
-  const { state } = useAppContext();
+  const { state, dispatch } = useAppContext();
+  const addPhotoRef = useRef(null);
   const [showEditCustomer, setShowEditCustomer] = useState(false);
   const [showEditDevice, setShowEditDevice] = useState(false);
   const [showEditRepair, setShowEditRepair] = useState(false);
@@ -45,6 +64,34 @@ export default function RepairDetailModal({ repair, customer, device, onClose, o
   const canDiagnosis = ['red_intake', 'yellow_diagnosis', 'yellow_appeal'].includes(repair.status);
   const canWork = ['yellow_ready_to_work', 'in_work'].includes(repair.status);
   const canDocs = repair.status === 'pending_release_docs';
+
+  // תמונות מכשיר — מקור האמת הוא device.images, עם fallback לתמונות קליטה ישנות
+  const deviceImages = device?.images?.length > 0 ? device.images : (repair.intake_photos || []);
+
+  const handleAddDevicePhoto = (e) => {
+    const files = Array.from(e.target.files);
+    if (!device || !files.length) return;
+    const slots = MAX_DEVICE_PHOTOS - (device.images || []).length;
+    const toAdd = files.slice(0, slots);
+    toAdd.forEach(file => {
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const compressed = await compressImage(reader.result);
+        const currentDevice = state.devices.find(d => d.id === device.id);
+        const updated = [...(currentDevice?.images || []), compressed].slice(0, MAX_DEVICE_PHOTOS);
+        dispatch({ type: 'UPDATE_DEVICE', payload: { ...currentDevice, images: updated } });
+      };
+      reader.readAsDataURL(file);
+    });
+    e.target.value = '';
+  };
+
+  const handleDeleteDevicePhoto = (idx) => {
+    if (!device) return;
+    const currentDevice = state.devices.find(d => d.id === device.id);
+    const updated = (currentDevice?.images || []).filter((_, i) => i !== idx);
+    dispatch({ type: 'UPDATE_DEVICE', payload: { ...currentDevice, images: updated } });
+  };
 
   return (
     <>
@@ -120,22 +167,44 @@ export default function RepairDetailModal({ repair, customer, device, onClose, o
               </div>
             )}
 
-            {/* תמונות קליטה */}
-            {repair.intake_photos?.length > 0 && (
-              <div>
-                <p className="text-xs font-bold text-slate-500 mb-1.5">תמונות קליטה</p>
+            {/* תמונות מכשיר */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <p className="text-xs font-bold text-slate-500">תמונות מכשיר</p>
+                {device && (device.images || []).length < MAX_DEVICE_PHOTOS && (
+                  <button
+                    onClick={() => addPhotoRef.current?.click()}
+                    className="flex items-center gap-1 text-xs text-orange-600 font-semibold"
+                  >
+                    <Plus size={12} /> הוסף
+                  </button>
+                )}
+              </div>
+              <input ref={addPhotoRef} type="file" accept="image/*" multiple className="hidden" onChange={handleAddDevicePhoto} />
+              {deviceImages.length > 0 ? (
                 <div className="flex gap-2 flex-wrap">
-                  {repair.intake_photos.map((src, i) => (
-                    <img
-                      key={i}
-                      src={src}
-                      onClick={() => setGalleryIndex(i)}
-                      className="w-16 h-16 object-cover rounded-lg cursor-pointer border border-slate-200 hover:opacity-80"
-                    />
+                  {deviceImages.map((src, i) => (
+                    <div key={i} className="relative">
+                      <img
+                        src={src}
+                        onClick={() => setGalleryIndex(i)}
+                        className="w-16 h-16 object-cover rounded-lg cursor-pointer border border-slate-200"
+                      />
+                      {device && device.images?.length > 0 && (
+                        <button
+                          onClick={() => handleDeleteDevicePhoto(i)}
+                          className="absolute -top-1 -left-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center"
+                        >
+                          <X size={9} />
+                        </button>
+                      )}
+                    </div>
                   ))}
                 </div>
-              </div>
-            )}
+              ) : (
+                <p className="text-xs text-slate-400">אין תמונות</p>
+              )}
+            </div>
 
             {/* אבחון */}
             {repair.diagnosis_notes && (
@@ -253,7 +322,7 @@ export default function RepairDetailModal({ repair, customer, device, onClose, o
       )}
       {galleryIndex !== null && (
         <ImageGalleryModal
-          images={repair.intake_photos}
+          images={deviceImages}
           startIndex={galleryIndex}
           onClose={() => setGalleryIndex(null)}
         />

@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { useAppContext } from '../store/AppContext';
 import Modal from './Modal';
 import AutocompleteInput from './AutocompleteInput';
+import ImageGalleryModal from './ImageGalleryModal';
 import { X, RefreshCw, Camera } from 'lucide-react';
 
 const MAX_IMAGES = 4;
@@ -35,6 +36,7 @@ export function DeviceEditModal({ device, onClose }) {
   const addInputRef = useRef(null);
   const replaceInputRef = useRef(null);
   const [replaceIndex, setReplaceIndex] = useState(null);
+  const [galleryIndex, setGalleryIndex] = useState(null);
 
   const [form, setForm] = useState({
     brand: device.brand || '',
@@ -88,6 +90,7 @@ export function DeviceEditModal({ device, onClose }) {
   };
 
   return (
+    <>
     <Modal
       open
       onClose={onClose}
@@ -132,11 +135,8 @@ export function DeviceEditModal({ device, onClose }) {
           <label className="block text-sm font-semibold text-slate-700 mb-1">סוג מכשיר</label>
           <AutocompleteInput
             value={form.type}
-            onChange={val => {
-              set('type', val);
-              if (val && !deviceTypes.includes(val))
-                dispatch({ type: 'ADD_FIELD_VALUE', payload: { field: 'deviceTypes', value: val } });
-            }}
+            onChange={val => set('type', val)}
+            onAddValue={val => dispatch({ type: 'ADD_FIELD_VALUE', payload: { field: 'deviceTypes', value: val } })}
             suggestions={deviceTypes}
             placeholder="-- בחר סוג --"
             allowNew
@@ -189,26 +189,31 @@ export function DeviceEditModal({ device, onClose }) {
           <label className="block text-sm font-semibold text-slate-700 mb-2">תמונות מכשיר</label>
           <div className="flex flex-wrap gap-2">
             {form.images.map((src, idx) => (
-              <div key={idx} className="relative w-20 h-20 rounded-lg overflow-hidden border border-slate-200 group">
-                <img src={src} alt="" className="w-full h-full object-cover" />
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => openReplace(idx)}
-                    className="p-1 bg-white/80 rounded text-slate-700 hover:bg-white"
-                    title="החלף"
-                  >
-                    <RefreshCw size={13} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteImage(idx)}
-                    className="p-1 bg-white/80 rounded text-red-600 hover:bg-white"
-                    title="מחק"
-                  >
-                    <X size={13} />
-                  </button>
-                </div>
+              <div key={idx} className="relative w-20 h-20 rounded-lg overflow-visible border border-slate-200">
+                <img
+                  src={src}
+                  alt=""
+                  className="w-full h-full object-cover rounded-lg cursor-pointer"
+                  onClick={() => setGalleryIndex(idx)}
+                />
+                {/* כפתור מחיקה — תמיד גלוי */}
+                <button
+                  type="button"
+                  onClick={() => handleDeleteImage(idx)}
+                  className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center shadow"
+                  title="מחק"
+                >
+                  <X size={10} />
+                </button>
+                {/* כפתור החלפה — תמיד גלוי */}
+                <button
+                  type="button"
+                  onClick={() => openReplace(idx)}
+                  className="absolute -bottom-2 -right-2 w-5 h-5 bg-slate-600 text-white rounded-full flex items-center justify-center shadow"
+                  title="החלף"
+                >
+                  <RefreshCw size={9} />
+                </button>
               </div>
             ))}
             {form.images.length < MAX_IMAGES && (
@@ -240,5 +245,13 @@ export function DeviceEditModal({ device, onClose }) {
         </div>
       </div>
     </Modal>
+    {galleryIndex !== null && (
+      <ImageGalleryModal
+        images={form.images}
+        startIndex={galleryIndex}
+        onClose={() => setGalleryIndex(null)}
+      />
+    )}
+    </>
   );
 }

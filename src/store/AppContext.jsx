@@ -76,7 +76,18 @@ const buildInitialState = () => {
       const s = loadFromStorage(storageKeys.SETTINGS, SEED_SETTINGS);
       // הבטח שfieldLists קיים גם למשתמשים קיימים עם settings ישן
       if (!s.fieldLists) return { ...s, fieldLists: DEFAULT_FIELD_LISTS };
-      return s;
+      // נקה ערכים שהם prefix של ערך אחר (אשפה מהקלדה חלקית)
+      const cleanedLists = {};
+      for (const [key, list] of Object.entries(s.fieldLists)) {
+        if (Array.isArray(list)) {
+          cleanedLists[key] = list.filter(v =>
+            !list.some(other => other !== v && other.startsWith(v))
+          );
+        } else {
+          cleanedLists[key] = list;
+        }
+      }
+      return { ...s, fieldLists: cleanedLists };
     })(),
     currentUser,
     users,

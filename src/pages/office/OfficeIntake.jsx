@@ -113,11 +113,20 @@ export default function OfficeIntake({ onNavigate }) {
       deviceId = generateDeviceId(state.devices.map(d => d.id));
       dispatch({
         type: 'ADD_DEVICE',
-        payload: { id: deviceId, ...newDevice, owner_customer_id: customerId, created_date: new Date().toISOString() },
+        payload: { id: deviceId, ...newDevice, images: intakePhotos, owner_customer_id: customerId, created_date: new Date().toISOString() },
       });
     }
 
     const repairId = generateRepairId(state.repairs.map(r => r.id));
+    // תמונות שייכות למכשיר
+    if (deviceMode === 'new') {
+      // כבר נשמרו ב-ADD_DEVICE למעלה
+    } else if (deviceMode === 'select' && intakePhotos.length > 0) {
+      const existingDevice = state.devices.find(d => d.id === deviceId);
+      const mergedImages = [...(existingDevice?.images || []), ...intakePhotos].slice(0, 4);
+      dispatch({ type: 'UPDATE_DEVICE', payload: { ...existingDevice, images: mergedImages } });
+    }
+
     const repair = {
       id: repairId,
       customer_id: customerId,
@@ -127,7 +136,6 @@ export default function OfficeIntake({ onNavigate }) {
       warranty_type: warrantyType,
       status: REPAIR_STATUSES.RED_INTAKE,
       date_intake: new Date().toISOString(),
-      intake_photos: intakePhotos,
       intake_by_user_id: state.currentUser?.id,
       intake_by_name: state.currentUser?.name,
     };
@@ -408,11 +416,8 @@ export default function OfficeIntake({ onNavigate }) {
             <div className="grid grid-cols-2 gap-3">
               <AutocompleteInput
                 value={newDevice.type}
-                onChange={val => {
-                  setNewDevice({ ...newDevice, type: val });
-                  if (val && !(state.settings?.fieldLists?.deviceTypes || []).includes(val))
-                    dispatch({ type: 'ADD_FIELD_VALUE', payload: { field: 'deviceTypes', value: val } });
-                }}
+                onChange={val => setNewDevice({ ...newDevice, type: val })}
+                onAddValue={val => dispatch({ type: 'ADD_FIELD_VALUE', payload: { field: 'deviceTypes', value: val } })}
                 suggestions={state.settings?.fieldLists?.deviceTypes || []}
                 placeholder="סוג מכשיר * (תנור קומבי, קוצץ ירקות)"
                 allowNew
@@ -558,7 +563,7 @@ export default function OfficeIntake({ onNavigate }) {
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-2">
                 <Camera className="inline ml-1" size={16} />
-                תמונות קליטה * <span className="text-slate-400 font-normal">(עד {MAX_PHOTOS} תמונות)</span>
+                תמונות מכשיר <span className="text-slate-400 font-normal">(עד {MAX_PHOTOS} תמונות)</span>
               </label>
               <div className="flex flex-wrap gap-2 items-center">
                 {intakePhotos.length < MAX_PHOTOS && (
@@ -581,11 +586,11 @@ export default function OfficeIntake({ onNavigate }) {
               {intakePhotos.length > 0 && (
                 <div className="grid grid-cols-4 gap-2 mt-3">
                   {intakePhotos.map((photo, idx) => (
-                    <div key={idx} className="relative group">
+                    <div key={idx} className="relative">
                       <img src={photo} alt={`תמונה ${idx + 1}`} className="w-full h-20 object-cover rounded-lg border" />
                       <button
                         onClick={() => removePhoto(idx)}
-                        className="absolute top-1 left-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100"
+                        className="absolute top-1 left-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
                       >
                         ✕
                       </button>
@@ -593,7 +598,7 @@ export default function OfficeIntake({ onNavigate }) {
                   ))}
                 </div>
               )}
-              <p className="text-xs text-slate-500 mt-1">חובה לפחות תמונה אחת. מומלץ 4 תמונות.</p>
+              <p className="text-xs text-slate-500 mt-1">מומלץ לצלם 3-4 תמונות של המכשיר.</p>
             </div>
           </div>
 
