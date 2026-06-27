@@ -132,11 +132,8 @@ export function DeviceEditModal({ device, onClose }) {
           <label className="block text-sm font-semibold text-slate-700 mb-1">סוג מכשיר</label>
           <AutocompleteInput
             value={form.type}
-            onChange={val => {
-              set('type', val);
-              if (val && !deviceTypes.includes(val))
-                dispatch({ type: 'ADD_FIELD_VALUE', payload: { field: 'deviceTypes', value: val } });
-            }}
+            onChange={val => set('type', val)}
+            onAddValue={val => dispatch({ type: 'ADD_FIELD_VALUE', payload: { field: 'deviceTypes', value: val } })}
             suggestions={deviceTypes}
             placeholder="-- בחר סוג --"
             allowNew

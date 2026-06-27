@@ -408,11 +408,8 @@ export default function OfficeIntake({ onNavigate }) {
             <div className="grid grid-cols-2 gap-3">
               <AutocompleteInput
                 value={newDevice.type}
-                onChange={val => {
-                  setNewDevice({ ...newDevice, type: val });
-                  if (val && !(state.settings?.fieldLists?.deviceTypes || []).includes(val))
-                    dispatch({ type: 'ADD_FIELD_VALUE', payload: { field: 'deviceTypes', value: val } });
-                }}
+                onChange={val => setNewDevice({ ...newDevice, type: val })}
+                onAddValue={val => dispatch({ type: 'ADD_FIELD_VALUE', payload: { field: 'deviceTypes', value: val } })}
                 suggestions={state.settings?.fieldLists?.deviceTypes || []}
                 placeholder="סוג מכשיר * (תנור קומבי, קוצץ ירקות)"
                 allowNew
