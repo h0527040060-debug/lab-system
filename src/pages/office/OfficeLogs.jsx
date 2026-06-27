@@ -50,8 +50,12 @@ const PAGE_SIZE = 50;
 export default function OfficeLogs() {
   const [logs, setLogs] = useState(() => loadLogs());
 
-  // רענון בכל כניסה לעמוד
+  // רענון בכל כניסה לעמוד + כל 5 שניות לפעולות חדשות
   useEffect(() => { setLogs(loadLogs()); }, []);
+  useEffect(() => {
+    const interval = setInterval(() => setLogs(loadLogs()), 5000);
+    return () => clearInterval(interval);
+  }, []);
   const [search, setSearch] = useState('');
   const [entityFilter, setEntityFilter] = useState('all');
   const [userFilter, setUserFilter] = useState('all');

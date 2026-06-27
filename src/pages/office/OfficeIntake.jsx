@@ -7,7 +7,7 @@ import { formatDateTime, formatMoney } from '../../utils/formatters';
 import PageHeader from '../../components/PageHeader';
 import SearchInput from '../../components/SearchInput';
 import AutocompleteInput from '../../components/AutocompleteInput';
-import { User, Wrench, FileText, ShieldCheck, Camera, Check, Plus, Printer } from 'lucide-react';
+import { User, Wrench, FileText, ShieldCheck, Camera, Check, Plus, Printer, LayoutDashboard } from 'lucide-react';
 import PrintStickerModal from '../../components/PrintStickerModal';
 
 const MAX_PHOTOS = 3;
@@ -201,9 +201,15 @@ export default function OfficeIntake({ onNavigate }) {
               קליטת קריאה נוספת
             </button>
             {onNavigate && (
+              <button onClick={() => onNavigate('kanban')} className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-bold flex items-center gap-2">
+                <LayoutDashboard size={18} />
+                עבור ל-Kanban
+              </button>
+            )}
+            {onNavigate && (
               <button onClick={() => onNavigate('repairs')} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-bold flex items-center gap-2">
                 <FileText size={18} />
-                עבור לרשימת קריאות
+                רשימת קריאות
               </button>
             )}
           </div>
