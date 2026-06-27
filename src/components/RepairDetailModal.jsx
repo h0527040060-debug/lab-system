@@ -4,9 +4,10 @@ import { useAppContext } from '../store/AppContext';
 import { getStatusDisplay } from '../utils/statusConfig';
 import { formatDateTime } from '../utils/formatters';
 import WhatsAppButton from './WhatsAppButton';
-import CustomerQuickModal from './CustomerQuickModal';
-import DeviceQuickModal from './DeviceQuickModal';
 import { RepairEditModal } from './RepairEditModal';
+import { CustomerEditModal } from './CustomerEditModal';
+import { DeviceEditModal } from './DeviceEditModal';
+import ImageGalleryModal from './ImageGalleryModal';
 
 const WARRANTY_LABELS = {
   paid: 'תשלום רגיל',
@@ -24,8 +25,10 @@ function formatSeconds(sec) {
 
 export default function RepairDetailModal({ repair, customer, device, onClose, onAction }) {
   const { state } = useAppContext();
-  const [innerModal, setInnerModal] = useState(null); // 'customer' | 'device'
+  const [showEditCustomer, setShowEditCustomer] = useState(false);
+  const [showEditDevice, setShowEditDevice] = useState(false);
   const [showEditRepair, setShowEditRepair] = useState(false);
+  const [galleryIndex, setGalleryIndex] = useState(null);
   const statusDisplay = getStatusDisplay(repair.status, state.statusConfig);
 
   const diagnosedParts = repair.diagnosed_parts || [];
@@ -68,7 +71,7 @@ export default function RepairDetailModal({ repair, customer, device, onClose, o
             {/* לקוח ומכשיר */}
             <div className="space-y-2">
               <button
-                onClick={() => setInnerModal('customer')}
+                onClick={() => setShowEditCustomer(true)}
                 className="w-full flex items-center gap-3 p-3 bg-slate-50 hover:bg-blue-50 rounded-xl border border-slate-200 hover:border-blue-300 transition-colors text-right"
               >
                 <User size={16} className="text-blue-500 flex-shrink-0" />
@@ -81,7 +84,7 @@ export default function RepairDetailModal({ repair, customer, device, onClose, o
               </button>
 
               <button
-                onClick={() => setInnerModal('device')}
+                onClick={() => setShowEditDevice(true)}
                 className="w-full flex items-center gap-3 p-3 bg-slate-50 hover:bg-purple-50 rounded-xl border border-slate-200 hover:border-purple-300 transition-colors text-right"
               >
                 <Smartphone size={16} className="text-purple-500 flex-shrink-0" />
@@ -114,6 +117,23 @@ export default function RepairDetailModal({ repair, customer, device, onClose, o
                   <p className="text-xs font-bold text-orange-700">תלונת לקוח</p>
                 </div>
                 <p className="text-sm text-slate-700 leading-relaxed">{repair.complaint}</p>
+              </div>
+            )}
+
+            {/* תמונות קליטה */}
+            {repair.intake_photos?.length > 0 && (
+              <div>
+                <p className="text-xs font-bold text-slate-500 mb-1.5">תמונות קליטה</p>
+                <div className="flex gap-2 flex-wrap">
+                  {repair.intake_photos.map((src, i) => (
+                    <img
+                      key={i}
+                      src={src}
+                      onClick={() => setGalleryIndex(i)}
+                      className="w-16 h-16 object-cover rounded-lg cursor-pointer border border-slate-200 hover:opacity-80"
+                    />
+                  ))}
+                </div>
               </div>
             )}
 
@@ -222,24 +242,21 @@ export default function RepairDetailModal({ repair, customer, device, onClose, o
       </div>
 
       {/* modals פנימיים */}
-      {innerModal === 'customer' && customer && (
-        <CustomerQuickModal
-          customer={customer}
-          repairs={state.repairs}
-          devices={state.devices}
-          onClose={() => setInnerModal(null)}
-        />
+      {showEditCustomer && customer && (
+        <CustomerEditModal customer={customer} onClose={() => setShowEditCustomer(false)} />
       )}
-      {innerModal === 'device' && device && (
-        <DeviceQuickModal
-          device={device}
-          customer={customer}
-          repairs={state.repairs}
-          onClose={() => setInnerModal(null)}
-        />
+      {showEditDevice && device && (
+        <DeviceEditModal device={device} onClose={() => setShowEditDevice(false)} />
       )}
       {showEditRepair && (
         <RepairEditModal repair={repair} onClose={() => setShowEditRepair(false)} />
+      )}
+      {galleryIndex !== null && (
+        <ImageGalleryModal
+          images={repair.intake_photos}
+          startIndex={galleryIndex}
+          onClose={() => setGalleryIndex(null)}
+        />
       )}
     </>
   );
