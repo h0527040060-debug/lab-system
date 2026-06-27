@@ -51,6 +51,7 @@ export default function OfficeIntake({ onNavigate }) {
 
   // נתוני תיקון
   const [complaint, setComplaint] = useState('');
+  const [internalNotes, setInternalNotes] = useState('');
   const [warrantyType, setWarrantyType] = useState(WARRANTY_TYPES.PAID);
   const [intakePhotos, setIntakePhotos] = useState([]);
   const [diagnosticFeeConfirmed, setDiagnosticFeeConfirmed] = useState(false);
@@ -122,6 +123,7 @@ export default function OfficeIntake({ onNavigate }) {
       customer_id: customerId,
       device_id: deviceId,
       complaint,
+      internal_notes: internalNotes,
       warranty_type: warrantyType,
       status: REPAIR_STATUSES.RED_INTAKE,
       date_intake: new Date().toISOString(),
@@ -143,6 +145,7 @@ export default function OfficeIntake({ onNavigate }) {
     setSelectedDeviceId('');
     setNewDevice({ type: '', brand: '', model: '', manufacturer_serial: '', purchase_date: '', warranty_until: '' });
     setComplaint('');
+    setInternalNotes('');
     setWarrantyType(WARRANTY_TYPES.PAID);
     setIntakePhotos([]);
     setDiagnosticFeeConfirmed(false);
@@ -499,6 +502,18 @@ export default function OfficeIntake({ onNavigate }) {
             </div>
 
             <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1">הערות פנימיות</label>
+              <textarea
+                value={internalNotes}
+                onChange={(e) => setInternalNotes(e.target.value)}
+                placeholder="הערות לצוות הפנימי (לא יוצג ללקוח)..."
+                rows={2}
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+              />
+              <p className="text-xs text-slate-400 mt-0.5">לא מוצג ללקוח</p>
+            </div>
+
+            <div>
               <label className="block text-sm font-semibold text-slate-700 mb-2">
                 <ShieldCheck className="inline ml-1" size={16} />
                 סוג אחריות
@@ -616,6 +631,7 @@ export default function OfficeIntake({ onNavigate }) {
                 : newDevice.type}
             />
             <SummaryRow label="תלונה" value={complaint} />
+            {internalNotes && <SummaryRow label="הערות פנימיות" value={internalNotes} />}
             <SummaryRow label="סוג אחריות" value={WARRANTY_LABELS[warrantyType]} />
             <SummaryRow label="תמונות" value={`${intakePhotos.length} תמונות`} />
           </div>
