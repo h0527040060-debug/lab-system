@@ -274,7 +274,7 @@ function KanbanColumn({ statusId, repairs, customers, devices, collapsed, onTogg
   if (collapsed) {
     return (
       <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }}
-        className="flex flex-col items-center gap-2 w-12 flex-shrink-0">
+        className="flex flex-col items-center gap-2 w-12 flex-shrink-0 self-start">
         <div className={`w-full rounded-xl ${statusDisplay.bg} ${statusDisplay.border} border p-2 flex flex-col items-center gap-1 cursor-pointer`}
           onClick={onToggleCollapse} title={statusDisplay.label}>
           <span className="text-base">{statusDisplay.emoji}</span>
@@ -305,7 +305,7 @@ function KanbanColumn({ statusId, repairs, customers, devices, collapsed, onTogg
       </div>
 
       <SortableContext items={cardIds} strategy={verticalListSortingStrategy}>
-        <div className="flex flex-col gap-2 overflow-y-auto flex-1 min-h-20 pb-2 pr-0.5" style={{ maxHeight: 'calc(100vh - 200px)' }}>
+        <div className="flex flex-col gap-2 overflow-y-auto flex-1 min-h-0 pb-2 pr-0.5">
           {repairs.map(r => {
             const customer = customers.find(c => c.id === r.customer_id);
             const device = devices.find(d => d.id === r.device_id);
@@ -456,7 +456,9 @@ export default function KanbanBoard({ role = 'office' }) {
 
     if (activeData?.type === 'card') {
       const fromStatus = activeData.statusId;
-      let toStatus = overData?.statusId || overData?.id;
+      // זיהוי עמודת היעד: גרירה מעל כרטיס (overData.statusId) או מעל עמודה ריקה (over.id = statusId)
+      let toStatus = overData?.statusId
+        || (overData?.type === 'column' ? over.id : null);
       if (!toStatus || !columnOrder.includes(toStatus)) {
         const overRepair = state.repairs.find(r => r.id === over.id);
         toStatus = overRepair?.status || fromStatus;
@@ -577,7 +579,7 @@ export default function KanbanBoard({ role = 'office' }) {
       {/* לוח */}
       <DndContext sensors={sensors} collisionDetection={pointerWithin} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <SortableContext items={columnOrder} strategy={horizontalListSortingStrategy}>
-          <div ref={scrollRef} className="flex gap-3 overflow-x-auto pb-4 flex-1 items-start" style={{ scrollbarWidth: 'none' }}>
+          <div ref={scrollRef} className="flex gap-3 overflow-x-auto pb-4 flex-1 min-h-0 items-stretch" style={{ scrollbarWidth: 'none' }}>
             {columnOrder.map(statusId => (
               <KanbanColumn
                 key={statusId}
