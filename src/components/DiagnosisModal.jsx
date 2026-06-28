@@ -34,6 +34,7 @@ export default function DiagnosisModal({ repair, onClose }) {
   const [addingPart, setAddingPart] = useState(false);
 
   const [showAppealForm, setShowAppealForm] = useState(false);
+  const [lightboxPhoto, setLightboxPhoto] = useState(null);
   const [assemblyPart, setAssemblyPart] = useState(null);
   const [appealReason, setAppealReason] = useState('');
   const [appealEvidence, setAppealEvidence] = useState([]);
@@ -181,6 +182,16 @@ export default function DiagnosisModal({ repair, onClose }) {
         onClose={() => setAddingPart(false)}
       />
     )}
+    {lightboxPhoto && (
+      <div
+        className="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center"
+        onClick={() => setLightboxPhoto(null)}
+      >
+        <img src={lightboxPhoto} alt="תצוגה מלאה" className="max-w-full max-h-full object-contain" />
+        <button onClick={() => setLightboxPhoto(null)}
+          className="absolute top-4 left-4 text-white bg-black/50 rounded-full w-9 h-9 flex items-center justify-center text-xl hover:bg-black/80">✕</button>
+      </div>
+    )}
     <Modal
       open={true}
       onClose={onClose}
@@ -250,7 +261,8 @@ export default function DiagnosisModal({ repair, onClose }) {
             <InfoCard title={`תמונות קליטה (${repair.intake_photos.length})`} icon={Camera}>
               <div className="grid grid-cols-4 gap-2 mt-2">
                 {repair.intake_photos.map((p, idx) => (
-                  <img key={idx} src={p} alt={`קליטה ${idx + 1}`} className="w-full h-20 object-cover rounded border" />
+                  <img key={idx} src={p} alt={`קליטה ${idx + 1}`} onClick={() => setLightboxPhoto(p)}
+                    className="w-full aspect-square object-cover rounded border cursor-pointer hover:opacity-90" />
                 ))}
               </div>
             </InfoCard>
@@ -446,7 +458,8 @@ export default function DiagnosisModal({ repair, onClose }) {
               <div className="grid grid-cols-4 gap-2 mt-2">
                 {appealEvidence.map((p, idx) => (
                   <div key={idx} className="relative group">
-                    <img src={p} alt={`ראיה ${idx + 1}`} className="w-full h-20 object-cover rounded border" />
+                    <img src={p} alt={`ראיה ${idx + 1}`} onClick={() => setLightboxPhoto(p)}
+      className="w-full aspect-square object-cover rounded border cursor-pointer hover:opacity-90" />
                     <button
                       onClick={() => setAppealEvidence(prev => prev.filter((_, i) => i !== idx))}
                       className="absolute top-1 left-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs opacity-0 group-hover:opacity-100 flex items-center justify-center"
