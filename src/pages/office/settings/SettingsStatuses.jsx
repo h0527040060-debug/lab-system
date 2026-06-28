@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAppContext } from '../../../store/AppContext';
+import ConfirmDialog from '../../../components/ConfirmDialog';
 import { getStatusDisplay, PLACEHOLDER_TAGS } from '../../../utils/statusConfig';
 import { Edit2, Trash2, Check, X, Plus, MessageCircle } from 'lucide-react';
 
@@ -95,6 +96,7 @@ export function SettingsStatuses() {
   const [editStatusForm, setEditStatusForm] = useState({});
   const [showAddStatus, setShowAddStatus] = useState(false);
   const [newStatusForm, setNewStatusForm] = useState({ label: '', emoji: '🔵', color: 'blue' });
+  const [confirmDelete, setConfirmDelete] = useState(null);
 
   const insertPlaceholder = (field, tag) => setEditStatusForm(f => ({ ...f, [field]: (f[field] || '') + tag }));
 
@@ -164,7 +166,7 @@ export function SettingsStatuses() {
                         <span className="text-green-500 p-1"><MessageCircle size={13} /></span>
                       )}
                       <button
-                        onClick={() => usage === 0 ? deleteStatus(s.id) : alert(`לא ניתן למחוק — ${usage} תיקונים משתמשים בסטטוס זה`)}
+                        onClick={() => usage === 0 ? setConfirmDelete(s) : alert(`לא ניתן למחוק — ${usage} תיקונים משתמשים בסטטוס זה`)}
                         className={`p-1 ${usage === 0 ? 'text-slate-400 hover:text-red-600' : 'text-slate-200 cursor-not-allowed'}`}
                       >
                         <Trash2 size={15} />
@@ -177,6 +179,16 @@ export function SettingsStatuses() {
           </tbody>
         </table>
       </div>
+
+      <ConfirmDialog
+        open={!!confirmDelete}
+        title="אישור מחיקה"
+        message={`האם אתה בטוח שאתה רוצה למחוק את הסטטוס "${confirmDelete?.label}"?`}
+        confirmLabel="מחק"
+        variant="danger"
+        onConfirm={() => { deleteStatus(confirmDelete.id); setConfirmDelete(null); }}
+        onCancel={() => setConfirmDelete(null)}
+      />
 
       {showAddStatus ? (
         <div className="border border-orange-200 bg-orange-50 rounded-lg p-3 flex items-center gap-3 flex-wrap">

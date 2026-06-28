@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAppContext } from '../../../store/AppContext';
 import { Edit2, Trash2, Check, X, Plus } from 'lucide-react';
+import ConfirmDialog from '../../../components/ConfirmDialog';
 
 export function SettingsSuppliers() {
   const { state, dispatch } = useAppContext();
@@ -8,6 +9,7 @@ export function SettingsSuppliers() {
   const [editSupplierForm, setEditSupplierForm] = useState({});
   const [showAddSupplier, setShowAddSupplier] = useState(false);
   const [newSupplierForm, setNewSupplierForm] = useState({ name: '', phone: '', contact_person: '', email: '', notes: '' });
+  const [confirmDelete, setConfirmDelete] = useState(null);
 
   const startEdit = (s) => {
     setEditSupplierForm({ name: s.name || '', phone: s.phone || '', contact_person: s.contact_person || '', email: s.email || '', notes: s.notes || '' });
@@ -79,7 +81,7 @@ export function SettingsSuppliers() {
                   </div>
                   <div className="flex gap-1 shrink-0">
                     <button onClick={() => startEdit(s)} className="text-slate-400 hover:text-orange-600 p-1"><Edit2 size={14} /></button>
-                    <button onClick={() => dispatch({ type: 'DELETE_SUPPLIER', payload: s.id })} className="text-slate-400 hover:text-red-600 p-1"><Trash2 size={14} /></button>
+                    <button onClick={() => setConfirmDelete(s)} className="text-slate-400 hover:text-red-600 p-1"><Trash2 size={14} /></button>
                   </div>
                 </div>
               )}
@@ -87,6 +89,16 @@ export function SettingsSuppliers() {
           ))}
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!confirmDelete}
+        title="אישור מחיקה"
+        message={`האם אתה בטוח שאתה רוצה למחוק את הספק "${confirmDelete?.name}"?`}
+        confirmLabel="מחק"
+        variant="danger"
+        onConfirm={() => { dispatch({ type: 'DELETE_SUPPLIER', payload: confirmDelete.id }); setConfirmDelete(null); }}
+        onCancel={() => setConfirmDelete(null)}
+      />
 
       {showAddSupplier && (
         <div className="border border-orange-200 bg-orange-50 rounded-lg p-3 space-y-2">

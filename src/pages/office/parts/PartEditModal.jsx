@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { useAppContext as useApp } from '../../../store/AppContext';
 import { generateInternalBarcode } from '../../../utils/idGenerators';
 import Modal from '../../../components/Modal';
+import ConfirmDialog from '../../../components/ConfirmDialog';
 import { MapPin, Building2, Plus, Trash2, ImagePlus, FileText, BookOpen, PlayCircle, X } from 'lucide-react';
 
 const CATEGORIES = [
@@ -42,6 +43,7 @@ export default function PartEditModal({ part, onSave, onClose }) {
 
   const [activeTab, setActiveTab] = useState('basic');
   const [lastPriceEdit, setLastPriceEdit] = useState('markup');
+  const [confirmDelete, setConfirmDelete] = useState(null);
   const imageInputRef = useRef();
   const docInputRef = useRef();
   const assemblyImgRef = useRef();
@@ -416,7 +418,7 @@ export default function PartEditModal({ part, onSave, onClose }) {
                     onClick={() => setMainImage(idx)}>
                     <img src={img} alt="" className="w-full h-full object-contain bg-slate-50" />
                     <button
-                      onClick={e => { e.stopPropagation(); removeImage(idx); }}
+                      onClick={e => { e.stopPropagation(); setConfirmDelete({ action: () => removeImage(idx), message: 'האם אתה בטוח שאתה רוצה למחוק את התמונה?' }); }}
                       className="absolute top-1 left-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center"
                     >
                       <X size={10} />
@@ -458,7 +460,7 @@ export default function PartEditModal({ part, onSave, onClose }) {
                   </div>
                   <div className="flex gap-2">
                     <button onClick={() => downloadDoc(doc)} className="text-xs text-blue-600 hover:underline">הורד</button>
-                    <button onClick={() => removeDoc(idx)} className="text-slate-400 hover:text-red-600"><X size={14} /></button>
+                    <button onClick={() => setConfirmDelete({ action: () => removeDoc(idx), message: `האם אתה בטוח שאתה רוצה למחוק את המסמך "${doc.name}"?` })} className="text-slate-400 hover:text-red-600"><X size={14} /></button>
                   </div>
                 </div>
               ))}
@@ -508,7 +510,7 @@ export default function PartEditModal({ part, onSave, onClose }) {
                   <input type="radio" name="default_supplier" checked={supplier.is_default} onChange={() => setDefaultSupplier(idx)} />
                   <span>ברירת מחדל</span>
                 </label>
-                <button onClick={() => removeSupplier(idx)} className="col-span-1 text-slate-400 hover:text-red-600 flex justify-center">
+                <button onClick={() => setConfirmDelete({ action: () => removeSupplier(idx), message: 'האם אתה בטוח שאתה רוצה להסיר את הספק?' })} className="col-span-1 text-slate-400 hover:text-red-600 flex justify-center">
                   <Trash2 size={14} />
                 </button>
               </div>
@@ -577,7 +579,7 @@ export default function PartEditModal({ part, onSave, onClose }) {
                 {assemblyImages.map((img, idx) => (
                   <div key={idx} className="relative aspect-square rounded border border-slate-200 overflow-hidden bg-slate-50">
                     <img src={img} alt="" className="w-full h-full object-contain" />
-                    <button onClick={() => removeAssemblyImage(idx)}
+                    <button onClick={() => setConfirmDelete({ action: () => removeAssemblyImage(idx), message: 'האם אתה בטוח שאתה רוצה למחוק את תמונת ההרכבה?' })}
                       className="absolute top-0.5 left-0.5 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center">
                       <X size={8} />
                     </button>
@@ -599,6 +601,15 @@ export default function PartEditModal({ part, onSave, onClose }) {
           </div>
         </div>
       )}
+      <ConfirmDialog
+        open={!!confirmDelete}
+        title="אישור מחיקה"
+        message={confirmDelete?.message}
+        confirmLabel="מחק"
+        variant="danger"
+        onConfirm={() => { confirmDelete?.action(); setConfirmDelete(null); }}
+        onCancel={() => setConfirmDelete(null)}
+      />
     </Modal>
   );
 }

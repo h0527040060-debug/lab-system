@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAppContext } from '../../../store/AppContext';
 import { Pencil, Trash2, Check, X, Plus } from 'lucide-react';
+import ConfirmDialog from '../../../components/ConfirmDialog';
 
 const FIELD_SECTIONS = [
   { key: 'deviceTypes', label: 'סוגי מכשיר' },
@@ -13,6 +14,7 @@ function FieldSection({ fieldKey, label }) {
   const [editingIndex, setEditingIndex] = useState(null);
   const [editValue, setEditValue] = useState('');
   const [newValue, setNewValue] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState(null);
 
   const startEdit = (idx) => {
     setEditingIndex(idx);
@@ -35,10 +37,10 @@ function FieldSection({ fieldKey, label }) {
     const count = fieldKey === 'deviceTypes'
       ? state.devices.filter(d => d.type === val).length
       : 0;
-    if (count > 0) {
-      if (!window.confirm(`קיימים ${count} מכשירים עם הסוג "${val}".\nמחיקה תשאיר אותם ללא סוג מכשיר.\nהאם להמשיך?`)) return;
-    }
-    dispatch({ type: 'DELETE_FIELD_VALUE', payload: { field: fieldKey, value: val } });
+    const msg = count > 0
+      ? `קיימים ${count} מכשירים עם הסוג "${val}". מחיקה תשאיר אותם ללא סוג מכשיר. האם להמשיך?`
+      : `האם אתה בטוח שאתה רוצה למחוק את "${val}"?`;
+    setConfirmDelete({ val, msg });
   };
 
   const handleAdd = () => {
@@ -50,6 +52,15 @@ function FieldSection({ fieldKey, label }) {
 
   return (
     <div className="bg-white rounded-xl shadow-sm p-4">
+      <ConfirmDialog
+        open={!!confirmDelete}
+        title="אישור מחיקה"
+        message={confirmDelete?.msg}
+        confirmLabel="מחק"
+        variant="danger"
+        onConfirm={() => { dispatch({ type: 'DELETE_FIELD_VALUE', payload: { field: fieldKey, value: confirmDelete.val } }); setConfirmDelete(null); }}
+        onCancel={() => setConfirmDelete(null)}
+      />
       <h3 className="font-semibold text-slate-800 mb-3">{label}</h3>
       <div className="divide-y divide-slate-100">
         {values.map((val, idx) => (
