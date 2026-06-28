@@ -81,7 +81,7 @@ export default function Layout({ children, currentTab, onTabChange, tabs }) {
   );
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
+    <div className="h-screen overflow-hidden bg-slate-50 flex">
       {/* Desktop sidebar — in document flow */}
       <aside className={`hidden lg:block ${sidebarOpen ? 'w-64' : 'w-0'} transition-all duration-200 bg-slate-900 text-white overflow-hidden flex-shrink-0`}>
         {sidebarContent}
