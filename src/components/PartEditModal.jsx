@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { useAppContext as useApp } from '../store/AppContext';
 import Modal from './Modal';
+import ConfirmDialog from './ConfirmDialog';
 import { Plus, Trash2, MapPin, Building2 } from 'lucide-react';
 
 export function PartEditModal({ part, onSave, onClose }) {
   const { state } = useApp();
+  const [confirmDelete, setConfirmDelete] = useState(null);
   const [form, setForm] = useState(part || {
     name: '', manufacturer: '', manufacturer_sku: '', internal_barcode: '',
     category: 'other', images: ['📦'],
@@ -243,7 +245,7 @@ export function PartEditModal({ part, onSave, onClose }) {
                   <span>ברירת מחדל</span>
                 </label>
                 <button
-                  onClick={() => removeSupplier(idx)}
+                  onClick={() => setConfirmDelete({ action: () => removeSupplier(idx), message: 'האם אתה בטוח שאתה רוצה להסיר את הספק?' })}
                   className="col-span-1 text-slate-400 hover:text-red-600 flex justify-center"
                 >
                   <Trash2 size={14} />
@@ -256,6 +258,15 @@ export function PartEditModal({ part, onSave, onClose }) {
           </div>
         </div>
       </div>
+      <ConfirmDialog
+        open={!!confirmDelete}
+        title="אישור מחיקה"
+        message={confirmDelete?.message}
+        confirmLabel="הסר"
+        variant="danger"
+        onConfirm={() => { confirmDelete?.action(); setConfirmDelete(null); }}
+        onCancel={() => setConfirmDelete(null)}
+      />
     </Modal>
   );
 }

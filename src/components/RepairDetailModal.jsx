@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { X, User, Smartphone, FileText, Wrench, Camera, Stethoscope, Clock, Package, Edit2, Plus, Trash2 } from 'lucide-react';
+import ConfirmDialog from './ConfirmDialog';
 import { useAppContext } from '../store/AppContext';
 import { getStatusDisplay } from '../utils/statusConfig';
 import { formatDateTime } from '../utils/formatters';
@@ -48,6 +49,7 @@ export default function RepairDetailModal({ repair, customer, device, onClose, o
   const [showEditDevice, setShowEditDevice] = useState(false);
   const [showEditRepair, setShowEditRepair] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState(null);
+  const [confirmDeletePhoto, setConfirmDeletePhoto] = useState(null);
   const statusDisplay = getStatusDisplay(repair.status, state.statusConfig);
 
   const diagnosedParts = repair.diagnosed_parts || [];
@@ -192,7 +194,7 @@ export default function RepairDetailModal({ repair, customer, device, onClose, o
                       />
                       {device && device.images?.length > 0 && (
                         <button
-                          onClick={() => handleDeleteDevicePhoto(i)}
+                          onClick={() => setConfirmDeletePhoto(i)}
                           className="absolute -top-1 -left-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center"
                         >
                           <X size={9} />
@@ -327,6 +329,15 @@ export default function RepairDetailModal({ repair, customer, device, onClose, o
           onClose={() => setGalleryIndex(null)}
         />
       )}
+      <ConfirmDialog
+        open={confirmDeletePhoto !== null}
+        title="אישור מחיקה"
+        message="האם אתה בטוח שאתה רוצה למחוק את התמונה?"
+        confirmLabel="מחק"
+        variant="danger"
+        onConfirm={() => { handleDeleteDevicePhoto(confirmDeletePhoto); setConfirmDeletePhoto(null); }}
+        onCancel={() => setConfirmDeletePhoto(null)}
+      />
     </>
   );
 }

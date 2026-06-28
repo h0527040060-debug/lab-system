@@ -10,6 +10,7 @@ import SearchInput from '../../components/SearchInput';
 import AutocompleteInput from '../../components/AutocompleteInput';
 import { User, Wrench, FileText, ShieldCheck, Camera, Check, Plus, Printer, LayoutDashboard } from 'lucide-react';
 import PrintStickerModal from '../../components/PrintStickerModal';
+import ConfirmDialog from '../../components/ConfirmDialog';
 
 const MAX_PHOTOS = 3;
 const PHOTO_MAX_PX = 800;
@@ -57,6 +58,7 @@ export default function OfficeIntake({ onNavigate }) {
   const [intakePhotos, setIntakePhotos] = useState([]);
   const [diagnosticFeeConfirmed, setDiagnosticFeeConfirmed] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [confirmDeletePhoto, setConfirmDeletePhoto] = useState(null);
 
   const [successRepair, setSuccessRepair] = useState(null);
   const [printRepair, setPrintRepair] = useState(null);
@@ -596,7 +598,7 @@ export default function OfficeIntake({ onNavigate }) {
                     <div key={idx} className="relative">
                       <img src={photo} alt={`תמונה ${idx + 1}`} className="w-full h-20 object-cover rounded-lg border" />
                       <button
-                        onClick={() => removePhoto(idx)}
+                        onClick={() => setConfirmDeletePhoto(idx)}
                         className="absolute top-1 left-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
                       >
                         ✕
@@ -669,6 +671,15 @@ export default function OfficeIntake({ onNavigate }) {
           </div>
         </div>
       )}
+      <ConfirmDialog
+        open={confirmDeletePhoto !== null}
+        title="אישור מחיקה"
+        message="האם אתה בטוח שאתה רוצה למחוק את התמונה?"
+        confirmLabel="מחק"
+        variant="danger"
+        onConfirm={() => { removePhoto(confirmDeletePhoto); setConfirmDeletePhoto(null); }}
+        onCancel={() => setConfirmDeletePhoto(null)}
+      />
     </div>
   );
 }

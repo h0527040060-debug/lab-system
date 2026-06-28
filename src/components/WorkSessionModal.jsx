@@ -26,6 +26,7 @@ export default function WorkSessionModal({ repair, onClose }) {
   const [showAddPart, setShowAddPart] = useState(false);
   const [showAddWork, setShowAddWork] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(null);
   const [stockError, setStockError] = useState(null);
   const [assemblyPart, setAssemblyPart] = useState(null);
 
@@ -348,7 +349,7 @@ export default function WorkSessionModal({ repair, onClose }) {
                     <BookOpen size={14} />
                   </button>
                 )}
-                <button onClick={() => removePart(item.part_id)} className="text-slate-400 hover:text-red-600">
+                <button onClick={() => setConfirmDelete({ partId: item.part_id, name: part?.name })} className="text-slate-400 hover:text-red-600">
                   <Trash2 size={14} />
                 </button>
               </div>
@@ -377,6 +378,15 @@ export default function WorkSessionModal({ repair, onClose }) {
         confirmLabel="כן, סיים"
         onConfirm={handleFinish}
         onCancel={() => setConfirmAction(null)}
+      />
+      <ConfirmDialog
+        open={!!confirmDelete}
+        title="אישור מחיקה"
+        message={`האם אתה בטוח שאתה רוצה להסיר את החלק "${confirmDelete?.name}"?`}
+        confirmLabel="הסר"
+        variant="danger"
+        onConfirm={() => { removePart(confirmDelete.partId); setConfirmDelete(null); }}
+        onCancel={() => setConfirmDelete(null)}
       />
     </Modal>
     </>

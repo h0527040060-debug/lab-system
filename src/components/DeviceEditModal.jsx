@@ -3,6 +3,7 @@ import { useAppContext } from '../store/AppContext';
 import Modal from './Modal';
 import AutocompleteInput from './AutocompleteInput';
 import ImageGalleryModal from './ImageGalleryModal';
+import ConfirmDialog from './ConfirmDialog';
 import { X, RefreshCw, Camera } from 'lucide-react';
 
 const MAX_IMAGES = 4;
@@ -37,6 +38,7 @@ export function DeviceEditModal({ device, onClose }) {
   const replaceInputRef = useRef(null);
   const [replaceIndex, setReplaceIndex] = useState(null);
   const [galleryIndex, setGalleryIndex] = useState(null);
+  const [confirmDeleteImg, setConfirmDeleteImg] = useState(null);
 
   const [form, setForm] = useState({
     brand: device.brand || '',
@@ -199,7 +201,7 @@ export function DeviceEditModal({ device, onClose }) {
                 {/* כפתור מחיקה — תמיד גלוי */}
                 <button
                   type="button"
-                  onClick={() => handleDeleteImage(idx)}
+                  onClick={() => setConfirmDeleteImg(idx)}
                   className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center shadow"
                   title="מחק"
                 >
@@ -252,6 +254,15 @@ export function DeviceEditModal({ device, onClose }) {
         onClose={() => setGalleryIndex(null)}
       />
     )}
+    <ConfirmDialog
+      open={confirmDeleteImg !== null}
+      title="אישור מחיקה"
+      message="האם אתה בטוח שאתה רוצה למחוק את התמונה?"
+      confirmLabel="מחק"
+      variant="danger"
+      onConfirm={() => { handleDeleteImage(confirmDeleteImg); setConfirmDeleteImg(null); }}
+      onCancel={() => setConfirmDeleteImg(null)}
+    />
     </>
   );
 }
