@@ -579,7 +579,7 @@ export default function KanbanBoard({ role = 'office' }) {
       {/* לוח */}
       <DndContext sensors={sensors} collisionDetection={pointerWithin} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <SortableContext items={columnOrder} strategy={horizontalListSortingStrategy}>
-          <div ref={scrollRef} className="flex gap-3 overflow-x-auto pb-4 flex-1 min-h-0 items-stretch" style={{ scrollbarWidth: 'none' }}>
+          <div ref={scrollRef} className="flex gap-3 overflow-x-auto pb-3 flex-1 min-h-0 items-stretch" style={{ scrollbarWidth: 'none' }}>
             {columnOrder.map(statusId => (
               <KanbanColumn
                 key={statusId}
@@ -666,8 +666,8 @@ export default function KanbanBoard({ role = 'office' }) {
       <div
         ref={phantomRef}
         onScroll={handlePhantomScroll}
-        className="overflow-x-auto flex-shrink-0"
-        style={{ height: 10 }}
+        className="overflow-x-auto"
+        style={{ position: 'fixed', bottom: 0, left: 0, right: 0, height: 10, zIndex: 20 }}
       >
         <div style={{ width: phantomWidth, height: 1 }} />
       </div>
