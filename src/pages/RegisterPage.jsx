@@ -36,7 +36,7 @@ export default function RegisterPage({ onBack }) {
       name: form.name.trim(),
       email: form.email.trim().toLowerCase(),
       password: form.password,
-      role: isFirst ? 'admin' : 'pending',
+      role: isFirst ? 'admin' : 'lab',
       created_at: new Date().toISOString(),
     };
 
@@ -56,7 +56,7 @@ export default function RegisterPage({ onBack }) {
           <div className="text-5xl mb-4">✅</div>
           <h2 className="text-xl font-bold text-slate-800 mb-2">ההרשמה הצליחה!</h2>
           <p className="text-slate-500 text-sm mb-6">
-            החשבון שלך נוצר וממתין לאישור מנהל המערכת.
+            החשבון שלך נוצר בהצלחה! ניתן להיכנס למערכת.
           </p>
           <button
             onClick={onBack}
