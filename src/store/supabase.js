@@ -24,6 +24,7 @@ export const GRANULAR_ENTITIES = {
   services:        'service__',
   technicians:     'tech__',
   warrantyAppeals: 'appeal__',
+  users:           'user__',   // כל משתמש בשורה נפרדת — מונע מחיקת משתמשים חדשים
 };
 
 // מיפוי הפוך: prefix → stateKey (לשימוש ב-LOAD_ONE וב-Realtime)
@@ -31,10 +32,9 @@ export const PREFIX_TO_STATE_KEY = Object.fromEntries(
   Object.entries(GRANULAR_ENTITIES).map(([stateKey, prefix]) => [prefix, stateKey])
 );
 
-// ישויות scalar — נשמרות כשורה אחת (לא מערך)
+// ישויות scalar — נשמרות כשורה אחת (ללא id ייחודי לכל פריט)
 export const STATE_TO_DB_KEY = {
   settings:     'settings',
-  users:        'users',
   statusConfig: 'status_config',
   roleConfig:   'role_config',
 };
@@ -50,6 +50,7 @@ const OLD_DB_KEY_TO_STATE_KEY = {
   purchase_orders: 'purchaseOrders', general_expenses: 'generalExpenses',
   work_catalog: 'workCatalog', services: 'services',
   technicians: 'technicians', warranty_appeals: 'warrantyAppeals',
+  users: 'users', // מיגרציה מפורמט ישן (key='users', data=[...]) לגרנולרי
 };
 
 // טעינת כל הנתונים מ-Supabase
