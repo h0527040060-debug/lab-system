@@ -1,6 +1,6 @@
 import { createContext, useContext, useReducer, useEffect, useCallback, useRef, useState } from 'react';
 import { storageKeys, loadFromStorage, saveToStorage, appendLog } from './storage';
-import { supabase, isSupabaseConfigured, loadAllFromDB, saveKeyToDB, saveAllToDB, STATE_TO_DB_KEY, DB_TO_STATE_KEY } from './supabase';
+import { supabase, isSupabaseConfigured, loadAllFromDB, saveKeyToDB, saveAllToDB, STATE_TO_DB_KEY, DB_TO_STATE_KEY, GRANULAR_ENTITIES, PREFIX_TO_STATE_KEY } from './supabase';
 import {
   SEED_TECHNICIANS, SEED_SUPPLIERS, SEED_WORK_CATALOG,
   SEED_SERVICES, SEED_PARTS, SEED_STOCK_BATCHES, SEED_SETTINGS, DEFAULT_FIELD_LISTS,
@@ -261,39 +261,67 @@ const appReducer = (state, action) => {
     case 'LOGOUT':
       return { ...state, currentUser: null };
 
-    // --- עדכון entity בודד מ-Realtime ---
+    // --- עדכון entity בודד מ-Realtime (הוספה/עדכון) ---
     case 'LOAD_ONE': {
-      const stateKey = DB_TO_STATE_KEY[action.payload.key];
-      if (!stateKey) return state;
-      return { ...state, [stateKey]: action.payload.data };
+      const { key, data } = action.payload;
+      // ישות גרנולרית (prefix__id)
+      const prefixEntry = Object.entries(PREFIX_TO_STATE_KEY)
+        .find(([prefix]) => key.startsWith(prefix));
+      if (prefixEntry) {
+        const [, stateKey] = prefixEntry;
+        const arr = state[stateKey] || [];
+        const idx = arr.findIndex(item => item?.id === data?.id);
+        const newArr = idx >= 0
+          ? arr.map((item, i) => i === idx ? data : item)
+          : [...arr, data];
+        return { ...state, [stateKey]: newArr };
+      }
+      // ישות scalar (settings, users, statusConfig, roleConfig)
+      const scalarStateKey = DB_TO_STATE_KEY[key];
+      if (!scalarStateKey) return state;
+      return { ...state, [scalarStateKey]: data };
     }
 
-    // --- טעינה מ-Supabase ---
+    // --- מחיקת entity בודד מ-Realtime ---
+    case 'LOAD_ONE_DELETED': {
+      const { key } = action.payload;
+      const prefixEntry = Object.entries(PREFIX_TO_STATE_KEY)
+        .find(([prefix]) => key.startsWith(prefix));
+      if (!prefixEntry) return state;
+      const [prefix, stateKey] = prefixEntry;
+      const itemId = key.slice(prefix.length);
+      return {
+        ...state,
+        [stateKey]: (state[stateKey] || []).filter(item => item?.id !== itemId),
+      };
+    }
+
+    // --- טעינה מ-Supabase (payload ממופה לפי stateKey) ---
     case 'LOAD_ALL': {
       const p = action.payload;
-      const users = ensureOwnerExists(p[DB_TO_STATE_KEY.users] ?? state.users);
+      const users = ensureOwnerExists(p.users ?? state.users);
       const rawCurrentUser = state.currentUser;
       const currentUser = rawCurrentUser
         ? (users.find(u => u.id === rawCurrentUser.id) || rawCurrentUser)
         : null;
       return {
         ...state,
-        customers:       p[STATE_TO_DB_KEY.customers]       ?? state.customers,
-        devices:         p[STATE_TO_DB_KEY.devices]         ?? state.devices,
-        repairs:         p[STATE_TO_DB_KEY.repairs]         ?? state.repairs,
-        parts:           p[STATE_TO_DB_KEY.parts]           ?? state.parts,
-        stockBatches:    p[STATE_TO_DB_KEY.stockBatches]    ?? state.stockBatches,
-        suppliers:       p[STATE_TO_DB_KEY.suppliers]       ?? state.suppliers,
-        purchaseOrders:  p[STATE_TO_DB_KEY.purchaseOrders]  ?? state.purchaseOrders,
-        generalExpenses: p[STATE_TO_DB_KEY.generalExpenses] ?? state.generalExpenses,
-        workCatalog:     p[STATE_TO_DB_KEY.workCatalog]     ?? state.workCatalog,
-        services:        p[STATE_TO_DB_KEY.services]        ?? state.services,
-        technicians:     p[STATE_TO_DB_KEY.technicians]     ?? state.technicians,
-        warrantyAppeals: p[STATE_TO_DB_KEY.warrantyAppeals] ?? state.warrantyAppeals,
-        settings:        p[STATE_TO_DB_KEY.settings]        ?? state.settings,
+        customers:       p.customers       ?? state.customers,
+        devices:         p.devices         ?? state.devices,
+        repairs:         p.repairs         ?? state.repairs,
+        parts:           p.parts           ?? state.parts,
+        stockBatches:    p.stockBatches    ?? state.stockBatches,
+        suppliers:       p.suppliers       ?? state.suppliers,
+        purchaseOrders:  p.purchaseOrders  ?? state.purchaseOrders,
+        generalExpenses: p.generalExpenses ?? state.generalExpenses,
+        workCatalog:     p.workCatalog     ?? state.workCatalog,
+        services:        p.services        ?? state.services,
+        technicians:     p.technicians     ?? state.technicians,
+        warrantyAppeals: p.warrantyAppeals ?? state.warrantyAppeals,
+        settings:        p.settings        ?? state.settings,
         users,
-        statusConfig:    p[STATE_TO_DB_KEY.statusConfig]    ?? state.statusConfig,
-        roleConfig:      p[STATE_TO_DB_KEY.roleConfig]      ?? state.roleConfig,
+        statusConfig:    p.statusConfig    ?? state.statusConfig,
+        roleConfig:      p.roleConfig      ?? state.roleConfig,
         currentUser,
       };
     }
@@ -457,6 +485,8 @@ export const AppProvider = ({ children }) => {
   const initializedRef = useRef(false);
   const pendingSavesRef = useRef(new Set());
   const pendingToastRef = useRef(null); // { storageKey, message, type, duration }
+  // עוקב אחרי הערך הקודם של כל ישות גרנולרית — לחישוב ה-diff לפני שמירה
+  const prevGranularRef = useRef({});
   const { showToast } = useToast();
 
   // טעינה ראשונית מ-Supabase
@@ -464,17 +494,25 @@ export const AppProvider = ({ children }) => {
     if (!isSupabaseConfigured()) return;
     loadAllFromDB().then(dbData => {
       if (dbData && Object.keys(dbData).length > 0) {
-        // Supabase מכיל נתונים — טען אותם
+        // Supabase מכיל נתונים — טען אותם ואתחל את prevGranularRef
+        Object.keys(GRANULAR_ENTITIES).forEach(stateKey => {
+          if (dbData[stateKey]) prevGranularRef.current[stateKey] = dbData[stateKey];
+        });
         dispatch({ type: 'LOAD_ALL', payload: dbData });
       } else {
         // ראשון פעם — מגרר נתונים קיימים מ-localStorage ל-Supabase
         const snapshot = {};
-        Object.entries(STATE_TO_DB_KEY).forEach(([stateKey, dbKey]) => {
-          if (state[stateKey] !== undefined) snapshot[dbKey] = state[stateKey];
+        Object.keys(GRANULAR_ENTITIES).forEach(stateKey => {
+          if (Array.isArray(state[stateKey])) snapshot[stateKey] = state[stateKey];
         });
-        if (Object.values(snapshot).some(v => Array.isArray(v) && v.length > 0)) {
-          saveAllToDB(snapshot);
-        }
+        Object.entries(STATE_TO_DB_KEY).forEach(([stateKey]) => {
+          if (state[stateKey] !== undefined) snapshot[stateKey] = state[stateKey];
+        });
+        // אתחל prevGranularRef עם הנתונים הנוכחיים כדי שהdiff הראשון יהיה נקי
+        Object.keys(GRANULAR_ENTITIES).forEach(stateKey => {
+          prevGranularRef.current[stateKey] = state[stateKey] || [];
+        });
+        if (Object.keys(snapshot).length > 0) saveAllToDB(snapshot);
       }
       initializedRef.current = true;
       setDbLoading(false);
@@ -493,6 +531,13 @@ export const AppProvider = ({ children }) => {
       .on('postgres_changes',
         { event: '*', schema: 'public', table: 'lab_data' },
         (payload) => {
+          if (payload.eventType === 'DELETE') {
+            const key = payload.old?.key;
+            if (key && !pendingSavesRef.current.has(key)) {
+              dispatch({ type: 'LOAD_ONE_DELETED', payload: { key } });
+            }
+            return;
+          }
           if (payload.new?.key && payload.new?.data !== undefined) {
             if (!pendingSavesRef.current.has(payload.new.key)) {
               dispatch({ type: 'LOAD_ONE', payload: { key: payload.new.key, data: payload.new.data } });
@@ -505,7 +550,68 @@ export const AppProvider = ({ children }) => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // שמירה אוטומטית עם debounce של 500ms לכל מפתח (localStorage + Supabase)
+  // שמירה גרנולרית לSupabase — מחשב diff ושומר רק מה שהשתנה
+  const scheduleGranularSave = useCallback((stateKey, newItems) => {
+    if (!isSupabaseConfigured() || !initializedRef.current) return;
+    const prefix = GRANULAR_ENTITIES[stateKey];
+    if (!prefix) return;
+
+    const prevItems = prevGranularRef.current[stateKey] || [];
+    prevGranularRef.current[stateKey] = newItems; // עדכן מיד לdiff הבא
+
+    const timerKey = `g_${stateKey}`;
+    if (saveTimers.current[timerKey]) clearTimeout(saveTimers.current[timerKey]);
+
+    saveTimers.current[timerKey] = setTimeout(() => {
+      if (!supabase) return;
+      const now = new Date().toISOString();
+      const prevMap = new Map((prevItems || []).filter(i => i?.id).map(i => [i.id, i]));
+      const newMap = new Map((newItems || []).filter(i => i?.id).map(i => [i.id, i]));
+
+      // פריטים שנוספו או שונו
+      const toUpsert = [];
+      for (const [id, item] of newMap) {
+        const prev = prevMap.get(id);
+        if (!prev || JSON.stringify(prev) !== JSON.stringify(item)) {
+          toUpsert.push(item);
+        }
+      }
+
+      // פריטים שנמחקו
+      const toDeleteIds = [];
+      for (const [id] of prevMap) {
+        if (!newMap.has(id)) toDeleteIds.push(id);
+      }
+
+      if (toUpsert.length > 0) {
+        const rows = toUpsert.map(item => ({
+          key: `${prefix}${item.id}`,
+          data: item,
+          updated_at: now,
+        }));
+        rows.forEach(r => pendingSavesRef.current.add(r.key));
+        supabase.from('lab_data').upsert(rows, { onConflict: 'key' })
+          .then(({ error }) => {
+            if (error) console.error(`Granular save error [${stateKey}]:`, error);
+          })
+          .finally(() => rows.forEach(r => pendingSavesRef.current.delete(r.key)));
+      }
+
+      if (toDeleteIds.length > 0) {
+        toDeleteIds.forEach(id => {
+          const key = `${prefix}${id}`;
+          pendingSavesRef.current.add(key);
+          supabase.from('lab_data').delete().eq('key', key)
+            .then(({ error }) => {
+              if (error) console.error(`Granular delete error [${key}]:`, error);
+            })
+            .finally(() => pendingSavesRef.current.delete(key));
+        });
+      }
+    }, 500);
+  }, []);
+
+  // שמירה אוטומטית עם debounce של 500ms לכל מפתח (localStorage + Supabase scalar)
   const scheduleSave = useCallback((storageKey, value, dbKey) => {
     const timerKey = storageKey;
     if (saveTimers.current[timerKey]) clearTimeout(saveTimers.current[timerKey]);
@@ -534,18 +640,19 @@ export const AppProvider = ({ children }) => {
     }
   }, [showToast]);
 
-  useEffect(() => { scheduleSave(storageKeys.CUSTOMERS, state.customers, STATE_TO_DB_KEY.customers); }, [state.customers, scheduleSave]);
-  useEffect(() => { scheduleSave(storageKeys.DEVICES, state.devices, STATE_TO_DB_KEY.devices); }, [state.devices, scheduleSave]);
-  useEffect(() => { scheduleSave(storageKeys.REPAIRS, state.repairs, STATE_TO_DB_KEY.repairs); }, [state.repairs, scheduleSave]);
-  useEffect(() => { scheduleSave(storageKeys.PARTS, state.parts, STATE_TO_DB_KEY.parts); }, [state.parts, scheduleSave]);
-  useEffect(() => { scheduleSave(storageKeys.STOCK_BATCHES, state.stockBatches, STATE_TO_DB_KEY.stockBatches); }, [state.stockBatches, scheduleSave]);
-  useEffect(() => { scheduleSave(storageKeys.SUPPLIERS, state.suppliers, STATE_TO_DB_KEY.suppliers); }, [state.suppliers, scheduleSave]);
-  useEffect(() => { scheduleSave(storageKeys.PURCHASE_ORDERS, state.purchaseOrders, STATE_TO_DB_KEY.purchaseOrders); }, [state.purchaseOrders, scheduleSave]);
-  useEffect(() => { scheduleSave(storageKeys.GENERAL_EXPENSES, state.generalExpenses, STATE_TO_DB_KEY.generalExpenses); }, [state.generalExpenses, scheduleSave]);
-  useEffect(() => { scheduleSave(storageKeys.WORK_CATALOG, state.workCatalog, STATE_TO_DB_KEY.workCatalog); }, [state.workCatalog, scheduleSave]);
-  useEffect(() => { scheduleSave(storageKeys.SERVICES, state.services, STATE_TO_DB_KEY.services); }, [state.services, scheduleSave]);
-  useEffect(() => { scheduleSave(storageKeys.TECHNICIANS, state.technicians, STATE_TO_DB_KEY.technicians); }, [state.technicians, scheduleSave]);
-  useEffect(() => { scheduleSave(storageKeys.WARRANTY_APPEALS, state.warrantyAppeals, STATE_TO_DB_KEY.warrantyAppeals); }, [state.warrantyAppeals, scheduleSave]);
+  // ישויות גרנולריות — localStorage + שמירה גרנולרית לSupabase
+  useEffect(() => { scheduleSave(storageKeys.CUSTOMERS, state.customers, null); scheduleGranularSave('customers', state.customers); }, [state.customers, scheduleSave, scheduleGranularSave]);
+  useEffect(() => { scheduleSave(storageKeys.DEVICES, state.devices, null); scheduleGranularSave('devices', state.devices); }, [state.devices, scheduleSave, scheduleGranularSave]);
+  useEffect(() => { scheduleSave(storageKeys.REPAIRS, state.repairs, null); scheduleGranularSave('repairs', state.repairs); }, [state.repairs, scheduleSave, scheduleGranularSave]);
+  useEffect(() => { scheduleSave(storageKeys.PARTS, state.parts, null); scheduleGranularSave('parts', state.parts); }, [state.parts, scheduleSave, scheduleGranularSave]);
+  useEffect(() => { scheduleSave(storageKeys.STOCK_BATCHES, state.stockBatches, null); scheduleGranularSave('stockBatches', state.stockBatches); }, [state.stockBatches, scheduleSave, scheduleGranularSave]);
+  useEffect(() => { scheduleSave(storageKeys.SUPPLIERS, state.suppliers, null); scheduleGranularSave('suppliers', state.suppliers); }, [state.suppliers, scheduleSave, scheduleGranularSave]);
+  useEffect(() => { scheduleSave(storageKeys.PURCHASE_ORDERS, state.purchaseOrders, null); scheduleGranularSave('purchaseOrders', state.purchaseOrders); }, [state.purchaseOrders, scheduleSave, scheduleGranularSave]);
+  useEffect(() => { scheduleSave(storageKeys.GENERAL_EXPENSES, state.generalExpenses, null); scheduleGranularSave('generalExpenses', state.generalExpenses); }, [state.generalExpenses, scheduleSave, scheduleGranularSave]);
+  useEffect(() => { scheduleSave(storageKeys.WORK_CATALOG, state.workCatalog, null); scheduleGranularSave('workCatalog', state.workCatalog); }, [state.workCatalog, scheduleSave, scheduleGranularSave]);
+  useEffect(() => { scheduleSave(storageKeys.SERVICES, state.services, null); scheduleGranularSave('services', state.services); }, [state.services, scheduleSave, scheduleGranularSave]);
+  useEffect(() => { scheduleSave(storageKeys.TECHNICIANS, state.technicians, null); scheduleGranularSave('technicians', state.technicians); }, [state.technicians, scheduleSave, scheduleGranularSave]);
+  useEffect(() => { scheduleSave(storageKeys.WARRANTY_APPEALS, state.warrantyAppeals, null); scheduleGranularSave('warrantyAppeals', state.warrantyAppeals); }, [state.warrantyAppeals, scheduleSave, scheduleGranularSave]);
   useEffect(() => { scheduleSave(storageKeys.SETTINGS, state.settings, STATE_TO_DB_KEY.settings); }, [state.settings, scheduleSave]);
   useEffect(() => { scheduleSave(storageKeys.CURRENT_USER, state.currentUser, null); }, [state.currentUser, scheduleSave]);
   useEffect(() => { scheduleSave(storageKeys.USERS, state.users, STATE_TO_DB_KEY.users); }, [state.users, scheduleSave]);
