@@ -608,7 +608,7 @@ export default function KanbanBoard({ role = 'office' }) {
       <div
         ref={phantomRef}
         onScroll={handlePhantomScroll}
-        className="fixed bottom-0 left-0 right-0 overflow-x-auto z-20"
+        className="overflow-x-auto flex-shrink-0"
         style={{ height: 10 }}
       >
         <div style={{ width: phantomWidth, height: 1 }} />
