@@ -11,7 +11,6 @@ export default function RegisterPage({ onBack }) {
   const { state, dispatch } = useAppContext();
   const [form, setForm] = useState({ name: '', email: '', password: '', confirm: '' });
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
 
   const handleChange = (e) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
 
@@ -41,33 +40,8 @@ export default function RegisterPage({ onBack }) {
     };
 
     dispatch({ type: 'ADD_USER', payload: newUser });
-
-    if (isFirst) {
-      dispatch({ type: 'SET_CURRENT_USER', payload: newUser });
-    } else {
-      setSuccess(true);
-    }
+    dispatch({ type: 'SET_CURRENT_USER', payload: newUser });
   };
-
-  if (success) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-slate-100 to-slate-200">
-        <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full text-center">
-          <div className="text-5xl mb-4">✅</div>
-          <h2 className="text-xl font-bold text-slate-800 mb-2">ההרשמה הצליחה!</h2>
-          <p className="text-slate-500 text-sm mb-6">
-            החשבון שלך נוצר בהצלחה! ניתן להיכנס למערכת.
-          </p>
-          <button
-            onClick={onBack}
-            className="bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2.5 px-6 rounded-lg transition-colors"
-          >
-            חזרה לכניסה
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-slate-100 to-slate-200">
