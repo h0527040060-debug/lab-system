@@ -66,7 +66,7 @@ export default function OfficeWorkCatalog() {
         <SearchInput value={search} onChange={setSearch} placeholder="חיפוש לפי שם עבודה, יצרן, דגם..." />
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm overflow-x-auto">
         {filteredCatalog.length === 0 ? (
           <EmptyState
             icon={Wrench}
@@ -82,8 +82,8 @@ export default function OfficeWorkCatalog() {
                 <th className="text-right p-3 font-semibold">יצרן</th>
                 <th className="text-right p-3 font-semibold">דגם</th>
                 <th className="text-right p-3 font-semibold">מחיר</th>
-                <th className="text-right p-3 font-semibold">שעות ברירת מחדל</th>
-                <th className="text-right p-3 font-semibold">ממוצע היסטורי</th>
+                <th className="text-right p-3 font-semibold hidden md:table-cell">שעות ברירת מחדל</th>
+                <th className="text-right p-3 font-semibold hidden md:table-cell">ממוצע היסטורי</th>
                 <th className="text-right p-3 font-semibold">פעולות</th>
               </tr>
             </thead>
@@ -97,8 +97,8 @@ export default function OfficeWorkCatalog() {
                     <td className="p-3 text-slate-600">{w.brand}</td>
                     <td className="p-3 text-slate-600">{w.model}</td>
                     <td className="p-3 font-bold">{formatMoney(w.price)}</td>
-                    <td className="p-3 text-slate-600">{w.estimated_hours_default} ש'</td>
-                    <td className="p-3 text-xs">
+                    <td className="p-3 text-slate-600 hidden md:table-cell">{w.estimated_hours_default} ש'</td>
+                    <td className="p-3 text-xs hidden md:table-cell">
                       {avg ? (
                         <div className="flex items-center gap-1 text-blue-600">
                           <TrendingUp size={12} />
