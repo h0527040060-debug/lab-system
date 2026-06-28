@@ -615,7 +615,9 @@ export const AppProvider = ({ children }) => {
   const scheduleSave = useCallback((storageKey, value, dbKey) => {
     const timerKey = storageKey;
     if (saveTimers.current[timerKey]) clearTimeout(saveTimers.current[timerKey]);
-    const saved = saveToStorage(storageKey, value);
+    // כשSupabase מוגדר, אל תשמור מערכים גדולים ב-localStorage (הם כבר ב-Supabase)
+    const skipLocalStorage = Array.isArray(value) && isSupabaseConfigured() && initializedRef.current;
+    const saved = skipLocalStorage ? true : saveToStorage(storageKey, value);
 
     // הצג טוסט אם זו השמירה הרלוונטית לפעולה האחרונה
     const pending = pendingToastRef.current;
