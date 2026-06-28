@@ -655,7 +655,7 @@ export const AppProvider = ({ children }) => {
   useEffect(() => { scheduleSave(storageKeys.WARRANTY_APPEALS, state.warrantyAppeals, null); scheduleGranularSave('warrantyAppeals', state.warrantyAppeals); }, [state.warrantyAppeals, scheduleSave, scheduleGranularSave]);
   useEffect(() => { scheduleSave(storageKeys.SETTINGS, state.settings, STATE_TO_DB_KEY.settings); }, [state.settings, scheduleSave]);
   useEffect(() => { scheduleSave(storageKeys.CURRENT_USER, state.currentUser, null); }, [state.currentUser, scheduleSave]);
-  useEffect(() => { scheduleSave(storageKeys.USERS, state.users, STATE_TO_DB_KEY.users); }, [state.users, scheduleSave]);
+  useEffect(() => { scheduleSave(storageKeys.USERS, state.users, null); scheduleGranularSave('users', state.users); }, [state.users, scheduleSave, scheduleGranularSave]);
   useEffect(() => { scheduleSave(storageKeys.STATUS_CONFIG, state.statusConfig, STATE_TO_DB_KEY.statusConfig); }, [state.statusConfig, scheduleSave]);
   useEffect(() => { scheduleSave(storageKeys.ROLE_CONFIG, state.roleConfig, STATE_TO_DB_KEY.roleConfig); }, [state.roleConfig, scheduleSave]);
 
