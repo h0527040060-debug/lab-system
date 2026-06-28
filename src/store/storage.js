@@ -125,3 +125,36 @@ export const appendLog = (entry) => {
 export const clearLogs = () => {
   localStorage.removeItem(LOGS_KEY);
 };
+
+// חישוב שימוש באחסון לפי מפתח
+export const getStorageUsage = () => {
+  const usage = {};
+  let total = 0;
+  Object.keys(localStorage).forEach(key => {
+    if (key.startsWith(STORAGE_PREFIX)) {
+      const size = (localStorage.getItem(key) || '').length * 2; // UTF-16 bytes
+      const cleanKey = key.replace(STORAGE_PREFIX, '');
+      usage[cleanKey] = size;
+      total += size;
+    }
+  });
+  return { usage, total };
+};
+
+// מסיר שדות תמונה מ-object (רקורסיבי)
+const IMAGE_FIELDS = ['image', 'images', 'photo', 'photos', 'appealEvidence', 'thumbnail'];
+export const stripImagesFromObject = (obj) => {
+  if (Array.isArray(obj)) return obj.map(stripImagesFromObject);
+  if (obj && typeof obj === 'object') {
+    const result = {};
+    for (const [k, v] of Object.entries(obj)) {
+      if (IMAGE_FIELDS.includes(k)) {
+        result[k] = Array.isArray(v) ? [] : null;
+      } else {
+        result[k] = stripImagesFromObject(v);
+      }
+    }
+    return result;
+  }
+  return obj;
+};

@@ -6,6 +6,7 @@ import { SettingsSuppliers } from './settings/SettingsSuppliers';
 import { SettingsMisc } from './settings/SettingsMisc';
 import { SettingsRoles } from './settings/SettingsRoles';
 import { SettingsFields } from './settings/SettingsFields';
+import { SettingsStorage } from './settings/SettingsStorage';
 
 const SUB_TABS = [
   { id: 'business',  label: 'פרטי עסק',        icon: '🏢' },
@@ -14,6 +15,7 @@ const SUB_TABS = [
   { id: 'roles',     label: 'ניהול תפקידים',    icon: '👥' },
   { id: 'fields',    label: 'ניהול שדות',       icon: '📋' },
   { id: 'misc',      label: 'הגדרות שונות',     icon: '⚙️' },
+  { id: 'storage',   label: 'ניהול אחסון',      icon: '💾' },
 ];
 
 const COMPONENTS = {
@@ -23,6 +25,7 @@ const COMPONENTS = {
   roles:     SettingsRoles,
   fields:    SettingsFields,
   misc:      SettingsMisc,
+  storage:   SettingsStorage,
 };
 
 export default function OfficeSettings() {
