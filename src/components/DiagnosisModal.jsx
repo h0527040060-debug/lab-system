@@ -4,11 +4,14 @@ import { REPAIR_STATUSES } from '../constants/statuses';
 import { WARRANTY_TYPES, WARRANTY_LABELS } from '../constants/warranty';
 import { formatDateTime, formatMoney } from '../utils/formatters';
 import { filterWorkCatalogForDevice, calculateAvgHoursForWork } from '../utils/workCatalog';
+import { generateWorkCodeId, generateInternalBarcode } from '../utils/idGenerators';
 import Modal from './Modal';
 import InfoCard from './InfoCard';
-import { User, Wrench, FileText, History, ShieldAlert, Camera, Send, CheckSquare, Square, BookOpen } from 'lucide-react';
+import { User, Wrench, FileText, History, ShieldAlert, Camera, Send, CheckSquare, Square, BookOpen, Search, Plus } from 'lucide-react';
 import PartThumbnail from './PartThumbnail';
 import AssemblyInstructionsViewer from './AssemblyInstructionsViewer';
+import { WorkCatalogEditModal } from './WorkCatalogEditModal';
+import { PartEditModal } from './PartEditModal';
 
 export default function DiagnosisModal({ repair, onClose }) {
   const { state, dispatch } = useAppContext();
@@ -20,15 +23,46 @@ export default function DiagnosisModal({ repair, onClose }) {
     .sort((a, b) => new Date(b.date_intake) - new Date(a.date_intake));
 
   const relevantWorks = filterWorkCatalogForDevice(state.workCatalog, device);
+  const relevantWorkIds = new Set(relevantWorks.map(w => w.id));
 
   const [diagnosis, setDiagnosis] = useState(repair.diagnosis || '');
   const [selectedWorks, setSelectedWorks] = useState(repair.diagnosed_work_codes || []);
   const [selectedParts, setSelectedParts] = useState(repair.diagnosed_parts || []);
+  const [workSearch, setWorkSearch] = useState('');
+  const [partSearch, setPartSearch] = useState('');
+  const [addingWork, setAddingWork] = useState(false);
+  const [addingPart, setAddingPart] = useState(false);
 
   const [showAppealForm, setShowAppealForm] = useState(false);
   const [assemblyPart, setAssemblyPart] = useState(null);
   const [appealReason, setAppealReason] = useState('');
   const [appealEvidence, setAppealEvidence] = useState([]);
+
+  const allFilteredWorks = state.workCatalog.filter(w => {
+    if (!workSearch) return true;
+    const s = workSearch.toLowerCase();
+    return (
+      w.work_name?.toLowerCase().includes(s) ||
+      w.brand?.toLowerCase().includes(s) ||
+      w.model?.toLowerCase().includes(s) ||
+      w.id?.toLowerCase().includes(s)
+    );
+  });
+  const sortedWorks = [
+    ...allFilteredWorks.filter(w => relevantWorkIds.has(w.id)),
+    ...allFilteredWorks.filter(w => !relevantWorkIds.has(w.id)),
+  ];
+
+  const filteredParts = state.parts.filter(p => {
+    if (!partSearch) return true;
+    const s = partSearch.toLowerCase();
+    return (
+      p.name?.toLowerCase().includes(s) ||
+      p.manufacturer?.toLowerCase().includes(s) ||
+      p.internal_barcode?.toLowerCase().includes(s) ||
+      p.category?.toLowerCase().includes(s)
+    );
+  });
 
   const toggleWork = (workId) => {
     setSelectedWorks(prev =>
@@ -54,6 +88,29 @@ export default function DiagnosisModal({ repair, onClose }) {
     const defaultSupplier = part.suppliers?.find(s => s.is_default) || part.suppliers?.[0];
     const cost = defaultSupplier?.price || 0;
     return cost * (1 + (part.selling_markup_percent || 0) / 100);
+  };
+
+  const handleAddWork = (workData) => {
+    const newWork = {
+      ...workData,
+      id: generateWorkCodeId(state.workCatalog.map(w => w.id)),
+    };
+    dispatch({ type: 'ADD_WORK_ITEM', payload: newWork });
+    setSelectedWorks(prev => [...prev, newWork.id]);
+    setAddingWork(false);
+  };
+
+  const handleAddPart = (partData) => {
+    const newId = Math.max(0, ...state.parts.map(p => p.id || 0)) + 1;
+    const newPart = {
+      ...partData,
+      id: newId,
+      internal_barcode: partData.internal_barcode ||
+        generateInternalBarcode(partData.category || 'other', state.parts.map(p => p.internal_barcode)),
+    };
+    dispatch({ type: 'ADD_PART', payload: newPart });
+    setSelectedParts(prev => [...prev, { part_id: newPart.id, quantity: 1 }]);
+    setAddingPart(false);
   };
 
   const handleSubmitDiagnosis = () => {
@@ -110,6 +167,20 @@ export default function DiagnosisModal({ repair, onClose }) {
   return (
     <>
     {assemblyPart && <AssemblyInstructionsViewer part={assemblyPart} onClose={() => setAssemblyPart(null)} />}
+    {addingWork && (
+      <WorkCatalogEditModal
+        item={null}
+        onSave={handleAddWork}
+        onClose={() => setAddingWork(false)}
+      />
+    )}
+    {addingPart && (
+      <PartEditModal
+        part={null}
+        onSave={handleAddPart}
+        onClose={() => setAddingPart(false)}
+      />
+    )}
     <Modal
       open={true}
       onClose={onClose}
@@ -209,16 +280,39 @@ export default function DiagnosisModal({ repair, onClose }) {
             />
           </div>
 
+          {/* סקשן עבודות */}
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1">
-              עבודות נדרשות ({selectedWorks.length} נבחרו)
-            </label>
-            <div className="bg-slate-50 border border-slate-200 rounded-lg p-2 max-h-48 overflow-y-auto space-y-1">
-              {relevantWorks.length === 0 ? (
-                <p className="text-sm text-slate-500 text-center py-4">אין עבודות בקטלוג עבור {device?.brand} {device?.model}</p>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-sm font-semibold text-slate-700">
+                עבודות נדרשות ({selectedWorks.length} נבחרו)
+              </label>
+              <button
+                onClick={() => setAddingWork(true)}
+                className="text-xs text-orange-600 hover:text-orange-700 font-semibold flex items-center gap-1"
+              >
+                <Plus size={13} />
+                עבודה חדשה
+              </button>
+            </div>
+            <div className="relative mb-1">
+              <Search size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                value={workSearch}
+                onChange={(e) => setWorkSearch(e.target.value)}
+                placeholder="חיפוש לפי שם, יצרן, דגם או קוד..."
+                className="w-full border border-slate-300 rounded-lg pr-8 pl-3 py-1.5 text-sm"
+              />
+            </div>
+            <div className="bg-slate-50 border border-slate-200 rounded-lg p-2 max-h-52 overflow-y-auto space-y-1">
+              {sortedWorks.length === 0 ? (
+                <p className="text-sm text-slate-500 text-center py-4">
+                  {workSearch ? 'לא נמצאו עבודות תואמות' : 'קטלוג העבודות ריק'}
+                </p>
               ) : (
-                relevantWorks.map(w => {
+                sortedWorks.map(w => {
                   const isSelected = selectedWorks.includes(w.id);
+                  const isRelevant = relevantWorkIds.has(w.id);
                   const avg = calculateAvgHoursForWork(w.id, state.repairs);
                   return (
                     <button
@@ -226,15 +320,20 @@ export default function DiagnosisModal({ repair, onClose }) {
                       onClick={() => toggleWork(w.id)}
                       className={`w-full text-right p-2 rounded-lg flex items-center gap-2 ${isSelected ? 'bg-orange-100' : 'bg-white hover:bg-slate-100'}`}
                     >
-                      {isSelected ? <CheckSquare size={18} className="text-orange-600" /> : <Square size={18} className="text-slate-400" />}
-                      <div className="flex-1">
-                        <p className="font-semibold text-sm">{w.work_name}</p>
+                      {isSelected ? <CheckSquare size={18} className="text-orange-600 shrink-0" /> : <Square size={18} className="text-slate-400 shrink-0" />}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-sm flex items-center gap-1.5">
+                          {w.work_name}
+                          {isRelevant && (
+                            <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-normal">מתאים למכשיר</span>
+                          )}
+                        </p>
                         <p className="text-xs text-slate-500">
-                          {w.brand} • {w.model}
-                          {avg && ` • ⏱️ ממוצע ${avg.avg_hours.toFixed(1)} שעות (${avg.count} ביצועים)`}
+                          {w.id} • {w.brand} • {w.model}
+                          {avg && ` • ⏱️ ממוצע ${avg.avg_hours.toFixed(1)} ש' (${avg.count} ביצועים)`}
                         </p>
                       </div>
-                      <span className="font-bold">{formatMoney(w.price)}</span>
+                      <span className="font-bold shrink-0">{formatMoney(w.price)}</span>
                     </button>
                   );
                 })
@@ -242,48 +341,74 @@ export default function DiagnosisModal({ repair, onClose }) {
             </div>
           </div>
 
+          {/* סקשן חלקים */}
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1">
-              חלקים נדרשים ({selectedParts.length} נבחרו)
-            </label>
-            <div className="bg-slate-50 border border-slate-200 rounded-lg p-2 max-h-48 overflow-y-auto space-y-1">
-              {state.parts.map(p => {
-                const isSelected = selectedParts.find(sp => sp.part_id === p.id);
-                const totalStock = state.stockBatches
-                  .filter(b => b.part_id === p.id)
-                  .reduce((sum, b) => sum + b.quantity_remaining, 0);
-                return (
-                  <div key={p.id} className={`p-2 rounded-lg ${isSelected ? 'bg-orange-100' : 'bg-white'}`}>
-                    <div className="flex items-center gap-2">
-                      <button onClick={() => togglePart(p.id)}>
-                        {isSelected ? <CheckSquare size={18} className="text-orange-600" /> : <Square size={18} className="text-slate-400" />}
-                      </button>
-                      <PartThumbnail part={p} size="xs" />
-                      <div className="flex-1">
-                        <p className="font-semibold text-sm">{p.name}</p>
-                        <p className="text-xs text-slate-500">
-                          {p.manufacturer} • מלאי: {totalStock} • {formatMoney(getPartSellingPrice(p))} ללקוח
-                        </p>
-                      </div>
-                      {p.assembly_instructions?.text || p.assembly_instructions?.images?.length > 0 ? (
-                        <button onClick={(e) => { e.stopPropagation(); setAssemblyPart(p); }}
-                          className="text-blue-500 hover:text-blue-700 p-0.5" title="הוראות הרכבה">
-                          <BookOpen size={14} />
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-sm font-semibold text-slate-700">
+                חלקים נדרשים ({selectedParts.length} נבחרו)
+              </label>
+              <button
+                onClick={() => setAddingPart(true)}
+                className="text-xs text-orange-600 hover:text-orange-700 font-semibold flex items-center gap-1"
+              >
+                <Plus size={13} />
+                חלק חדש
+              </button>
+            </div>
+            <div className="relative mb-1">
+              <Search size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                value={partSearch}
+                onChange={(e) => setPartSearch(e.target.value)}
+                placeholder="חיפוש לפי שם, יצרן, ברקוד..."
+                className="w-full border border-slate-300 rounded-lg pr-8 pl-3 py-1.5 text-sm"
+              />
+            </div>
+            <div className="bg-slate-50 border border-slate-200 rounded-lg p-2 max-h-52 overflow-y-auto space-y-1">
+              {filteredParts.length === 0 ? (
+                <p className="text-sm text-slate-500 text-center py-4">
+                  {partSearch ? 'לא נמצאו חלקים תואמים' : 'המלאי ריק'}
+                </p>
+              ) : (
+                filteredParts.map(p => {
+                  const isSelected = selectedParts.find(sp => sp.part_id === p.id);
+                  const totalStock = state.stockBatches
+                    .filter(b => b.part_id === p.id)
+                    .reduce((sum, b) => sum + b.quantity_remaining, 0);
+                  return (
+                    <div key={p.id} className={`p-2 rounded-lg ${isSelected ? 'bg-orange-100' : 'bg-white'}`}>
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => togglePart(p.id)}>
+                          {isSelected ? <CheckSquare size={18} className="text-orange-600" /> : <Square size={18} className="text-slate-400" />}
                         </button>
-                      ) : null}
-                      {isSelected && (
-                        <input
-                          type="number"
-                          min="1"
-                          value={isSelected.quantity}
-                          onChange={(e) => updatePartQuantity(p.id, e.target.value)}
-                          className="w-16 border border-slate-300 rounded px-2 py-1 text-sm"
-                        />
-                      )}
+                        <PartThumbnail part={p} size="xs" />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-sm">{p.name}</p>
+                          <p className="text-xs text-slate-500">
+                            {p.manufacturer} • מלאי: {totalStock} • {formatMoney(getPartSellingPrice(p))} ללקוח
+                          </p>
+                        </div>
+                        {p.assembly_instructions?.text || p.assembly_instructions?.images?.length > 0 ? (
+                          <button onClick={(e) => { e.stopPropagation(); setAssemblyPart(p); }}
+                            className="text-blue-500 hover:text-blue-700 p-0.5 shrink-0" title="הוראות הרכבה">
+                            <BookOpen size={14} />
+                          </button>
+                        ) : null}
+                        {isSelected && (
+                          <input
+                            type="number"
+                            min="1"
+                            value={isSelected.quantity}
+                            onChange={(e) => updatePartQuantity(p.id, e.target.value)}
+                            className="w-16 border border-slate-300 rounded px-2 py-1 text-sm shrink-0"
+                          />
+                        )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              )}
             </div>
           </div>
         </div>
