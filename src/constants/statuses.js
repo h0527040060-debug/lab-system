@@ -48,6 +48,21 @@ export const ALLOWED_TRANSITIONS = {
   [REPAIR_STATUSES.BOUGHT_NEW]:              [],
 };
 
+export const TRANSITION_REQUIREMENTS = {
+  [REPAIR_STATUSES.YELLOW_APPEAL]:           [{ field: 'diagnosis', label: 'אבחון ראשוני' }],
+  [REPAIR_STATUSES.YELLOW_WAITING_APPROVAL]: [{ field: 'diagnosis', label: 'אבחון ראשוני' }, { field: 'final_price', label: 'תמחור' }],
+  [REPAIR_STATUSES.YELLOW_READY_TO_WORK]:    [{ field: 'diagnosis', label: 'אבחון ראשוני' }, { field: 'final_price', label: 'תמחור' }],
+  [REPAIR_STATUSES.IN_WORK]:                 [{ field: 'diagnosis', label: 'אבחון ראשוני' }, { field: 'final_price', label: 'תמחור' }],
+  [REPAIR_STATUSES.PENDING_RELEASE_DOCS]:    [{ field: 'diagnosis', label: 'אבחון ראשוני' }],
+};
+
+export const TERMINAL_STATUSES = new Set([
+  REPAIR_STATUSES.GREEN_COMPLETE,
+  REPAIR_STATUSES.RED_CANCELLED,
+  REPAIR_STATUSES.CUSTOMER_REFUSED,
+  REPAIR_STATUSES.BOUGHT_NEW,
+]);
+
 export const STATUS_COLORS = {
   [REPAIR_STATUSES.RED_INTAKE]: { bg: 'bg-red-100', text: 'text-red-800', border: 'border-red-300', emoji: '🔴' },
   [REPAIR_STATUSES.YELLOW_DIAGNOSIS]: { bg: 'bg-yellow-100', text: 'text-yellow-800', border: 'border-yellow-300', emoji: '🟡' },

@@ -19,7 +19,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { useAppContext } from '../../store/AppContext';
 import { loadFromStorage, saveToStorage } from '../../store/storage';
-import { REPAIR_STATUSES, ALLOWED_TRANSITIONS } from '../../constants/statuses';
+import { REPAIR_STATUSES, STATUS_LABELS, TRANSITION_REQUIREMENTS, TERMINAL_STATUSES } from '../../constants/statuses';
 import { getStatusDisplay } from '../../utils/statusConfig';
 import { formatDateTime } from '../../utils/formatters';
 import WhatsAppButton from '../../components/WhatsAppButton';
@@ -352,6 +352,7 @@ export default function KanbanBoard({ role = 'office' }) {
   const [activeType, setActiveType] = useState(null);
   const [activeModal, setActiveModal] = useState(null);
   const [activeRepairId, setActiveRepairId] = useState(null);
+  const [pendingTransition, setPendingTransition] = useState(null);
   const [detailRepairId, setDetailRepairId] = useState(null);
 
   const [cardOrders, setCardOrders] = useState(() => {
@@ -414,6 +415,23 @@ export default function KanbanBoard({ role = 'office' }) {
     saveToStorage('kanban_card_order_' + statusId, ids);
   }, []);
 
+  const executeTransition = (active, over, toStatus) => {
+    dispatch({ type: 'UPDATE_REPAIR', payload: { id: active.id, status: toStatus } });
+    const fromStatus = active.data.current?.statusId;
+    const destIds = (columnRepairs[toStatus] || []).map(r => r.id);
+    const overIdx = destIds.indexOf(over.id);
+    const insertIdx = overIdx >= 0 ? overIdx : destIds.length;
+    saveCardOrder(toStatus, [...destIds.slice(0, insertIdx), active.id, ...destIds.slice(insertIdx)]);
+    saveCardOrder(fromStatus, (columnRepairs[fromStatus] || []).map(r => r.id).filter(id => id !== active.id));
+  };
+
+  const confirmTransition = () => {
+    if (!pendingTransition) return;
+    const { active, over, toStatus } = pendingTransition;
+    executeTransition(active, over, toStatus);
+    setPendingTransition(null);
+  };
+
   const handleDragStart = ({ active }) => {
     setActiveId(active.id);
     setActiveType(active.data.current?.type);
@@ -453,14 +471,16 @@ export default function KanbanBoard({ role = 'office' }) {
           setSortMode('manual');
         }
       } else {
-        const allowed = ALLOWED_TRANSITIONS[fromStatus] ?? [];
-        if (!allowed.includes(toStatus)) return;
-        dispatch({ type: 'UPDATE_REPAIR', payload: { id: active.id, status: toStatus } });
-        const destIds = (columnRepairs[toStatus] || []).map(r => r.id);
-        const overIdx = destIds.indexOf(over.id);
-        const insertIdx = overIdx >= 0 ? overIdx : destIds.length;
-        saveCardOrder(toStatus, [...destIds.slice(0, insertIdx), active.id, ...destIds.slice(insertIdx)]);
-        saveCardOrder(fromStatus, columnRepairs[fromStatus].map(r => r.id).filter(id => id !== active.id));
+        const repair = state.repairs.find(r => r.id === active.id);
+        const requirements = TRANSITION_REQUIREMENTS[toStatus] ?? [];
+        const missingFields = requirements.filter(r => !repair?.[r.field]);
+        const isFromTerminal = TERMINAL_STATUSES.has(fromStatus);
+
+        if (missingFields.length > 0 || isFromTerminal) {
+          setPendingTransition({ active, over, fromStatus, toStatus, missingFields, isFromTerminal });
+          return;
+        }
+        executeTransition(active, over, toStatus);
       }
     }
   };
@@ -602,6 +622,42 @@ export default function KanbanBoard({ role = 'office' }) {
           onClose={() => setDetailRepairId(null)}
           onAction={handleAction}
         />
+      )}
+
+      {/* דיאלוג אזהרת מעבר סטטוס */}
+      {pendingTransition && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center" onClick={() => setPendingTransition(null)}>
+          <div className="bg-white rounded-xl shadow-xl p-6 max-w-sm w-full mx-4 text-right" onClick={e => e.stopPropagation()}>
+            <h3 className="font-bold text-lg mb-1">מעבר סטטוס</h3>
+            <p className="text-sm text-slate-500 mb-4">
+              {STATUS_LABELS[pendingTransition.fromStatus]} ← {STATUS_LABELS[pendingTransition.toStatus]}
+            </p>
+            {pendingTransition.isFromTerminal && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-3 text-sm text-red-700">
+                ⚠️ הסטטוס הנוכחי הוא <strong>סופי</strong> — האם להחזיר את התיקון למסלול?
+              </div>
+            )}
+            {pendingTransition.missingFields.length > 0 && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3">
+                <p className="text-sm font-semibold text-amber-800 mb-1">חסר מידע נדרש לשלב זה:</p>
+                <ul className="text-sm text-amber-700 list-disc list-inside space-y-0.5">
+                  {pendingTransition.missingFields.map(f => <li key={f.field}>{f.label}</li>)}
+                </ul>
+              </div>
+            )}
+            <p className="text-xs text-slate-500 mb-4">ניתן להעביר בכל זאת ולהשלים את המידע לאחר מכן.</p>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setPendingTransition(null)}
+                className="px-4 py-2 rounded-lg border border-slate-300 hover:bg-slate-100 text-sm"
+              >ביטול</button>
+              <button
+                onClick={confirmTransition}
+                className="px-4 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 text-white font-semibold text-sm"
+              >עבור בכל זאת</button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* phantom scrollbar — קבוע בתחתית המסך, מסנכרן עם הלוח */}
