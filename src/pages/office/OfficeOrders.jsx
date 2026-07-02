@@ -7,7 +7,23 @@ import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
 import Modal from '../../components/Modal';
 import ConfirmDialog from '../../components/ConfirmDialog';
-import { ShoppingCart, AlertTriangle, Send, Package, CheckCircle2 } from 'lucide-react';
+import { ShoppingCart, AlertTriangle, Send, Package, CheckCircle2, HelpCircle } from 'lucide-react';
+
+const OPEN_STATUSES = new Set(['red_intake', 'yellow_diagnosis', 'yellow_appeal', 'yellow_waiting_approval', 'yellow_ready_to_work', 'in_work', 'pending_release_docs', 'pending_payment']);
+
+function getInquiriesBySupplier(repairs) {
+  const map = {};
+  repairs.forEach(repair => {
+    if (!OPEN_STATUSES.has(repair.status)) return;
+    (repair.inquiry_parts || []).forEach(ip => {
+      (ip.supplier_ids || []).forEach(sid => {
+        if (!map[sid]) map[sid] = [];
+        map[sid].push({ repairId: repair.id, ...ip });
+      });
+    });
+  });
+  return map;
+}
 
 export default function OfficeOrders() {
   const { state, dispatch } = useApp();
@@ -16,6 +32,7 @@ export default function OfficeOrders() {
   const [receivingOrder, setReceivingOrder] = useState(null);
 
   const shortagesBySupplier = groupShortagesBySupplier(state.parts, state.stockBatches);
+  const inquiriesBySupplier = getInquiriesBySupplier(state.repairs);
   const pendingOrders = state.purchaseOrders.filter(o => o.status === 'pending');
   const receivedOrders = state.purchaseOrders.filter(o => o.status === 'received').slice(-5);
 
@@ -157,6 +174,47 @@ export default function OfficeOrders() {
           </div>
         )}
       </div>
+
+      {/* חלקים לבירור לפי ספק */}
+      {Object.keys(inquiriesBySupplier).length > 0 && (
+        <div className="mb-6">
+          <h2 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
+            <HelpCircle className="text-amber-500" size={20} />
+            חלקים לבירור - מקובצים לפי ספק
+          </h2>
+          <div className="space-y-3">
+            {Object.entries(inquiriesBySupplier).map(([supplierId, items]) => {
+              const supplier = state.suppliers.find(s => s.id === Number(supplierId));
+              if (!supplier) return null;
+              return (
+                <div key={supplierId} className="bg-white rounded-xl shadow-sm border-r-4 border-amber-400">
+                  <div className="p-4 border-b border-slate-100">
+                    <h3 className="font-bold text-slate-900">{supplier.name}</h3>
+                    <p className="text-xs text-slate-500">{items.length} חלקים לבירור</p>
+                  </div>
+                  <div className="divide-y divide-slate-100">
+                    {items.map(item => (
+                      <div key={item.id} className="p-3 flex gap-3 items-start bg-amber-50/40">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-slate-800">{item.description}</p>
+                          <p className="text-xs text-slate-500 mt-0.5">תיקון: {item.repairId}</p>
+                        </div>
+                        {item.images?.length > 0 && (
+                          <div className="flex gap-1 shrink-0">
+                            {item.images.map((src, i) => (
+                              <img key={i} src={src} alt="" className="w-12 h-12 object-cover rounded border border-amber-200" />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* הזמנות פתוחות */}
       {pendingOrders.length > 0 && (
