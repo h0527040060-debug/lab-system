@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAppContext } from '../../store/AppContext';
 import { STATUS_LABELS, REPAIR_STATUSES } from '../../constants/statuses';
 import { WARRANTY_LABELS } from '../../constants/warranty';
@@ -15,7 +15,7 @@ import CustomerQuickModal from '../../components/CustomerQuickModal';
 import DeviceQuickModal from '../../components/DeviceQuickModal';
 import StatusPickerPopover from '../../components/StatusPickerPopover';
 import WhatsAppButton from '../../components/WhatsAppButton';
-import { FileText, Stethoscope, Wrench, Camera, Printer, Edit2 } from 'lucide-react';
+import { FileText, Stethoscope, Wrench, Camera, Printer, Edit2, MoreVertical } from 'lucide-react';
 import { RepairEditModal } from '../../components/RepairEditModal';
 
 const getActionForStatus = (status) => {
@@ -39,6 +39,14 @@ export default function OfficeRepairsList() {
   const [quickDevice, setQuickDevice] = useState(null);
   const [statusPickerRepairId, setStatusPickerRepairId] = useState(null);
   const [editRepair, setEditRepair] = useState(null);
+  const [openMenuId, setOpenMenuId] = useState(null);
+
+  useEffect(() => {
+    if (!openMenuId) return;
+    const close = () => setOpenMenuId(null);
+    document.addEventListener('click', close);
+    return () => document.removeEventListener('click', close);
+  }, [openMenuId]);
 
   const activeRepair = activeRepairId ? state.repairs.find(r => r.id === activeRepairId) : null;
   const statusPickerRepair = statusPickerRepairId ? state.repairs.find(r => r.id === statusPickerRepairId) : null;
@@ -172,48 +180,59 @@ export default function OfficeRepairsList() {
                         </div>
                       </td>
 
-                      <td className="p-3">
-                        <div className="flex flex-col gap-1">
-                          <button
-                            onClick={() => setPrintRepair({ repair: r, customer, device })}
-                            className="flex items-center gap-1 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-1 rounded-lg font-semibold"
-                            title="הדפס מדבקת QR"
+                      <td className="p-2 text-center relative">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setOpenMenuId(prev => prev === r.id ? null : r.id); }}
+                          className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-700"
+                        >
+                          <MoreVertical size={16} />
+                        </button>
+                        {openMenuId === r.id && (
+                          <div
+                            className="absolute left-0 top-8 z-30 bg-white border border-slate-200 rounded-xl shadow-lg py-1 min-w-[130px] text-right"
+                            onClick={e => e.stopPropagation()}
                           >
-                            <Printer size={13} /> QR
-                          </button>
-                          <button
-                            onClick={() => setEditRepair(r)}
-                            className="flex items-center gap-1 text-xs bg-slate-100 hover:bg-orange-100 text-slate-700 hover:text-orange-700 px-2 py-1 rounded-lg font-semibold"
-                            title="עריכה"
-                          >
-                            <Edit2 size={13} /> עריכה
-                          </button>
-                          <WhatsAppButton repair={r} customer={customer} device={device} type="customer" />
-                          {getActionForStatus(r.status) === 'diagnosis' && (
                             <button
-                              onClick={() => openModal(r.id, 'diagnosis')}
-                              className="flex items-center gap-1 text-xs bg-yellow-100 hover:bg-yellow-200 text-yellow-800 px-2 py-1 rounded-lg font-semibold"
+                              onClick={() => { setPrintRepair({ repair: r, customer, device }); setOpenMenuId(null); }}
+                              className="flex items-center gap-2 w-full px-3 py-1.5 text-xs hover:bg-slate-50 text-slate-700"
                             >
-                              <Stethoscope size={13} /> אבחון
+                              <Printer size={13} /> הדפס QR
                             </button>
-                          )}
-                          {getActionForStatus(r.status) === 'work' && (
                             <button
-                              onClick={() => openModal(r.id, 'work')}
-                              className="flex items-center gap-1 text-xs bg-blue-100 hover:bg-blue-200 text-blue-800 px-2 py-1 rounded-lg font-semibold"
+                              onClick={() => { setEditRepair(r); setOpenMenuId(null); }}
+                              className="flex items-center gap-2 w-full px-3 py-1.5 text-xs hover:bg-slate-50 text-slate-700"
                             >
-                              <Wrench size={13} /> ביצוע
+                              <Edit2 size={13} /> עריכה
                             </button>
-                          )}
-                          {getActionForStatus(r.status) === 'docs' && (
-                            <button
-                              onClick={() => openModal(r.id, 'docs')}
-                              className="flex items-center gap-1 text-xs bg-purple-100 hover:bg-purple-200 text-purple-800 px-2 py-1 rounded-lg font-semibold"
-                            >
-                              <Camera size={13} /> תיעוד
-                            </button>
-                          )}
-                        </div>
+                            <div className="px-2 py-1">
+                              <WhatsAppButton repair={r} customer={customer} device={device} type="customer" className="w-full text-xs" />
+                            </div>
+                            {getActionForStatus(r.status) === 'diagnosis' && (
+                              <button
+                                onClick={() => { openModal(r.id, 'diagnosis'); setOpenMenuId(null); }}
+                                className="flex items-center gap-2 w-full px-3 py-1.5 text-xs hover:bg-yellow-50 text-yellow-800"
+                              >
+                                <Stethoscope size={13} /> אבחון
+                              </button>
+                            )}
+                            {getActionForStatus(r.status) === 'work' && (
+                              <button
+                                onClick={() => { openModal(r.id, 'work'); setOpenMenuId(null); }}
+                                className="flex items-center gap-2 w-full px-3 py-1.5 text-xs hover:bg-blue-50 text-blue-800"
+                              >
+                                <Wrench size={13} /> ביצוע
+                              </button>
+                            )}
+                            {getActionForStatus(r.status) === 'docs' && (
+                              <button
+                                onClick={() => { openModal(r.id, 'docs'); setOpenMenuId(null); }}
+                                className="flex items-center gap-2 w-full px-3 py-1.5 text-xs hover:bg-purple-50 text-purple-800"
+                              >
+                                <Camera size={13} /> תיעוד
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </td>
                     </tr>
                   );
