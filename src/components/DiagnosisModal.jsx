@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useAppContext } from '../store/AppContext';
 import { uploadToStorage } from '../store/supabaseStorage';
 import { REPAIR_STATUSES } from '../constants/statuses';
@@ -8,7 +8,31 @@ import { filterWorkCatalogForDevice, calculateAvgHoursForWork } from '../utils/w
 import { generateWorkCodeId, generateInternalBarcode } from '../utils/idGenerators';
 import Modal from './Modal';
 import InfoCard from './InfoCard';
-import { User, Wrench, FileText, History, ShieldAlert, Camera, Send, CheckSquare, Square, BookOpen, Search, Plus } from 'lucide-react';
+import { User, Wrench, FileText, History, ShieldAlert, Camera, Send, CheckSquare, Square, BookOpen, Search, Plus, HelpCircle, X } from 'lucide-react';
+
+const IMG_MAX_PX = 800;
+const IMG_QUALITY = 0.7;
+
+const compressImage = (dataUrl) =>
+  new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, IMG_MAX_PX / Math.max(img.width, img.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL('image/jpeg', IMG_QUALITY));
+    };
+    img.src = dataUrl;
+  });
+
+const readFile = (file) =>
+  new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => resolve(e.target.result);
+    reader.readAsDataURL(file);
+  });
 import PartThumbnail from './PartThumbnail';
 import AssemblyInstructionsViewer from './AssemblyInstructionsViewer';
 import { WorkCatalogEditModal } from './WorkCatalogEditModal';
@@ -39,6 +63,12 @@ export default function DiagnosisModal({ repair, onClose }) {
   const [assemblyPart, setAssemblyPart] = useState(null);
   const [appealReason, setAppealReason] = useState('');
   const [appealEvidence, setAppealEvidence] = useState([]);
+
+  // חלקים לבירור
+  const [inquiryParts, setInquiryParts] = useState(repair.inquiry_parts || []);
+  const [showInquiryForm, setShowInquiryForm] = useState(false);
+  const [inquiryForm, setInquiryForm] = useState({ description: '', images: [], supplier_ids: [] });
+  const inquiryImgRef = useRef(null);
 
   const allFilteredWorks = state.workCatalog.filter(w => {
     if (!workSearch) return true;
@@ -115,6 +145,40 @@ export default function DiagnosisModal({ repair, onClose }) {
     setAddingPart(false);
   };
 
+  const handleAddInquiryImage = async (e) => {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+    const slots = 2 - inquiryForm.images.length;
+    const toAdd = files.slice(0, slots);
+    const compressed = await Promise.all(toAdd.map(async f => compressImage(await readFile(f))));
+    const urls = await Promise.all(compressed.map(c => uploadToStorage(c, 'inquiry')));
+    setInquiryForm(f => ({ ...f, images: [...f.images, ...urls] }));
+    e.target.value = '';
+  };
+
+  const handleAddInquiryPart = () => {
+    if (!inquiryForm.description.trim()) return;
+    const newItem = {
+      id: `IQ_${Date.now()}`,
+      description: inquiryForm.description.trim(),
+      images: inquiryForm.images,
+      supplier_ids: inquiryForm.supplier_ids,
+      created_at: new Date().toISOString(),
+    };
+    setInquiryParts(prev => [...prev, newItem]);
+    setInquiryForm({ description: '', images: [], supplier_ids: [] });
+    setShowInquiryForm(false);
+  };
+
+  const toggleInquirySupplier = (supplierId) => {
+    setInquiryForm(f => ({
+      ...f,
+      supplier_ids: f.supplier_ids.includes(supplierId)
+        ? f.supplier_ids.filter(id => id !== supplierId)
+        : [...f.supplier_ids, supplierId],
+    }));
+  };
+
   const handleSubmitDiagnosis = () => {
     if (!diagnosis) {
       alert('יש למלא אבחון ראשוני');
@@ -133,6 +197,7 @@ export default function DiagnosisModal({ repair, onClose }) {
         diagnosed_work_codes: selectedWorks,
         diagnosed_parts: selectedParts,
         diagnosed_at: new Date().toISOString(),
+        inquiry_parts: inquiryParts,
       },
     });
     onClose();
@@ -430,6 +495,131 @@ export default function DiagnosisModal({ repair, onClose }) {
                 })
               )}
             </div>
+          </div>
+
+          {/* חלקים לבירור */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-semibold text-slate-700 flex items-center gap-1.5">
+                <HelpCircle size={15} className="text-amber-500" />
+                חלקים לבירור אצל ספקים ({inquiryParts.length})
+              </label>
+              {!showInquiryForm && (
+                <button
+                  onClick={() => setShowInquiryForm(true)}
+                  className="text-xs text-amber-600 hover:text-amber-700 font-semibold flex items-center gap-1"
+                >
+                  <Plus size={13} />
+                  הוסף חלק לבירור
+                </button>
+              )}
+            </div>
+
+            {inquiryParts.length > 0 && (
+              <div className="space-y-1.5 mb-2">
+                {inquiryParts.map(ip => (
+                  <div key={ip.id} className="bg-amber-50 border border-amber-200 rounded-lg p-2 flex items-start gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-slate-800">{ip.description}</p>
+                      {ip.supplier_ids.length > 0 && (
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          ספקים: {ip.supplier_ids.map(sid => state.suppliers.find(s => s.id === sid)?.name).filter(Boolean).join(', ')}
+                        </p>
+                      )}
+                      {ip.images.length > 0 && (
+                        <div className="flex gap-1 mt-1">
+                          {ip.images.map((src, i) => (
+                            <img key={i} src={src} alt="" className="w-10 h-10 object-cover rounded border cursor-pointer" onClick={() => setLightboxPhoto(src)} />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setInquiryParts(prev => prev.filter(x => x.id !== ip.id))}
+                      className="text-slate-400 hover:text-red-500 shrink-0"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {showInquiryForm && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 space-y-2">
+                <textarea
+                  value={inquiryForm.description}
+                  onChange={e => setInquiryForm(f => ({ ...f, description: e.target.value }))}
+                  rows={2}
+                  placeholder="תיאור החלק לבירור..."
+                  className="w-full border border-amber-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500 bg-white"
+                />
+                <div>
+                  <p className="text-xs font-semibold text-slate-600 mb-1">ספקים לבירור:</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {state.suppliers.map(s => (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => toggleInquirySupplier(s.id)}
+                        className={`px-2.5 py-1 rounded-lg text-xs border ${inquiryForm.supplier_ids.includes(s.id) ? 'bg-amber-500 text-white border-amber-500' : 'border-slate-300 text-slate-600 hover:border-amber-400'}`}
+                      >
+                        {s.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => inquiryImgRef.current?.click()}
+                    disabled={inquiryForm.images.length >= 2}
+                    className="flex items-center gap-1 text-xs text-slate-600 hover:text-slate-800 border border-slate-300 rounded-lg px-2.5 py-1.5 disabled:opacity-40"
+                  >
+                    <Camera size={13} />
+                    תמונה ({inquiryForm.images.length}/2)
+                  </button>
+                  {inquiryForm.images.map((src, i) => (
+                    <div key={i} className="relative">
+                      <img src={src} alt="" className="w-10 h-10 object-cover rounded border" />
+                      <button
+                        type="button"
+                        onClick={() => setInquiryForm(f => ({ ...f, images: f.images.filter((_, idx) => idx !== i) }))}
+                        className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center"
+                      >
+                        <X size={8} />
+                      </button>
+                    </div>
+                  ))}
+                  <div className="flex gap-2 mr-auto">
+                    <button
+                      type="button"
+                      onClick={() => { setShowInquiryForm(false); setInquiryForm({ description: '', images: [], supplier_ids: [] }); }}
+                      className="text-xs text-slate-500 hover:text-slate-700"
+                    >
+                      ביטול
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleAddInquiryPart}
+                      disabled={!inquiryForm.description.trim()}
+                      className="bg-amber-500 hover:bg-amber-600 disabled:bg-slate-300 text-white px-3 py-1.5 rounded-lg text-xs font-semibold"
+                    >
+                      הוסף לבירור
+                    </button>
+                  </div>
+                </div>
+                <input
+                  ref={inquiryImgRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={handleAddInquiryImage}
+                />
+              </div>
+            )}
           </div>
         </div>
       ) : (
