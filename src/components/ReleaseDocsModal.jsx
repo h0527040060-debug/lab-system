@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAppContext } from '../store/AppContext';
+import { uploadToStorage } from '../store/supabaseStorage';
 import { REPAIR_STATUSES } from '../constants/statuses';
 import Modal from './Modal';
 import ConfirmDialog from './ConfirmDialog';
@@ -27,10 +28,11 @@ export default function ReleaseDocsModal({ repair, onClose }) {
       }
 
       const reader = new FileReader();
-      reader.onloadend = () => {
+      reader.onloadend = async () => {
+        const data = isVideo ? reader.result : await uploadToStorage(reader.result, 'release');
         setMedia(prev => [...prev, {
           type: isVideo ? 'video' : 'image',
-          data: reader.result,
+          data,
           name: file.name,
         }]);
       };

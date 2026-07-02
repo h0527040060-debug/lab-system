@@ -5,6 +5,7 @@ import AutocompleteInput from './AutocompleteInput';
 import ImageGalleryModal from './ImageGalleryModal';
 import ConfirmDialog from './ConfirmDialog';
 import { X, RefreshCw, Camera } from 'lucide-react';
+import { uploadToStorage } from '../store/supabaseStorage';
 
 const MAX_IMAGES = 4;
 const IMG_MAX_PX = 800;
@@ -65,7 +66,8 @@ export function DeviceEditModal({ device, onClose }) {
     const slots = MAX_IMAGES - form.images.length;
     const toAdd = files.slice(0, slots);
     const compressed = await Promise.all(toAdd.map(async f => compressImage(await readFile(f))));
-    setForm(prev => ({ ...prev, images: [...prev.images, ...compressed] }));
+    const urls = await Promise.all(compressed.map(c => uploadToStorage(c, 'devices')));
+    setForm(prev => ({ ...prev, images: [...prev.images, ...urls] }));
     e.target.value = '';
   };
 
@@ -73,9 +75,10 @@ export function DeviceEditModal({ device, onClose }) {
     const file = e.target.files[0];
     if (!file || replaceIndex === null) return;
     const compressed = await compressImage(await readFile(file));
+    const url = await uploadToStorage(compressed, 'devices');
     setForm(prev => {
       const imgs = [...prev.images];
-      imgs[replaceIndex] = compressed;
+      imgs[replaceIndex] = url;
       return { ...prev, images: imgs };
     });
     e.target.value = '';

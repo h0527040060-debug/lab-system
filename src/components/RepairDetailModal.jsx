@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { X, User, Smartphone, FileText, Wrench, Camera, Stethoscope, Clock, Package, Edit2, Plus, Trash2 } from 'lucide-react';
+import { uploadToStorage } from '../store/supabaseStorage';
 import ConfirmDialog from './ConfirmDialog';
 import { useAppContext } from '../store/AppContext';
 import { getStatusDisplay } from '../utils/statusConfig';
@@ -79,8 +80,9 @@ export default function RepairDetailModal({ repair, customer, device, onClose, o
       const reader = new FileReader();
       reader.onloadend = async () => {
         const compressed = await compressImage(reader.result);
+        const url = await uploadToStorage(compressed, 'devices');
         const currentDevice = state.devices.find(d => d.id === device.id);
-        const updated = [...(currentDevice?.images || []), compressed].slice(0, MAX_DEVICE_PHOTOS);
+        const updated = [...(currentDevice?.images || []), url].slice(0, MAX_DEVICE_PHOTOS);
         dispatch({ type: 'UPDATE_DEVICE', payload: { ...currentDevice, images: updated } });
       };
       reader.readAsDataURL(file);
