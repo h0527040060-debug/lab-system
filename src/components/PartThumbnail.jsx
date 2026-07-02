@@ -2,7 +2,7 @@
 export default function PartThumbnail({ part, size = 'sm', className = '', onClick }) {
   const mainIdx = part?.main_image_index || 0;
   const mainImage = part?.images?.[mainIdx];
-  const isRealImage = mainImage && mainImage.startsWith('data:image/');
+  const isRealImage = mainImage && (mainImage.startsWith('data:image/') || mainImage.startsWith('http'));
 
   const sizeClass = {
     xs: 'w-6 h-6',

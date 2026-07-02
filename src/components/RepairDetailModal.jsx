@@ -1,11 +1,15 @@
-import { useState } from 'react';
-import { X, User, Smartphone, FileText, Wrench, Camera, Stethoscope, Clock, Package } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { X, User, Smartphone, FileText, Wrench, Camera, Stethoscope, Clock, Package, Edit2, Plus, Trash2 } from 'lucide-react';
+import { uploadToStorage } from '../store/supabaseStorage';
+import ConfirmDialog from './ConfirmDialog';
 import { useAppContext } from '../store/AppContext';
 import { getStatusDisplay } from '../utils/statusConfig';
 import { formatDateTime } from '../utils/formatters';
 import WhatsAppButton from './WhatsAppButton';
-import CustomerQuickModal from './CustomerQuickModal';
-import DeviceQuickModal from './DeviceQuickModal';
+import { RepairEditModal } from './RepairEditModal';
+import { CustomerEditModal } from './CustomerEditModal';
+import { DeviceEditModal } from './DeviceEditModal';
+import ImageGalleryModal from './ImageGalleryModal';
 
 const WARRANTY_LABELS = {
   paid: 'תשלום רגיל',
@@ -21,9 +25,32 @@ function formatSeconds(sec) {
   return `${m} דקות`;
 }
 
+const MAX_DEVICE_PHOTOS = 4;
+const PHOTO_MAX_PX = 800;
+const PHOTO_QUALITY = 0.7;
+
+const compressImage = (dataUrl) =>
+  new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, PHOTO_MAX_PX / Math.max(img.width, img.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL('image/jpeg', PHOTO_QUALITY));
+    };
+    img.src = dataUrl;
+  });
+
 export default function RepairDetailModal({ repair, customer, device, onClose, onAction }) {
-  const { state } = useAppContext();
-  const [innerModal, setInnerModal] = useState(null); // 'customer' | 'device'
+  const { state, dispatch } = useAppContext();
+  const addPhotoRef = useRef(null);
+  const [showEditCustomer, setShowEditCustomer] = useState(false);
+  const [showEditDevice, setShowEditDevice] = useState(false);
+  const [showEditRepair, setShowEditRepair] = useState(false);
+  const [galleryIndex, setGalleryIndex] = useState(null);
+  const [confirmDeletePhoto, setConfirmDeletePhoto] = useState(null);
   const statusDisplay = getStatusDisplay(repair.status, state.statusConfig);
 
   const diagnosedParts = repair.diagnosed_parts || [];
@@ -40,6 +67,35 @@ export default function RepairDetailModal({ repair, customer, device, onClose, o
   const canDiagnosis = ['red_intake', 'yellow_diagnosis', 'yellow_appeal'].includes(repair.status);
   const canWork = ['yellow_ready_to_work', 'in_work'].includes(repair.status);
   const canDocs = repair.status === 'pending_release_docs';
+
+  // תמונות מכשיר — מקור האמת הוא device.images, עם fallback לתמונות קליטה ישנות
+  const deviceImages = device?.images?.length > 0 ? device.images : (repair.intake_photos || []);
+
+  const handleAddDevicePhoto = (e) => {
+    const files = Array.from(e.target.files);
+    if (!device || !files.length) return;
+    const slots = MAX_DEVICE_PHOTOS - (device.images || []).length;
+    const toAdd = files.slice(0, slots);
+    toAdd.forEach(file => {
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const compressed = await compressImage(reader.result);
+        const url = await uploadToStorage(compressed, 'devices');
+        const currentDevice = state.devices.find(d => d.id === device.id);
+        const updated = [...(currentDevice?.images || []), url].slice(0, MAX_DEVICE_PHOTOS);
+        dispatch({ type: 'UPDATE_DEVICE', payload: { ...currentDevice, images: updated } });
+      };
+      reader.readAsDataURL(file);
+    });
+    e.target.value = '';
+  };
+
+  const handleDeleteDevicePhoto = (idx) => {
+    if (!device) return;
+    const currentDevice = state.devices.find(d => d.id === device.id);
+    const updated = (currentDevice?.images || []).filter((_, i) => i !== idx);
+    dispatch({ type: 'UPDATE_DEVICE', payload: { ...currentDevice, images: updated } });
+  };
 
   return (
     <>
@@ -66,7 +122,7 @@ export default function RepairDetailModal({ repair, customer, device, onClose, o
             {/* לקוח ומכשיר */}
             <div className="space-y-2">
               <button
-                onClick={() => setInnerModal('customer')}
+                onClick={() => setShowEditCustomer(true)}
                 className="w-full flex items-center gap-3 p-3 bg-slate-50 hover:bg-blue-50 rounded-xl border border-slate-200 hover:border-blue-300 transition-colors text-right"
               >
                 <User size={16} className="text-blue-500 flex-shrink-0" />
@@ -79,7 +135,7 @@ export default function RepairDetailModal({ repair, customer, device, onClose, o
               </button>
 
               <button
-                onClick={() => setInnerModal('device')}
+                onClick={() => setShowEditDevice(true)}
                 className="w-full flex items-center gap-3 p-3 bg-slate-50 hover:bg-purple-50 rounded-xl border border-slate-200 hover:border-purple-300 transition-colors text-right"
               >
                 <Smartphone size={16} className="text-purple-500 flex-shrink-0" />
@@ -114,6 +170,45 @@ export default function RepairDetailModal({ repair, customer, device, onClose, o
                 <p className="text-sm text-slate-700 leading-relaxed">{repair.complaint}</p>
               </div>
             )}
+
+            {/* תמונות מכשיר */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <p className="text-xs font-bold text-slate-500">תמונות מכשיר</p>
+                {device && (device.images || []).length < MAX_DEVICE_PHOTOS && (
+                  <button
+                    onClick={() => addPhotoRef.current?.click()}
+                    className="flex items-center gap-1 text-xs text-orange-600 font-semibold"
+                  >
+                    <Plus size={12} /> הוסף
+                  </button>
+                )}
+              </div>
+              <input ref={addPhotoRef} type="file" accept="image/*" multiple className="hidden" onChange={handleAddDevicePhoto} />
+              {deviceImages.length > 0 ? (
+                <div className="flex gap-2 flex-wrap">
+                  {deviceImages.map((src, i) => (
+                    <div key={i} className="relative">
+                      <img
+                        src={src}
+                        onClick={() => setGalleryIndex(i)}
+                        className="w-16 h-16 object-cover rounded-lg cursor-pointer border border-slate-200"
+                      />
+                      {device && device.images?.length > 0 && (
+                        <button
+                          onClick={() => setConfirmDeletePhoto(i)}
+                          className="absolute -top-1 -left-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center"
+                        >
+                          <X size={9} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-slate-400">אין תמונות</p>
+              )}
+            </div>
 
             {/* אבחון */}
             {repair.diagnosis_notes && (
@@ -176,12 +271,26 @@ export default function RepairDetailModal({ repair, customer, device, onClose, o
             {/* פעולות */}
             <div className="flex flex-wrap gap-2 pt-1 border-t border-slate-100">
               <WhatsAppButton repair={repair} customer={customer} device={device} type="customer" />
+              <button
+                onClick={() => setShowEditRepair(true)}
+                className="flex items-center gap-1.5 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg font-semibold"
+              >
+                <Edit2 size={12} /> ערוך פרטים
+              </button>
               {canDiagnosis && (
                 <button
                   onClick={() => { onAction(repair.id, 'diagnosis'); onClose(); }}
                   className="flex items-center gap-1.5 text-xs bg-yellow-100 hover:bg-yellow-200 text-yellow-800 px-3 py-1.5 rounded-lg font-semibold"
                 >
                   <Stethoscope size={12} /> אבחון
+                </button>
+              )}
+              {repair.diagnosis_notes && !canDiagnosis && (
+                <button
+                  onClick={() => { onAction(repair.id, 'diagnosis'); onClose(); }}
+                  className="flex items-center gap-1.5 text-xs bg-yellow-50 hover:bg-yellow-100 text-yellow-700 px-3 py-1.5 rounded-lg font-semibold border border-yellow-200"
+                >
+                  <Stethoscope size={12} /> ערוך אבחון
                 </button>
               )}
               {canWork && (
@@ -206,22 +315,31 @@ export default function RepairDetailModal({ repair, customer, device, onClose, o
       </div>
 
       {/* modals פנימיים */}
-      {innerModal === 'customer' && customer && (
-        <CustomerQuickModal
-          customer={customer}
-          repairs={state.repairs}
-          devices={state.devices}
-          onClose={() => setInnerModal(null)}
+      {showEditCustomer && customer && (
+        <CustomerEditModal customer={customer} onClose={() => setShowEditCustomer(false)} />
+      )}
+      {showEditDevice && device && (
+        <DeviceEditModal device={device} onClose={() => setShowEditDevice(false)} />
+      )}
+      {showEditRepair && (
+        <RepairEditModal repair={repair} onClose={() => setShowEditRepair(false)} />
+      )}
+      {galleryIndex !== null && (
+        <ImageGalleryModal
+          images={deviceImages}
+          startIndex={galleryIndex}
+          onClose={() => setGalleryIndex(null)}
         />
       )}
-      {innerModal === 'device' && device && (
-        <DeviceQuickModal
-          device={device}
-          customer={customer}
-          repairs={state.repairs}
-          onClose={() => setInnerModal(null)}
-        />
-      )}
+      <ConfirmDialog
+        open={confirmDeletePhoto !== null}
+        title="אישור מחיקה"
+        message="האם אתה בטוח שאתה רוצה למחוק את התמונה?"
+        confirmLabel="מחק"
+        variant="danger"
+        onConfirm={() => { handleDeleteDevicePhoto(confirmDeletePhoto); setConfirmDeletePhoto(null); }}
+        onCancel={() => setConfirmDeletePhoto(null)}
+      />
     </>
   );
 }

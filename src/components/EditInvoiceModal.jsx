@@ -4,6 +4,7 @@ import { calculateQuoteBreakdown, getPartSellingPrice } from '../utils/pricing';
 import { formatMoney } from '../utils/formatters';
 import Modal from './Modal';
 import PriceBreakdown from './PriceBreakdown';
+import ConfirmDialog from './ConfirmDialog';
 import { Plus, Trash2, Pencil, Check, X } from 'lucide-react';
 
 // המרת breakdown לפורמט invoice_items
@@ -51,6 +52,7 @@ export default function EditInvoiceModal({ repair, onClose }) {
   const [editingWork, setEditingWork] = useState(null);
   const [editingPart, setEditingPart] = useState(null);
   const [editingService, setEditingService] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(null);
 
   const device = state.devices.find(d => d.id === repair.device_id);
 
@@ -89,7 +91,7 @@ export default function EditInvoiceModal({ repair, onClose }) {
   };
   const removeWork = (id) => setWorks(prev => prev.filter(w => w.id !== id));
   const updateWorkPrice = (id, price) => {
-    setWorks(prev => prev.map(w => w.id === id ? { ...w, price: parseFloat(price) || 0 } : w));
+    setWorks(prev => prev.map(w => w.id === id ? { ...w, price: Math.max(0, parseFloat(price) || 0) } : w));
     setEditingWork(null);
   };
 
@@ -107,7 +109,9 @@ export default function EditInvoiceModal({ repair, onClose }) {
   };
   const removePart = (partId) => setParts(prev => prev.filter(p => p.part_id !== partId));
   const updatePart = (partId, field, value) => {
-    setParts(prev => prev.map(p => p.part_id === partId ? { ...p, [field]: parseFloat(value) || (field === 'quantity' ? 1 : 0) } : p));
+    const parsed = parseFloat(value) || (field === 'quantity' ? 1 : 0);
+    const safe = field === 'quantity' ? Math.max(1, parsed) : Math.max(0, parsed);
+    setParts(prev => prev.map(p => p.part_id === partId ? { ...p, [field]: safe } : p));
     if (field === 'unit_price') setEditingPart(null);
   };
 
@@ -120,7 +124,7 @@ export default function EditInvoiceModal({ repair, onClose }) {
   };
   const removeService = (id) => setServices(prev => prev.filter(s => s.id !== id));
   const updateServicePrice = (id, price) => {
-    setServices(prev => prev.map(s => s.id === id ? { ...s, price: parseFloat(price) || 0 } : s));
+    setServices(prev => prev.map(s => s.id === id ? { ...s, price: Math.max(0, parseFloat(price) || 0) } : s));
     setEditingService(null);
   };
 
@@ -190,7 +194,7 @@ export default function EditInvoiceModal({ repair, onClose }) {
                       <button onClick={() => setEditingWork(w.id)} className="text-slate-400 hover:text-orange-600"><Pencil size={13} /></button>
                     </>
                   )}
-                  <button onClick={() => removeWork(w.id)} className="text-slate-400 hover:text-red-600"><Trash2 size={14} /></button>
+                  <button onClick={() => setConfirmDelete({ action: () => removeWork(w.id), message: `האם אתה בטוח שאתה רוצה להסיר את העבודה "${w.name}"?` })} className="text-slate-400 hover:text-red-600"><Trash2 size={14} /></button>
                 </div>
               ))}
               {works.length === 0 && <p className="text-xs text-slate-400 text-center py-2 border border-dashed rounded-lg">אין עבודות</p>}
@@ -244,7 +248,7 @@ export default function EditInvoiceModal({ repair, onClose }) {
                       <button onClick={() => setEditingPart(p.part_id)} className="text-slate-400 hover:text-orange-600"><Pencil size={13} /></button>
                     </>
                   )}
-                  <button onClick={() => removePart(p.part_id)} className="text-slate-400 hover:text-red-600"><Trash2 size={14} /></button>
+                  <button onClick={() => setConfirmDelete({ action: () => removePart(p.part_id), message: `האם אתה בטוח שאתה רוצה להסיר את החלק "${p.name}"?` })} className="text-slate-400 hover:text-red-600"><Trash2 size={14} /></button>
                 </div>
               ))}
               {parts.length === 0 && <p className="text-xs text-slate-400 text-center py-2 border border-dashed rounded-lg">אין חלקים</p>}
@@ -288,7 +292,7 @@ export default function EditInvoiceModal({ repair, onClose }) {
                       <button onClick={() => setEditingService(s.id)} className="text-slate-400 hover:text-orange-600"><Pencil size={13} /></button>
                     </>
                   )}
-                  <button onClick={() => removeService(s.id)} className="text-slate-400 hover:text-red-600"><Trash2 size={14} /></button>
+                  <button onClick={() => setConfirmDelete({ action: () => removeService(s.id), message: `האם אתה בטוח שאתה רוצה להסיר את השירות "${s.name}"?` })} className="text-slate-400 hover:text-red-600"><Trash2 size={14} /></button>
                 </div>
               ))}
               {services.length === 0 && <p className="text-xs text-slate-400 text-center py-2 border border-dashed rounded-lg">אין שירותים</p>}
@@ -303,6 +307,15 @@ export default function EditInvoiceModal({ repair, onClose }) {
           <PriceBreakdown breakdown={liveBreakdown} />
         </div>
       </div>
+      <ConfirmDialog
+        open={!!confirmDelete}
+        title="אישור מחיקה"
+        message={confirmDelete?.message}
+        confirmLabel="מחק"
+        variant="danger"
+        onConfirm={() => { confirmDelete?.action(); setConfirmDelete(null); }}
+        onCancel={() => setConfirmDelete(null)}
+      />
     </Modal>
   );
 }

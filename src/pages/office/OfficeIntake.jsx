@@ -1,16 +1,38 @@
 import { useState } from 'react';
 import { useAppContext } from '../../store/AppContext';
+import { uploadToStorage } from '../../store/supabaseStorage';
 import { generateCustomerId, generateDeviceId, generateRepairId } from '../../utils/idGenerators';
+import { loadFromStorage, storageKeys } from '../../store/storage';
 import { REPAIR_STATUSES } from '../../constants/statuses';
 import { WARRANTY_TYPES, WARRANTY_LABELS } from '../../constants/warranty';
 import { formatDateTime, formatMoney } from '../../utils/formatters';
 import PageHeader from '../../components/PageHeader';
 import SearchInput from '../../components/SearchInput';
 import AutocompleteInput from '../../components/AutocompleteInput';
-import { User, Wrench, FileText, ShieldCheck, Camera, Check, Plus, Printer } from 'lucide-react';
+import { User, Wrench, FileText, ShieldCheck, Camera, Check, Plus, Printer, LayoutDashboard } from 'lucide-react';
 import PrintStickerModal from '../../components/PrintStickerModal';
+import ConfirmDialog from '../../components/ConfirmDialog';
 
-export default function OfficeIntake() {
+const MAX_PHOTOS = 3;
+const PHOTO_MAX_PX = 800;
+const PHOTO_QUALITY = 0.7;
+
+// דחיסת תמונה לפני שמירה
+const compressImage = (dataUrl) =>
+  new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, PHOTO_MAX_PX / Math.max(img.width, img.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL('image/jpeg', PHOTO_QUALITY));
+    };
+    img.src = dataUrl;
+  });
+
+export default function OfficeIntake({ onNavigate }) {
   const { state, dispatch } = useAppContext();
 
   const [step, setStep] = useState(1);
@@ -32,9 +54,12 @@ export default function OfficeIntake() {
 
   // נתוני תיקון
   const [complaint, setComplaint] = useState('');
+  const [internalNotes, setInternalNotes] = useState('');
   const [warrantyType, setWarrantyType] = useState(WARRANTY_TYPES.PAID);
   const [intakePhotos, setIntakePhotos] = useState([]);
   const [diagnosticFeeConfirmed, setDiagnosticFeeConfirmed] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [confirmDeletePhoto, setConfirmDeletePhoto] = useState(null);
 
   const [successRepair, setSuccessRepair] = useState(null);
   const [printRepair, setPrintRepair] = useState(null);
@@ -58,9 +83,18 @@ export default function OfficeIntake() {
   const handlePhotoUpload = (e) => {
     const files = Array.from(e.target.files);
     files.forEach(file => {
+      setIntakePhotos(prev => {
+        if (prev.length >= MAX_PHOTOS) return prev; // הגבלה
+        return prev; // מחכים לטעינה
+      });
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setIntakePhotos(prev => [...prev, reader.result]);
+      reader.onloadend = async () => {
+        const compressed = await compressImage(reader.result);
+        const url = await uploadToStorage(compressed, 'intake');
+        setIntakePhotos(prev => {
+          if (prev.length >= MAX_PHOTOS) return prev;
+          return [...prev, url];
+        });
       };
       reader.readAsDataURL(file);
     });
@@ -71,6 +105,8 @@ export default function OfficeIntake() {
   };
 
   const handleSave = () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     let customerId = selectedCustomerId;
     if (customerMode === 'new') {
       customerId = generateCustomerId(state.customers.map(c => c.id));
@@ -85,25 +121,37 @@ export default function OfficeIntake() {
       deviceId = generateDeviceId(state.devices.map(d => d.id));
       dispatch({
         type: 'ADD_DEVICE',
-        payload: { id: deviceId, ...newDevice, owner_customer_id: customerId, created_date: new Date().toISOString() },
+        payload: { id: deviceId, ...newDevice, images: intakePhotos, owner_customer_id: customerId, created_date: new Date().toISOString() },
       });
     }
 
-    const repairId = generateRepairId(state.repairs.map(r => r.id));
+    // קרא מ-localStorage ישיר לוודא freshness (state עלול להיות stale בגלל React batching)
+    const freshRepairs = loadFromStorage(storageKeys.REPAIRS, state.repairs);
+    const repairId = generateRepairId(freshRepairs.map(r => r.id));
+    // תמונות שייכות למכשיר
+    if (deviceMode === 'new') {
+      // כבר נשמרו ב-ADD_DEVICE למעלה
+    } else if (deviceMode === 'select' && intakePhotos.length > 0) {
+      const existingDevice = state.devices.find(d => d.id === deviceId);
+      const mergedImages = [...(existingDevice?.images || []), ...intakePhotos].slice(0, 4);
+      dispatch({ type: 'UPDATE_DEVICE', payload: { ...existingDevice, images: mergedImages } });
+    }
+
     const repair = {
       id: repairId,
       customer_id: customerId,
       device_id: deviceId,
       complaint,
+      internal_notes: internalNotes,
       warranty_type: warrantyType,
       status: REPAIR_STATUSES.RED_INTAKE,
       date_intake: new Date().toISOString(),
-      intake_photos: intakePhotos,
       intake_by_user_id: state.currentUser?.id,
       intake_by_name: state.currentUser?.name,
     };
     dispatch({ type: 'ADD_REPAIR', payload: repair });
     setSuccessRepair(repair);
+    setIsSubmitting(false);
   };
 
   const resetForm = () => {
@@ -116,15 +164,19 @@ export default function OfficeIntake() {
     setSelectedDeviceId('');
     setNewDevice({ type: '', brand: '', model: '', manufacturer_serial: '', purchase_date: '', warranty_until: '' });
     setComplaint('');
+    setInternalNotes('');
     setWarrantyType(WARRANTY_TYPES.PAID);
     setIntakePhotos([]);
     setDiagnosticFeeConfirmed(false);
     setSuccessRepair(null);
   };
 
+  const emailValid = !newCustomer.email || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newCustomer.email);
+  const phoneValid = /^[\d\s\-\+\(\)]{7,15}$/.test(newCustomer.phone.trim());
+
   const canProceedFromStep1 = customerMode === 'select'
     ? !!selectedCustomerId
-    : !!(newCustomer.name && newCustomer.phone);
+    : !!(newCustomer.name.trim() && newCustomer.phone.trim() && phoneValid && emailValid);
 
   const canProceedFromStep2 = deviceMode === 'select'
     ? !!selectedDeviceId
@@ -167,6 +219,18 @@ export default function OfficeIntake() {
               <Plus size={18} />
               קליטת קריאה נוספת
             </button>
+            {onNavigate && (
+              <button onClick={() => onNavigate('kanban')} className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-bold flex items-center gap-2">
+                <LayoutDashboard size={18} />
+                עבור ל-Kanban
+              </button>
+            )}
+            {onNavigate && (
+              <button onClick={() => onNavigate('repairs')} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-bold flex items-center gap-2">
+                <FileText size={18} />
+                רשימת קריאות
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -270,20 +334,30 @@ export default function OfficeIntake() {
                 onChange={(e) => setNewCustomer({ ...newCustomer, name: e.target.value })}
                 className="border border-slate-300 rounded-lg px-3 py-2 col-span-2"
               />
-              <input
-                type="tel"
-                placeholder="טלפון *"
-                value={newCustomer.phone}
-                onChange={(e) => setNewCustomer({ ...newCustomer, phone: e.target.value })}
-                className="border border-slate-300 rounded-lg px-3 py-2"
-              />
-              <input
-                type="email"
-                placeholder="מייל"
-                value={newCustomer.email}
-                onChange={(e) => setNewCustomer({ ...newCustomer, email: e.target.value })}
-                className="border border-slate-300 rounded-lg px-3 py-2"
-              />
+              <div>
+                <input
+                  type="tel"
+                  placeholder="טלפון *"
+                  value={newCustomer.phone}
+                  onChange={(e) => setNewCustomer({ ...newCustomer, phone: e.target.value })}
+                  className={`w-full border rounded-lg px-3 py-2 ${newCustomer.phone && !phoneValid ? 'border-red-400' : 'border-slate-300'}`}
+                />
+                {newCustomer.phone && !phoneValid && (
+                  <p className="text-xs text-red-500 mt-0.5">מספר טלפון לא תקין (ספרות בלבד)</p>
+                )}
+              </div>
+              <div>
+                <input
+                  type="email"
+                  placeholder="מייל"
+                  value={newCustomer.email}
+                  onChange={(e) => setNewCustomer({ ...newCustomer, email: e.target.value })}
+                  className={`w-full border rounded-lg px-3 py-2 ${newCustomer.email && !emailValid ? 'border-red-400' : 'border-slate-300'}`}
+                />
+                {newCustomer.email && !emailValid && (
+                  <p className="text-xs text-red-500 mt-0.5">כתובת מייל לא תקינה</p>
+                )}
+              </div>
               <input
                 type="text"
                 placeholder="כתובת"
@@ -354,7 +428,8 @@ export default function OfficeIntake() {
               <AutocompleteInput
                 value={newDevice.type}
                 onChange={val => setNewDevice({ ...newDevice, type: val })}
-                suggestions={[...new Set(state.devices.map(d => d.type).filter(Boolean))]}
+                onAddValue={val => dispatch({ type: 'ADD_FIELD_VALUE', payload: { field: 'deviceTypes', value: val } })}
+                suggestions={state.settings?.fieldLists?.deviceTypes || []}
                 placeholder="סוג מכשיר * (תנור קומבי, קוצץ ירקות)"
                 allowNew
                 className="col-span-2"
@@ -449,6 +524,18 @@ export default function OfficeIntake() {
             </div>
 
             <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1">הערות פנימיות</label>
+              <textarea
+                value={internalNotes}
+                onChange={(e) => setInternalNotes(e.target.value)}
+                placeholder="הערות לצוות הפנימי (לא יוצג ללקוח)..."
+                rows={2}
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+              />
+              <p className="text-xs text-slate-400 mt-0.5">לא מוצג ללקוח</p>
+            </div>
+
+            <div>
               <label className="block text-sm font-semibold text-slate-700 mb-2">
                 <ShieldCheck className="inline ml-1" size={16} />
                 סוג אחריות
@@ -487,27 +574,34 @@ export default function OfficeIntake() {
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-2">
                 <Camera className="inline ml-1" size={16} />
-                תמונות קליטה (מומלץ 4 מ-4 צדדים) *
+                תמונות מכשיר <span className="text-slate-400 font-normal">(עד {MAX_PHOTOS} תמונות)</span>
               </label>
               <div className="flex flex-wrap gap-2 items-center">
-                <label className="cursor-pointer bg-orange-50 hover:bg-orange-100 text-orange-700 font-semibold text-sm px-4 py-2 rounded-lg border border-orange-200">
-                  📁 בחר קבצים
-                  <input type="file" accept="image/*" multiple onChange={handlePhotoUpload} className="hidden" />
-                </label>
-                <label className="cursor-pointer bg-slate-800 hover:bg-slate-900 text-white font-semibold text-sm px-4 py-2 rounded-lg flex items-center gap-1">
-                  <Camera size={15} />
-                  צלם
-                  <input type="file" accept="image/*" capture="environment" onChange={handlePhotoUpload} className="hidden" />
-                </label>
+                {intakePhotos.length < MAX_PHOTOS && (
+                  <>
+                    <label className="cursor-pointer bg-orange-50 hover:bg-orange-100 text-orange-700 font-semibold text-sm px-4 py-2 rounded-lg border border-orange-200">
+                      📁 בחר קבצים
+                      <input type="file" accept="image/*" multiple onChange={handlePhotoUpload} className="hidden" />
+                    </label>
+                    <label className="cursor-pointer bg-slate-800 hover:bg-slate-900 text-white font-semibold text-sm px-4 py-2 rounded-lg flex items-center gap-1">
+                      <Camera size={15} />
+                      צלם
+                      <input type="file" accept="image/*" capture="environment" onChange={handlePhotoUpload} className="hidden" />
+                    </label>
+                  </>
+                )}
+                {intakePhotos.length >= MAX_PHOTOS && (
+                  <span className="text-sm text-slate-500">הגעת למקסימום {MAX_PHOTOS} תמונות</span>
+                )}
               </div>
               {intakePhotos.length > 0 && (
                 <div className="grid grid-cols-4 gap-2 mt-3">
                   {intakePhotos.map((photo, idx) => (
-                    <div key={idx} className="relative group">
+                    <div key={idx} className="relative">
                       <img src={photo} alt={`תמונה ${idx + 1}`} className="w-full h-20 object-cover rounded-lg border" />
                       <button
-                        onClick={() => removePhoto(idx)}
-                        className="absolute top-1 left-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100"
+                        onClick={() => setConfirmDeletePhoto(idx)}
+                        className="absolute top-1 left-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
                       >
                         ✕
                       </button>
@@ -515,7 +609,7 @@ export default function OfficeIntake() {
                   ))}
                 </div>
               )}
-              <p className="text-xs text-slate-500 mt-1">חובה לפחות תמונה אחת. מומלץ 4 תמונות.</p>
+              <p className="text-xs text-slate-500 mt-1">מומלץ לצלם 3-4 תמונות של המכשיר.</p>
             </div>
           </div>
 
@@ -559,6 +653,7 @@ export default function OfficeIntake() {
                 : newDevice.type}
             />
             <SummaryRow label="תלונה" value={complaint} />
+            {internalNotes && <SummaryRow label="הערות פנימיות" value={internalNotes} />}
             <SummaryRow label="סוג אחריות" value={WARRANTY_LABELS[warrantyType]} />
             <SummaryRow label="תמונות" value={`${intakePhotos.length} תמונות`} />
           </div>
@@ -569,14 +664,24 @@ export default function OfficeIntake() {
             </button>
             <button
               onClick={handleSave}
-              className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-lg font-bold shadow-md"
+              disabled={isSubmitting}
+              className="bg-green-600 hover:bg-green-700 disabled:bg-slate-400 text-white px-8 py-3 rounded-lg font-bold shadow-md"
             >
               <Check className="inline ml-1" size={20} />
-              צור קריאת תיקון
+              {isSubmitting ? 'שומר...' : 'צור קריאת תיקון'}
             </button>
           </div>
         </div>
       )}
+      <ConfirmDialog
+        open={confirmDeletePhoto !== null}
+        title="אישור מחיקה"
+        message="האם אתה בטוח שאתה רוצה למחוק את התמונה?"
+        confirmLabel="מחק"
+        variant="danger"
+        onConfirm={() => { removePhoto(confirmDeletePhoto); setConfirmDeletePhoto(null); }}
+        onCancel={() => setConfirmDeletePhoto(null)}
+      />
     </div>
   );
 }

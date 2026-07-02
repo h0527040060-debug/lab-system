@@ -1,29 +1,60 @@
-import { createContext, useContext, useReducer, useEffect, useCallback, useRef } from 'react';
+import { createContext, useContext, useReducer, useEffect, useCallback, useRef, useState } from 'react';
 import { storageKeys, loadFromStorage, saveToStorage, appendLog } from './storage';
+import { supabase, isSupabaseConfigured, loadAllFromDB, saveKeyToDB, saveAllToDB, STATE_TO_DB_KEY, DB_TO_STATE_KEY, GRANULAR_ENTITIES, PREFIX_TO_STATE_KEY } from './supabase';
 import {
   SEED_TECHNICIANS, SEED_SUPPLIERS, SEED_WORK_CATALOG,
-  SEED_SERVICES, SEED_PARTS, SEED_STOCK_BATCHES, SEED_SETTINGS,
+  SEED_SERVICES, SEED_PARTS, SEED_STOCK_BATCHES, SEED_SETTINGS, DEFAULT_FIELD_LISTS,
 } from '../data/seedData';
 import { DEFAULT_STATUS_CONFIG } from '../utils/statusConfig';
+import { useToast } from './ToastContext';
+
+export const DEFAULT_ROLE_CONFIG = {
+  office: {
+    visible_statuses: [
+      'red_intake','yellow_diagnosis','yellow_appeal','yellow_waiting_approval',
+      'yellow_ready_to_work','in_work','pending_release_docs',
+      'pending_payment','paid_waiting_pickup',
+    ],
+  },
+  lab: {
+    visible_statuses: ['yellow_ready_to_work','in_work','pending_release_docs'],
+  },
+};
 
 // ============================================================
 // STATE INITIAL
 // ============================================================
-// מוודא שיצחק הורוביץ הוא תמיד אדמין
 const OWNER_EMAIL = 'h0527040060@gmail.com';
 
-const ensureOwnerIsAdmin = (users) => {
+// משתמש הבעלים — קבוע בקוד, לא ניתן למחיקה לעולם
+const OWNER_USER = {
+  id: 'USR-OWNER',
+  name: 'יצחק הורוביץ',
+  email: OWNER_EMAIL,
+  password: '364646',
+  role: 'admin',
+  created_date: '2024-01-01T00:00:00.000Z',
+};
+
+// מוודא שהבעלים תמיד קיים ברשימת המשתמשים עם הרשאת אדמין
+const ensureOwnerExists = (users) => {
   const idx = users.findIndex(u => u.email.toLowerCase() === OWNER_EMAIL);
-  if (idx === -1) return users;
-  if (users[idx].role === 'admin') return users;
+  if (idx === -1) return [OWNER_USER, ...users];
+  const existing = users[idx];
+  if (existing.role === 'admin' && existing.id === OWNER_USER.id) return users;
   const updated = [...users];
-  updated[idx] = { ...updated[idx], role: 'admin' };
+  updated[idx] = { ...OWNER_USER, ...existing, role: 'admin', id: OWNER_USER.id };
   return updated;
 };
 
 const buildInitialState = () => {
-  const users = ensureOwnerIsAdmin(loadFromStorage(storageKeys.USERS, []));
   const rawCurrentUser = loadFromStorage(storageKeys.CURRENT_USER, null);
+  const storedUsers = loadFromStorage(storageKeys.USERS, []);
+  // אם מערך המשתמשים ריק אבל יש משתמש מחובר — הוסף אותו אוטומטית
+  const usersWithCurrent = (storedUsers.length === 0 && rawCurrentUser)
+    ? [rawCurrentUser]
+    : storedUsers;
+  const users = ensureOwnerExists(usersWithCurrent);
   // סנכרון currentUser עם הנתון המעודכן מ-users
   const currentUser = rawCurrentUser
     ? (users.find(u => u.id === rawCurrentUser.id) || rawCurrentUser)
@@ -41,10 +72,27 @@ const buildInitialState = () => {
     services:         loadFromStorage(storageKeys.SERVICES, SEED_SERVICES),
     technicians:      loadFromStorage(storageKeys.TECHNICIANS, SEED_TECHNICIANS),
     warrantyAppeals:  loadFromStorage(storageKeys.WARRANTY_APPEALS, []),
-    settings:         loadFromStorage(storageKeys.SETTINGS, SEED_SETTINGS),
+    settings:         (() => {
+      const s = loadFromStorage(storageKeys.SETTINGS, SEED_SETTINGS);
+      // הבטח שfieldLists קיים גם למשתמשים קיימים עם settings ישן
+      if (!s.fieldLists) return { ...s, fieldLists: DEFAULT_FIELD_LISTS };
+      // נקה ערכים שהם prefix של ערך אחר (אשפה מהקלדה חלקית)
+      const cleanedLists = {};
+      for (const [key, list] of Object.entries(s.fieldLists)) {
+        if (Array.isArray(list)) {
+          cleanedLists[key] = list.filter(v =>
+            !list.some(other => other !== v && other.startsWith(v))
+          );
+        } else {
+          cleanedLists[key] = list;
+        }
+      }
+      return { ...s, fieldLists: cleanedLists };
+    })(),
     currentUser,
     users,
     statusConfig:     loadFromStorage(storageKeys.STATUS_CONFIG, DEFAULT_STATUS_CONFIG),
+    roleConfig:       loadFromStorage(storageKeys.ROLE_CONFIG, DEFAULT_ROLE_CONFIG),
   };
 };
 
@@ -69,6 +117,7 @@ const appReducer = (state, action) => {
 
     // --- תיקונים ---
     case 'ADD_REPAIR':
+      if (state.repairs.some(r => r.id === action.payload.id)) return state;
       return { ...state, repairs: [...state.repairs, action.payload] };
     case 'UPDATE_REPAIR':
       return { ...state, repairs: state.repairs.map(r => r.id === action.payload.id ? { ...r, ...action.payload } : r) };
@@ -149,9 +198,43 @@ const appReducer = (state, action) => {
     case 'UPDATE_SETTINGS':
       return { ...state, settings: { ...state.settings, ...action.payload } };
 
+    // --- ניהול שדות (field lists) ---
+    case 'ADD_FIELD_VALUE': {
+      const { field, value } = action.payload;
+      const lists = state.settings.fieldLists || {};
+      const current = lists[field] || [];
+      if (current.includes(value)) return state;
+      return { ...state, settings: { ...state.settings, fieldLists: { ...lists, [field]: [...current, value] } } };
+    }
+    case 'RENAME_FIELD_VALUE': {
+      const { field, oldValue, newValue } = action.payload;
+      const lists = state.settings.fieldLists || {};
+      const current = lists[field] || [];
+      const updatedList = current.map(v => v === oldValue ? newValue : v);
+      // עדכון היסטוריה במכשירים
+      const updatedDevices = field === 'deviceTypes'
+        ? state.devices.map(d => d.type === oldValue ? { ...d, type: newValue } : d)
+        : state.devices;
+      return {
+        ...state,
+        devices: updatedDevices,
+        settings: { ...state.settings, fieldLists: { ...lists, [field]: updatedList } },
+      };
+    }
+    case 'DELETE_FIELD_VALUE': {
+      const { field, value } = action.payload;
+      const lists = state.settings.fieldLists || {};
+      const current = lists[field] || [];
+      return { ...state, settings: { ...state.settings, fieldLists: { ...lists, [field]: current.filter(v => v !== value) } } };
+    }
+
     // --- רשימת משתמשים ---
     case 'ADD_USER':
+      if (action.payload.email?.toLowerCase() === OWNER_EMAIL) return state;
       return { ...state, users: [...state.users, action.payload] };
+    case 'DELETE_USER':
+      if (action.payload === OWNER_USER.id || action.payload?.toLowerCase?.() === OWNER_EMAIL) return state;
+      return { ...state, users: state.users.filter(u => u.id !== action.payload) };
     case 'UPDATE_USER': {
       const updatedUsers = state.users.map(u => u.id === action.payload.id ? { ...u, ...action.payload } : u);
       const updatedCurrent = state.currentUser?.id === action.payload.id
@@ -168,11 +251,80 @@ const appReducer = (state, action) => {
     case 'DELETE_STATUS':
       return { ...state, statusConfig: state.statusConfig.filter(s => s.id !== action.payload) };
 
+    // --- קונפיגורציית תפקידים ---
+    case 'UPDATE_ROLE_CONFIG':
+      return { ...state, roleConfig: { ...state.roleConfig, ...action.payload } };
+
     // --- משתמש נוכחי ---
     case 'SET_CURRENT_USER':
       return { ...state, currentUser: action.payload };
     case 'LOGOUT':
       return { ...state, currentUser: null };
+
+    // --- עדכון entity בודד מ-Realtime (הוספה/עדכון) ---
+    case 'LOAD_ONE': {
+      const { key, data } = action.payload;
+      // ישות גרנולרית (prefix__id)
+      const prefixEntry = Object.entries(PREFIX_TO_STATE_KEY)
+        .find(([prefix]) => key.startsWith(prefix));
+      if (prefixEntry) {
+        const [, stateKey] = prefixEntry;
+        const arr = state[stateKey] || [];
+        const idx = arr.findIndex(item => item?.id === data?.id);
+        const newArr = idx >= 0
+          ? arr.map((item, i) => i === idx ? data : item)
+          : [...arr, data];
+        return { ...state, [stateKey]: newArr };
+      }
+      // ישות scalar (settings, users, statusConfig, roleConfig)
+      const scalarStateKey = DB_TO_STATE_KEY[key];
+      if (!scalarStateKey) return state;
+      return { ...state, [scalarStateKey]: data };
+    }
+
+    // --- מחיקת entity בודד מ-Realtime ---
+    case 'LOAD_ONE_DELETED': {
+      const { key } = action.payload;
+      const prefixEntry = Object.entries(PREFIX_TO_STATE_KEY)
+        .find(([prefix]) => key.startsWith(prefix));
+      if (!prefixEntry) return state;
+      const [prefix, stateKey] = prefixEntry;
+      const itemId = key.slice(prefix.length);
+      return {
+        ...state,
+        [stateKey]: (state[stateKey] || []).filter(item => item?.id !== itemId),
+      };
+    }
+
+    // --- טעינה מ-Supabase (payload ממופה לפי stateKey) ---
+    case 'LOAD_ALL': {
+      const p = action.payload;
+      const users = ensureOwnerExists(p.users ?? state.users);
+      const rawCurrentUser = state.currentUser;
+      const currentUser = rawCurrentUser
+        ? (users.find(u => u.id === rawCurrentUser.id) || rawCurrentUser)
+        : null;
+      return {
+        ...state,
+        customers:       p.customers       ?? state.customers,
+        devices:         p.devices         ?? state.devices,
+        repairs:         p.repairs         ?? state.repairs,
+        parts:           p.parts           ?? state.parts,
+        stockBatches:    p.stockBatches    ?? state.stockBatches,
+        suppliers:       p.suppliers       ?? state.suppliers,
+        purchaseOrders:  p.purchaseOrders  ?? state.purchaseOrders,
+        generalExpenses: p.generalExpenses ?? state.generalExpenses,
+        workCatalog:     p.workCatalog     ?? state.workCatalog,
+        services:        p.services        ?? state.services,
+        technicians:     p.technicians     ?? state.technicians,
+        warrantyAppeals: p.warrantyAppeals ?? state.warrantyAppeals,
+        settings:        p.settings        ?? state.settings,
+        users,
+        statusConfig:    p.statusConfig    ?? state.statusConfig,
+        roleConfig:      p.roleConfig      ?? state.roleConfig,
+        currentUser,
+      };
+    }
 
     default:
       return state;
@@ -249,6 +401,76 @@ const buildLogEntry = (action, currentUser, state) => {
 };
 
 // ============================================================
+// TOAST MESSAGES — הודעת פידבק לכל פעולה
+// ============================================================
+const TOAST_MESSAGES = {
+  ADD_REPAIR:              (p) => ({ msg: `קריאה ${p.id} נקלטה בהצלחה`, type: 'success' }),
+  UPDATE_REPAIR:           ()  => ({ msg: 'תיקון עודכן בהצלחה', type: 'success' }),
+  DELETE_REPAIR:           ()  => ({ msg: 'קריאה נמחקה', type: 'success' }),
+  ADD_CUSTOMER:            (p) => ({ msg: `לקוח "${p.name}" נוסף בהצלחה`, type: 'success' }),
+  UPDATE_CUSTOMER:         ()  => ({ msg: 'פרטי לקוח עודכנו', type: 'success' }),
+  DELETE_CUSTOMER:         ()  => ({ msg: 'לקוח נמחק', type: 'success' }),
+  ADD_DEVICE:              (p) => ({ msg: `מכשיר ${p.id} נרשם בהצלחה`, type: 'success' }),
+  UPDATE_DEVICE:           ()  => ({ msg: 'פרטי מכשיר עודכנו', type: 'success' }),
+  ADD_PART:                (p) => ({ msg: `חלק "${p.name || p.id}" נוסף למלאי`, type: 'success' }),
+  UPDATE_PART:             ()  => ({ msg: 'חלק עודכן בהצלחה', type: 'success' }),
+  DELETE_PART:             ()  => ({ msg: 'חלק נמחק', type: 'success' }),
+  ADD_STOCK_BATCH:         (p) => ({ msg: `אצווה ${p.id} נקלטה בהצלחה`, type: 'success' }),
+  UPDATE_STOCK_BATCH:      ()  => ({ msg: 'אצווה עודכנה', type: 'success' }),
+  UPDATE_STOCK_BATCHES_BULK: () => ({ msg: 'מלאי עודכן בהצלחה', type: 'success' }),
+  ADD_SUPPLIER:            (p) => ({ msg: `ספק "${p.name}" נוסף`, type: 'success' }),
+  UPDATE_SUPPLIER:         ()  => ({ msg: 'ספק עודכן', type: 'success' }),
+  DELETE_SUPPLIER:         ()  => ({ msg: 'ספק נמחק', type: 'success' }),
+  ADD_PURCHASE_ORDER:      (p) => ({ msg: `הזמנת רכש ${p.id} נוצרה`, type: 'success' }),
+  UPDATE_PURCHASE_ORDER:   ()  => ({ msg: 'הזמנת רכש עודכנה', type: 'success' }),
+  ADD_GENERAL_EXPENSE:     ()  => ({ msg: 'הוצאה נרשמה בהצלחה', type: 'success' }),
+  UPDATE_GENERAL_EXPENSE:  ()  => ({ msg: 'הוצאה עודכנה', type: 'success' }),
+  DELETE_GENERAL_EXPENSE:  ()  => ({ msg: 'הוצאה נמחקה', type: 'success' }),
+  ADD_WORK_ITEM:           (p) => ({ msg: `עבודה "${p.name || p.id}" נוספה לקטלוג`, type: 'success' }),
+  UPDATE_WORK_ITEM:        ()  => ({ msg: 'עבודה עודכנה בקטלוג', type: 'success' }),
+  DELETE_WORK_ITEM:        ()  => ({ msg: 'עבודה נמחקה מהקטלוג', type: 'success' }),
+  ADD_SERVICE:             (p) => ({ msg: `שירות "${p.name || p.id}" נוסף`, type: 'success' }),
+  UPDATE_SERVICE:          ()  => ({ msg: 'שירות עודכן', type: 'success' }),
+  ADD_TECHNICIAN:          (p) => ({ msg: `טכנאי "${p.name}" נוסף`, type: 'success' }),
+  UPDATE_TECHNICIAN:       ()  => ({ msg: 'טכנאי עודכן', type: 'success' }),
+  ADD_WARRANTY_APPEAL:     ()  => ({ msg: 'ערעור אחריות נפתח', type: 'success' }),
+  UPDATE_WARRANTY_APPEAL:  ()  => ({ msg: 'ערעור אחריות עודכן', type: 'success' }),
+  UPDATE_SETTINGS:         ()  => ({ msg: 'הגדרות נשמרו בהצלחה', type: 'success' }),
+  ADD_USER:                (p) => ({ msg: `משתמש "${p.name}" נוסף`, type: 'success' }),
+  UPDATE_USER:             ()  => ({ msg: 'פרטי משתמש עודכנו', type: 'success' }),
+  DELETE_USER:             ()  => ({ msg: 'משתמש נמחק', type: 'success' }),
+  ADD_STATUS:              (p) => ({ msg: `סטטוס "${p.label}" נוסף`, type: 'success' }),
+  UPDATE_STATUS:           ()  => ({ msg: 'סטטוס עודכן', type: 'success' }),
+  DELETE_STATUS:           ()  => ({ msg: 'סטטוס נמחק', type: 'success' }),
+  SET_CURRENT_USER:        (p) => ({ msg: `ברוך הבא, ${p?.name || ''}`, type: 'success' }),
+  LOGOUT:                  ()  => ({ msg: 'התנתקת מהמערכת', type: 'info' }),
+};
+
+// מיפוי: action → מפתח ה-storage שנשמר אחריו (לאימות שמירה אמיתי)
+const ACTION_TO_STORAGE_KEY = {
+  ADD_REPAIR: storageKeys.REPAIRS,              UPDATE_REPAIR: storageKeys.REPAIRS,
+  DELETE_REPAIR: storageKeys.REPAIRS,           ADD_CUSTOMER: storageKeys.CUSTOMERS,
+  UPDATE_CUSTOMER: storageKeys.CUSTOMERS,       DELETE_CUSTOMER: storageKeys.CUSTOMERS,
+  ADD_DEVICE: storageKeys.DEVICES,              UPDATE_DEVICE: storageKeys.DEVICES,
+  ADD_PART: storageKeys.PARTS,                  UPDATE_PART: storageKeys.PARTS,
+  DELETE_PART: storageKeys.PARTS,               ADD_STOCK_BATCH: storageKeys.STOCK_BATCHES,
+  UPDATE_STOCK_BATCH: storageKeys.STOCK_BATCHES, UPDATE_STOCK_BATCHES_BULK: storageKeys.STOCK_BATCHES,
+  ADD_SUPPLIER: storageKeys.SUPPLIERS,          UPDATE_SUPPLIER: storageKeys.SUPPLIERS,
+  DELETE_SUPPLIER: storageKeys.SUPPLIERS,       ADD_PURCHASE_ORDER: storageKeys.PURCHASE_ORDERS,
+  UPDATE_PURCHASE_ORDER: storageKeys.PURCHASE_ORDERS, ADD_GENERAL_EXPENSE: storageKeys.GENERAL_EXPENSES,
+  UPDATE_GENERAL_EXPENSE: storageKeys.GENERAL_EXPENSES, DELETE_GENERAL_EXPENSE: storageKeys.GENERAL_EXPENSES,
+  ADD_WORK_ITEM: storageKeys.WORK_CATALOG,      UPDATE_WORK_ITEM: storageKeys.WORK_CATALOG,
+  DELETE_WORK_ITEM: storageKeys.WORK_CATALOG,   ADD_SERVICE: storageKeys.SERVICES,
+  UPDATE_SERVICE: storageKeys.SERVICES,         ADD_TECHNICIAN: storageKeys.TECHNICIANS,
+  UPDATE_TECHNICIAN: storageKeys.TECHNICIANS,   ADD_WARRANTY_APPEAL: storageKeys.WARRANTY_APPEALS,
+  UPDATE_WARRANTY_APPEAL: storageKeys.WARRANTY_APPEALS, UPDATE_SETTINGS: storageKeys.SETTINGS,
+  ADD_USER: storageKeys.USERS,                  UPDATE_USER: storageKeys.USERS,
+  DELETE_USER: storageKeys.USERS,               ADD_STATUS: storageKeys.STATUS_CONFIG,
+  UPDATE_STATUS: storageKeys.STATUS_CONFIG,     DELETE_STATUS: storageKeys.STATUS_CONFIG,
+  SET_CURRENT_USER: storageKeys.CURRENT_USER,
+};
+
+// ============================================================
 // CONTEXT
 // ============================================================
 const AppContext = createContext(null);
@@ -258,38 +480,218 @@ const AppContext = createContext(null);
 // ============================================================
 export const AppProvider = ({ children }) => {
   const [state, dispatch] = useReducer(appReducer, null, buildInitialState);
+  const [dbLoading, setDbLoading] = useState(isSupabaseConfigured());
   const saveTimers = useRef({});
+  const initializedRef = useRef(false);
+  const pendingSavesRef = useRef(new Set());
+  const pendingToastRef = useRef(null); // { storageKey, message, type, duration }
+  // עוקב אחרי הערך הקודם של כל ישות גרנולרית — לחישוב ה-diff לפני שמירה
+  const prevGranularRef = useRef({});
+  const { showToast } = useToast();
 
-  // שמירה אוטומטית עם debounce של 500ms לכל מפתח
-  const scheduleSave = useCallback((key, value) => {
-    if (saveTimers.current[key]) clearTimeout(saveTimers.current[key]);
-    saveTimers.current[key] = setTimeout(() => {
-      saveToStorage(key, value);
+  // טעינה ראשונית מ-Supabase
+  useEffect(() => {
+    if (!isSupabaseConfigured()) return;
+    loadAllFromDB().then(dbData => {
+      if (dbData && Object.keys(dbData).length > 0) {
+        // Supabase מכיל נתונים — טען אותם ואתחל את prevGranularRef
+        Object.keys(GRANULAR_ENTITIES).forEach(stateKey => {
+          if (dbData[stateKey]) prevGranularRef.current[stateKey] = dbData[stateKey];
+        });
+        dispatch({ type: 'LOAD_ALL', payload: dbData });
+      } else {
+        // ראשון פעם — מגרר נתונים קיימים מ-localStorage ל-Supabase
+        const snapshot = {};
+        Object.keys(GRANULAR_ENTITIES).forEach(stateKey => {
+          if (Array.isArray(state[stateKey])) snapshot[stateKey] = state[stateKey];
+        });
+        Object.entries(STATE_TO_DB_KEY).forEach(([stateKey]) => {
+          if (state[stateKey] !== undefined) snapshot[stateKey] = state[stateKey];
+        });
+        // אתחל prevGranularRef עם הנתונים הנוכחיים כדי שהdiff הראשון יהיה נקי
+        Object.keys(GRANULAR_ENTITIES).forEach(stateKey => {
+          prevGranularRef.current[stateKey] = state[stateKey] || [];
+        });
+        if (Object.keys(snapshot).length > 0) saveAllToDB(snapshot);
+      }
+      initializedRef.current = true;
+      setDbLoading(false);
+    }).catch(() => {
+      initializedRef.current = true;
+      setDbLoading(false);
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Realtime — עדכון אוטומטי כשמשתמש אחר משנה נתונים
+  useEffect(() => {
+    if (!isSupabaseConfigured()) return;
+    const channel = supabase
+      .channel('lab_realtime')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'lab_data' },
+        (payload) => {
+          if (payload.eventType === 'DELETE') {
+            const key = payload.old?.key;
+            if (key && !pendingSavesRef.current.has(key)) {
+              dispatch({ type: 'LOAD_ONE_DELETED', payload: { key } });
+            }
+            return;
+          }
+          if (payload.new?.key && payload.new?.data !== undefined) {
+            if (!pendingSavesRef.current.has(payload.new.key)) {
+              dispatch({ type: 'LOAD_ONE', payload: { key: payload.new.key, data: payload.new.data } });
+            }
+          }
+        }
+      )
+      .subscribe();
+    return () => supabase.removeChannel(channel);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // שמירה גרנולרית לSupabase — מחשב diff ושומר רק מה שהשתנה
+  const scheduleGranularSave = useCallback((stateKey, newItems) => {
+    if (!isSupabaseConfigured() || !initializedRef.current) return;
+    const prefix = GRANULAR_ENTITIES[stateKey];
+    if (!prefix) return;
+
+    const prevItems = prevGranularRef.current[stateKey] || [];
+    prevGranularRef.current[stateKey] = newItems; // עדכן מיד לdiff הבא
+
+    const timerKey = `g_${stateKey}`;
+    if (saveTimers.current[timerKey]) clearTimeout(saveTimers.current[timerKey]);
+
+    saveTimers.current[timerKey] = setTimeout(() => {
+      if (!supabase) return;
+      const now = new Date().toISOString();
+      const prevMap = new Map((prevItems || []).filter(i => i?.id).map(i => [i.id, i]));
+      const newMap = new Map((newItems || []).filter(i => i?.id).map(i => [i.id, i]));
+
+      // פריטים שנוספו או שונו
+      const toUpsert = [];
+      for (const [id, item] of newMap) {
+        const prev = prevMap.get(id);
+        if (!prev || JSON.stringify(prev) !== JSON.stringify(item)) {
+          toUpsert.push(item);
+        }
+      }
+
+      // פריטים שנמחקו
+      const toDeleteIds = [];
+      for (const [id] of prevMap) {
+        if (!newMap.has(id)) toDeleteIds.push(id);
+      }
+
+      if (toUpsert.length > 0) {
+        const rows = toUpsert.map(item => ({
+          key: `${prefix}${item.id}`,
+          data: item,
+          updated_at: now,
+        }));
+        rows.forEach(r => pendingSavesRef.current.add(r.key));
+        supabase.from('lab_data').upsert(rows, { onConflict: 'key' })
+          .then(({ error }) => {
+            if (error) console.error(`Granular save error [${stateKey}]:`, error);
+          })
+          .finally(() => rows.forEach(r => pendingSavesRef.current.delete(r.key)));
+      }
+
+      if (toDeleteIds.length > 0) {
+        toDeleteIds.forEach(id => {
+          const key = `${prefix}${id}`;
+          pendingSavesRef.current.add(key);
+          supabase.from('lab_data').delete().eq('key', key)
+            .then(({ error }) => {
+              if (error) console.error(`Granular delete error [${key}]:`, error);
+            })
+            .finally(() => pendingSavesRef.current.delete(key));
+        });
+      }
     }, 500);
   }, []);
 
-  useEffect(() => { scheduleSave(storageKeys.CUSTOMERS, state.customers); }, [state.customers, scheduleSave]);
-  useEffect(() => { scheduleSave(storageKeys.DEVICES, state.devices); }, [state.devices, scheduleSave]);
-  useEffect(() => { scheduleSave(storageKeys.REPAIRS, state.repairs); }, [state.repairs, scheduleSave]);
-  useEffect(() => { scheduleSave(storageKeys.PARTS, state.parts); }, [state.parts, scheduleSave]);
-  useEffect(() => { scheduleSave(storageKeys.STOCK_BATCHES, state.stockBatches); }, [state.stockBatches, scheduleSave]);
-  useEffect(() => { scheduleSave(storageKeys.SUPPLIERS, state.suppliers); }, [state.suppliers, scheduleSave]);
-  useEffect(() => { scheduleSave(storageKeys.PURCHASE_ORDERS, state.purchaseOrders); }, [state.purchaseOrders, scheduleSave]);
-  useEffect(() => { scheduleSave(storageKeys.GENERAL_EXPENSES, state.generalExpenses); }, [state.generalExpenses, scheduleSave]);
-  useEffect(() => { scheduleSave(storageKeys.WORK_CATALOG, state.workCatalog); }, [state.workCatalog, scheduleSave]);
-  useEffect(() => { scheduleSave(storageKeys.SERVICES, state.services); }, [state.services, scheduleSave]);
-  useEffect(() => { scheduleSave(storageKeys.TECHNICIANS, state.technicians); }, [state.technicians, scheduleSave]);
-  useEffect(() => { scheduleSave(storageKeys.WARRANTY_APPEALS, state.warrantyAppeals); }, [state.warrantyAppeals, scheduleSave]);
-  useEffect(() => { scheduleSave(storageKeys.SETTINGS, state.settings); }, [state.settings, scheduleSave]);
-  useEffect(() => { scheduleSave(storageKeys.CURRENT_USER, state.currentUser); }, [state.currentUser, scheduleSave]);
-  useEffect(() => { scheduleSave(storageKeys.USERS, state.users); }, [state.users, scheduleSave]);
-  useEffect(() => { scheduleSave(storageKeys.STATUS_CONFIG, state.statusConfig); }, [state.statusConfig, scheduleSave]);
+  // שמירה אוטומטית עם debounce של 500ms לכל מפתח (localStorage + Supabase scalar)
+  const scheduleSave = useCallback((storageKey, value, dbKey) => {
+    const timerKey = storageKey;
+    if (saveTimers.current[timerKey]) clearTimeout(saveTimers.current[timerKey]);
+    // כשSupabase מוגדר, אל תשמור מערכים גדולים ב-localStorage (הם כבר ב-Supabase)
+    const skipLocalStorage = Array.isArray(value) && isSupabaseConfigured() && initializedRef.current;
+    const saved = skipLocalStorage ? true : saveToStorage(storageKey, value);
+
+    // הצג טוסט אם זו השמירה הרלוונטית לפעולה האחרונה
+    const pending = pendingToastRef.current;
+    if (pending && pending.storageKey === storageKey) {
+      pendingToastRef.current = null;
+      if (saved) {
+        showToast(pending.message, pending.type, pending.duration || 2000);
+      } else {
+        showToast('שגיאה: הנתונים לא נשמרו — נסה שנית', 'error', 4000);
+      }
+    }
+
+    if (dbKey && isSupabaseConfigured() && initializedRef.current) {
+      pendingSavesRef.current.add(dbKey);
+      saveTimers.current[timerKey] = setTimeout(() => {
+        saveKeyToDB(dbKey, value).finally(() => {
+          pendingSavesRef.current.delete(dbKey);
+        });
+      }, 500);
+    } else {
+      saveTimers.current[timerKey] = setTimeout(() => {}, 0);
+    }
+  }, [showToast]);
+
+  // ישויות גרנולריות — localStorage + שמירה גרנולרית לSupabase
+  useEffect(() => { scheduleSave(storageKeys.CUSTOMERS, state.customers, null); scheduleGranularSave('customers', state.customers); }, [state.customers, scheduleSave, scheduleGranularSave]);
+  useEffect(() => { scheduleSave(storageKeys.DEVICES, state.devices, null); scheduleGranularSave('devices', state.devices); }, [state.devices, scheduleSave, scheduleGranularSave]);
+  useEffect(() => { scheduleSave(storageKeys.REPAIRS, state.repairs, null); scheduleGranularSave('repairs', state.repairs); }, [state.repairs, scheduleSave, scheduleGranularSave]);
+  useEffect(() => { scheduleSave(storageKeys.PARTS, state.parts, null); scheduleGranularSave('parts', state.parts); }, [state.parts, scheduleSave, scheduleGranularSave]);
+  useEffect(() => { scheduleSave(storageKeys.STOCK_BATCHES, state.stockBatches, null); scheduleGranularSave('stockBatches', state.stockBatches); }, [state.stockBatches, scheduleSave, scheduleGranularSave]);
+  useEffect(() => { scheduleSave(storageKeys.SUPPLIERS, state.suppliers, null); scheduleGranularSave('suppliers', state.suppliers); }, [state.suppliers, scheduleSave, scheduleGranularSave]);
+  useEffect(() => { scheduleSave(storageKeys.PURCHASE_ORDERS, state.purchaseOrders, null); scheduleGranularSave('purchaseOrders', state.purchaseOrders); }, [state.purchaseOrders, scheduleSave, scheduleGranularSave]);
+  useEffect(() => { scheduleSave(storageKeys.GENERAL_EXPENSES, state.generalExpenses, null); scheduleGranularSave('generalExpenses', state.generalExpenses); }, [state.generalExpenses, scheduleSave, scheduleGranularSave]);
+  useEffect(() => { scheduleSave(storageKeys.WORK_CATALOG, state.workCatalog, null); scheduleGranularSave('workCatalog', state.workCatalog); }, [state.workCatalog, scheduleSave, scheduleGranularSave]);
+  useEffect(() => { scheduleSave(storageKeys.SERVICES, state.services, null); scheduleGranularSave('services', state.services); }, [state.services, scheduleSave, scheduleGranularSave]);
+  useEffect(() => { scheduleSave(storageKeys.TECHNICIANS, state.technicians, null); scheduleGranularSave('technicians', state.technicians); }, [state.technicians, scheduleSave, scheduleGranularSave]);
+  useEffect(() => { scheduleSave(storageKeys.WARRANTY_APPEALS, state.warrantyAppeals, null); scheduleGranularSave('warrantyAppeals', state.warrantyAppeals); }, [state.warrantyAppeals, scheduleSave, scheduleGranularSave]);
+  useEffect(() => { scheduleSave(storageKeys.SETTINGS, state.settings, STATE_TO_DB_KEY.settings); }, [state.settings, scheduleSave]);
+  useEffect(() => { scheduleSave(storageKeys.CURRENT_USER, state.currentUser, null); }, [state.currentUser, scheduleSave]);
+  useEffect(() => { scheduleSave(storageKeys.USERS, state.users, null); scheduleGranularSave('users', state.users); }, [state.users, scheduleSave, scheduleGranularSave]);
+  useEffect(() => { scheduleSave(storageKeys.STATUS_CONFIG, state.statusConfig, STATE_TO_DB_KEY.statusConfig); }, [state.statusConfig, scheduleSave]);
+  useEffect(() => { scheduleSave(storageKeys.ROLE_CONFIG, state.roleConfig, STATE_TO_DB_KEY.roleConfig); }, [state.roleConfig, scheduleSave]);
 
   const loggedDispatch = useCallback((action) => {
     dispatch(action);
     const entry = buildLogEntry(action, state.currentUser, state);
     if (entry) appendLog(entry);
-  }, [dispatch, state]);
+
+    // הכן טוסט — יופיע לאחר אימות שמירה ב-localStorage
+    const toastFn = TOAST_MESSAGES[action.type];
+    if (toastFn) {
+      const { msg, type } = toastFn(action.payload);
+      const storageKey = ACTION_TO_STORAGE_KEY[action.type];
+      if (storageKey) {
+        // המתן לאישור שמירה ב-scheduleSave
+        pendingToastRef.current = { storageKey, message: msg, type };
+      } else {
+        // פעולות ללא storage (LOGOUT) — הצג מיד
+        showToast(msg, type);
+      }
+    }
+  }, [dispatch, state, showToast]);
+
+  if (dbLoading) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-white font-semibold text-lg">מתחבר למסד הנתונים...</p>
+          <p className="text-slate-400 text-sm mt-1">טוען נתונים מהשרת</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <AppContext.Provider value={{ state, dispatch: loggedDispatch }}>

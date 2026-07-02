@@ -19,7 +19,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { useAppContext } from '../../store/AppContext';
 import { loadFromStorage, saveToStorage } from '../../store/storage';
-import { REPAIR_STATUSES } from '../../constants/statuses';
+import { REPAIR_STATUSES, STATUS_LABELS, TRANSITION_REQUIREMENTS, TERMINAL_STATUSES } from '../../constants/statuses';
 import { getStatusDisplay } from '../../utils/statusConfig';
 import { formatDateTime } from '../../utils/formatters';
 import WhatsAppButton from '../../components/WhatsAppButton';
@@ -30,7 +30,7 @@ import RepairDetailModal from '../../components/RepairDetailModal';
 import FloatingScrollbar from '../../components/FloatingScrollbar';
 import {
   Stethoscope, Wrench, Camera, RotateCcw, Search,
-  ChevronLeft, ChevronRight, GripVertical, MoreVertical, Pencil,
+  ChevronLeft, ChevronRight, GripVertical, MoreVertical,
 } from 'lucide-react';
 
 const DEFAULT_COLUMNS = {
@@ -43,6 +43,7 @@ const DEFAULT_COLUMNS = {
     REPAIR_STATUSES.IN_WORK,
     REPAIR_STATUSES.PENDING_RELEASE_DOCS,
     REPAIR_STATUSES.PENDING_PAYMENT,
+    REPAIR_STATUSES.PAID_WAITING_PICKUP,
   ],
   lab: [
     REPAIR_STATUSES.YELLOW_READY_TO_WORK,
@@ -66,6 +67,8 @@ const getActionForStatus = (status) => {
     return 'work';
   if (status === REPAIR_STATUSES.PENDING_RELEASE_DOCS)
     return 'docs';
+  if (status === REPAIR_STATUSES.PAID_WAITING_PICKUP)
+    return 'pickup';
   return null;
 };
 
@@ -99,10 +102,10 @@ function CardMenu({ repair, customer, device, onAction, onOpenDetail }) {
     <div ref={ref} className="relative">
       <button
         onClick={(e) => { e.stopPropagation(); setOpen(o => !o); }}
-        className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+        className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
         title="פעולות"
       >
-        <MoreVertical size={16} />
+        <MoreVertical size={14} />
       </button>
 
       {open && (
@@ -136,6 +139,14 @@ function CardMenu({ repair, customer, device, onAction, onOpenDetail }) {
               onClick={() => { setOpen(false); onAction(repair.id, 'docs'); }}
             >
               <Camera size={11} /> תיעוד
+            </button>
+          )}
+          {action === 'pickup' && (
+            <button
+              className="w-full px-3 py-2 text-xs text-green-800 hover:bg-green-50 text-right flex items-center gap-2"
+              onClick={() => { setOpen(false); onAction(repair.id, 'pickup'); }}
+            >
+              <span>✅</span> סמן כנמסר
             </button>
           )}
           <div className="border-t border-slate-100 mt-1 pt-1 px-2">
@@ -179,18 +190,8 @@ function KanbanCard({ repair, customer, device, isDragging, onAction, onOpenDeta
           </div>
         </div>
         <p className="font-semibold text-sm text-slate-800 truncate">{customer?.name || '—'}</p>
-        <p className="text-xs text-slate-500 truncate">{device?.brand} {device?.model}</p>
-        {repair.complaint && (
-          <p className="text-xs text-slate-600 mt-1.5 line-clamp-2 leading-relaxed">{repair.complaint}</p>
-        )}
-        <div className="flex gap-1 mt-2 flex-wrap items-center" onClick={e => e.stopPropagation()}>
-          {/* כפתור עריכה/פרטים תמיד גלוי */}
-          <button
-            onClick={() => onOpenDetail(repair.id)}
-            className="flex items-center gap-1 text-xs bg-slate-100 hover:bg-orange-100 text-slate-600 hover:text-orange-700 px-2 py-1 rounded-lg font-semibold border border-slate-200 hover:border-orange-300 transition-colors"
-          >
-            <Pencil size={11} /> עריכה
-          </button>
+        <p className="text-sm font-bold text-slate-800 truncate">{device?.brand} {device?.model}</p>
+        <div className="flex gap-1 mt-2 flex-wrap" onClick={e => e.stopPropagation()}>
           <WhatsAppButton repair={repair} customer={customer} device={device} type="customer" />
           {action === 'diagnosis' && (
             <button
@@ -274,7 +275,7 @@ function KanbanColumn({ statusId, repairs, customers, devices, collapsed, onTogg
   if (collapsed) {
     return (
       <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }}
-        className="flex flex-col items-center gap-2 w-12 flex-shrink-0">
+        className="flex flex-col items-center gap-2 w-12 flex-shrink-0 self-start">
         <div className={`w-full rounded-xl ${statusDisplay.bg} ${statusDisplay.border} border p-2 flex flex-col items-center gap-1 cursor-pointer`}
           onClick={onToggleCollapse} title={statusDisplay.label}>
           <span className="text-base">{statusDisplay.emoji}</span>
@@ -305,7 +306,7 @@ function KanbanColumn({ statusId, repairs, customers, devices, collapsed, onTogg
       </div>
 
       <SortableContext items={cardIds} strategy={verticalListSortingStrategy}>
-        <div className="flex flex-col gap-2 overflow-y-auto flex-1 min-h-20 pb-2 pr-0.5" style={{ maxHeight: 'calc(100vh - 200px)' }}>
+        <div className="flex flex-col gap-2 overflow-y-auto flex-1 min-h-0 pb-2 pr-0.5">
           {repairs.map(r => {
             const customer = customers.find(c => c.id === r.customer_id);
             const device = devices.find(d => d.id === r.device_id);
@@ -328,9 +329,23 @@ export default function KanbanBoard({ role = 'office' }) {
   const effectiveRole = role === 'admin' ? 'office' : role;
   const storageKey = 'kanban_columns_' + effectiveRole;
 
-  const [columnOrder, setColumnOrder] = useState(() =>
-    loadFromStorage(storageKey, DEFAULT_COLUMNS[effectiveRole] || DEFAULT_COLUMNS.office)
-  );
+  const [columnOrder, setColumnOrder] = useState(() => {
+    const adminAllowed = state.roleConfig?.[effectiveRole]?.visible_statuses ?? null;
+    const saved = loadFromStorage(storageKey, null);
+    const base = saved ?? adminAllowed ?? DEFAULT_COLUMNS[effectiveRole] ?? DEFAULT_COLUMNS.office;
+    return adminAllowed ? base.filter(s => adminAllowed.includes(s)) : base;
+  });
+
+  // עדכן עמודות כשהאדמין משנה roleConfig
+  useEffect(() => {
+    const adminAllowed = state.roleConfig?.[effectiveRole]?.visible_statuses;
+    if (!adminAllowed) return;
+    setColumnOrder(prev => {
+      const filtered = prev.filter(s => adminAllowed.includes(s));
+      const missing = adminAllowed.filter(s => !prev.includes(s));
+      return [...filtered, ...missing];
+    });
+  }, [state.roleConfig, effectiveRole]);
   const [collapsed, setCollapsed] = useState({});
   const [search, setSearch] = useState('');
   const [sortMode, setSortMode] = useState('newest');
@@ -338,6 +353,7 @@ export default function KanbanBoard({ role = 'office' }) {
   const [activeType, setActiveType] = useState(null);
   const [activeModal, setActiveModal] = useState(null);
   const [activeRepairId, setActiveRepairId] = useState(null);
+  const [pendingTransition, setPendingTransition] = useState(null);
   const [detailRepairId, setDetailRepairId] = useState(null);
   const columnsRef = useRef(null);
 
@@ -401,6 +417,23 @@ export default function KanbanBoard({ role = 'office' }) {
     saveToStorage('kanban_card_order_' + statusId, ids);
   }, []);
 
+  const executeTransition = (active, over, toStatus) => {
+    dispatch({ type: 'UPDATE_REPAIR', payload: { id: active.id, status: toStatus } });
+    const fromStatus = active.data.current?.statusId;
+    const destIds = (columnRepairs[toStatus] || []).map(r => r.id);
+    const overIdx = destIds.indexOf(over.id);
+    const insertIdx = overIdx >= 0 ? overIdx : destIds.length;
+    saveCardOrder(toStatus, [...destIds.slice(0, insertIdx), active.id, ...destIds.slice(insertIdx)]);
+    saveCardOrder(fromStatus, (columnRepairs[fromStatus] || []).map(r => r.id).filter(id => id !== active.id));
+  };
+
+  const confirmTransition = () => {
+    if (!pendingTransition) return;
+    const { active, over, toStatus } = pendingTransition;
+    executeTransition(active, over, toStatus);
+    setPendingTransition(null);
+  };
+
   const handleDragStart = ({ active }) => {
     setActiveId(active.id);
     setActiveType(active.data.current?.type);
@@ -425,7 +458,9 @@ export default function KanbanBoard({ role = 'office' }) {
 
     if (activeData?.type === 'card') {
       const fromStatus = activeData.statusId;
-      let toStatus = overData?.statusId || overData?.id;
+      // זיהוי עמודת היעד: גרירה מעל כרטיס (overData.statusId) או מעל עמודה ריקה (over.id = statusId)
+      let toStatus = overData?.statusId
+        || (overData?.type === 'column' ? over.id : null);
       if (!toStatus || !columnOrder.includes(toStatus)) {
         const overRepair = state.repairs.find(r => r.id === over.id);
         toStatus = overRepair?.status || fromStatus;
@@ -440,17 +475,28 @@ export default function KanbanBoard({ role = 'office' }) {
           setSortMode('manual');
         }
       } else {
-        dispatch({ type: 'UPDATE_REPAIR', payload: { id: active.id, status: toStatus } });
-        const destIds = (columnRepairs[toStatus] || []).map(r => r.id);
-        const overIdx = destIds.indexOf(over.id);
-        const insertIdx = overIdx >= 0 ? overIdx : destIds.length;
-        saveCardOrder(toStatus, [...destIds.slice(0, insertIdx), active.id, ...destIds.slice(insertIdx)]);
-        saveCardOrder(fromStatus, columnRepairs[fromStatus].map(r => r.id).filter(id => id !== active.id));
+        const repair = state.repairs.find(r => r.id === active.id);
+        const requirements = TRANSITION_REQUIREMENTS[toStatus] ?? [];
+        const missingFields = requirements.filter(r => !repair?.[r.field]);
+        const isFromTerminal = TERMINAL_STATUSES.has(fromStatus);
+
+        if (missingFields.length > 0 || isFromTerminal) {
+          setPendingTransition({ active, over, fromStatus, toStatus, missingFields, isFromTerminal });
+          return;
+        }
+        executeTransition(active, over, toStatus);
       }
     }
   };
 
-  const handleAction = (repairId, modal) => { setActiveRepairId(repairId); setActiveModal(modal); };
+  const handleAction = (repairId, modal) => {
+    if (modal === 'pickup') {
+      dispatch({ type: 'UPDATE_REPAIR', payload: { id: repairId, status: REPAIR_STATUSES.GREEN_COMPLETE, released_at: new Date().toISOString() } });
+      return;
+    }
+    setActiveRepairId(repairId);
+    setActiveModal(modal);
+  };
   const handleOpenDetail = (repairId) => setDetailRepairId(repairId);
   const toggleCollapse = (statusId) => setCollapsed(prev => ({ ...prev, [statusId]: !prev[statusId] }));
   const resetOrder = () => saveColumnOrder(DEFAULT_COLUMNS[effectiveRole] || DEFAULT_COLUMNS.office);
@@ -462,6 +508,7 @@ export default function KanbanBoard({ role = 'office' }) {
   const draggedRepair = activeId && activeType === 'card' ? state.repairs.find(r => r.id === activeId) : null;
   const draggedCustomer = draggedRepair ? state.customers.find(c => c.id === draggedRepair.customer_id) : null;
   const draggedDevice = draggedRepair ? state.devices.find(d => d.id === draggedRepair.device_id) : null;
+
 
   return (
     <div className="flex flex-col h-full -m-6 p-4">
@@ -548,6 +595,42 @@ export default function KanbanBoard({ role = 'office' }) {
         />
       )}
       <FloatingScrollbar targetRef={columnsRef} />
+
+      {/* דיאלוג אזהרת מעבר סטטוס */}
+      {pendingTransition && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center" onClick={() => setPendingTransition(null)}>
+          <div className="bg-white rounded-xl shadow-xl p-6 max-w-sm w-full mx-4 text-right" onClick={e => e.stopPropagation()}>
+            <h3 className="font-bold text-lg mb-1">מעבר סטטוס</h3>
+            <p className="text-sm text-slate-500 mb-4">
+              {STATUS_LABELS[pendingTransition.fromStatus]} ← {STATUS_LABELS[pendingTransition.toStatus]}
+            </p>
+            {pendingTransition.isFromTerminal && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-3 text-sm text-red-700">
+                ⚠️ הסטטוס הנוכחי הוא <strong>סופי</strong> — האם להחזיר את התיקון למסלול?
+              </div>
+            )}
+            {pendingTransition.missingFields.length > 0 && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3">
+                <p className="text-sm font-semibold text-amber-800 mb-1">חסר מידע נדרש לשלב זה:</p>
+                <ul className="text-sm text-amber-700 list-disc list-inside space-y-0.5">
+                  {pendingTransition.missingFields.map(f => <li key={f.field}>{f.label}</li>)}
+                </ul>
+              </div>
+            )}
+            <p className="text-xs text-slate-500 mb-4">ניתן להעביר בכל זאת ולהשלים את המידע לאחר מכן.</p>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setPendingTransition(null)}
+                className="px-4 py-2 rounded-lg border border-slate-300 hover:bg-slate-100 text-sm"
+              >ביטול</button>
+              <button
+                onClick={confirmTransition}
+                className="px-4 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 text-white font-semibold text-sm"
+              >עבור בכל זאת</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -15,7 +15,8 @@ import CustomerQuickModal from '../../components/CustomerQuickModal';
 import DeviceQuickModal from '../../components/DeviceQuickModal';
 import StatusPickerPopover from '../../components/StatusPickerPopover';
 import WhatsAppButton from '../../components/WhatsAppButton';
-import { FileText, Stethoscope, Wrench, Camera, Printer } from 'lucide-react';
+import { FileText, Stethoscope, Wrench, Camera, Printer, Edit2 } from 'lucide-react';
+import { RepairEditModal } from '../../components/RepairEditModal';
 
 const getActionForStatus = (status) => {
   if ([REPAIR_STATUSES.RED_INTAKE, REPAIR_STATUSES.YELLOW_DIAGNOSIS, REPAIR_STATUSES.YELLOW_APPEAL].includes(status))
@@ -37,6 +38,7 @@ export default function OfficeRepairsList() {
   const [quickCustomer, setQuickCustomer] = useState(null);
   const [quickDevice, setQuickDevice] = useState(null);
   const [statusPickerRepairId, setStatusPickerRepairId] = useState(null);
+  const [editRepair, setEditRepair] = useState(null);
 
   const activeRepair = activeRepairId ? state.repairs.find(r => r.id === activeRepairId) : null;
   const statusPickerRepair = statusPickerRepairId ? state.repairs.find(r => r.id === statusPickerRepairId) : null;
@@ -179,6 +181,13 @@ export default function OfficeRepairsList() {
                           >
                             <Printer size={13} /> QR
                           </button>
+                          <button
+                            onClick={() => setEditRepair(r)}
+                            className="flex items-center gap-1 text-xs bg-slate-100 hover:bg-orange-100 text-slate-700 hover:text-orange-700 px-2 py-1 rounded-lg font-semibold"
+                            title="עריכה"
+                          >
+                            <Edit2 size={13} /> עריכה
+                          </button>
                           <WhatsAppButton repair={r} customer={customer} device={device} type="customer" />
                           {getActionForStatus(r.status) === 'diagnosis' && (
                             <button
@@ -215,6 +224,9 @@ export default function OfficeRepairsList() {
         )}
       </div>
 
+      {editRepair && (
+        <RepairEditModal repair={editRepair} onClose={() => setEditRepair(null)} />
+      )}
       {activeRepair && activeModal === 'diagnosis' && (
         <DiagnosisModal repair={activeRepair} onClose={closeModal} />
       )}

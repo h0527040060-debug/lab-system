@@ -18,6 +18,7 @@ export const storageKeys = {
   CURRENT_USER: 'current_user',
   USERS: 'users',
   STATUS_CONFIG: 'status_config',
+  ROLE_CONFIG: 'role_config',
 };
 
 // טעינה
@@ -38,7 +39,13 @@ export const saveToStorage = (key, value) => {
     localStorage.setItem(STORAGE_PREFIX + key, JSON.stringify(value));
     return true;
   } catch (error) {
-    console.error(`Failed to save ${key} to localStorage:`, error);
+    if (error.name === 'QuotaExceededError' || error.code === 22) {
+      console.error('localStorage מלא — לא ניתן לשמור נתונים. נסה להקטין גודל תמונות או לנקות נתונים ישנים.');
+      // הצג התראה גלובלית
+      window.dispatchEvent(new CustomEvent('storage-quota-exceeded', { detail: { key } }));
+    } else {
+      console.error(`Failed to save ${key} to localStorage:`, error);
+    }
     return false;
   }
 };
@@ -102,11 +109,52 @@ export const appendLog = (entry) => {
     const current = loadLogs();
     const updated = [entry, ...current].slice(0, MAX_LOGS);
     localStorage.setItem(LOGS_KEY, JSON.stringify(updated));
-  } catch {
-    // שגיאת שמירה — לא קריטי
+  } catch (error) {
+    if (error.name === 'QuotaExceededError' || error.code === 22) {
+      // נסה לשמור רק לוגים אחרונים כדי לפנות מקום
+      try {
+        const trimmed = loadLogs().slice(0, 100);
+        localStorage.setItem(LOGS_KEY, JSON.stringify([entry, ...trimmed]));
+      } catch {
+        // אם עדיין נכשל — דלג בשקט
+      }
+    }
   }
 };
 
 export const clearLogs = () => {
   localStorage.removeItem(LOGS_KEY);
+};
+
+// חישוב שימוש באחסון לפי מפתח
+export const getStorageUsage = () => {
+  const usage = {};
+  let total = 0;
+  Object.keys(localStorage).forEach(key => {
+    if (key.startsWith(STORAGE_PREFIX)) {
+      const size = (localStorage.getItem(key) || '').length * 2; // UTF-16 bytes
+      const cleanKey = key.replace(STORAGE_PREFIX, '');
+      usage[cleanKey] = size;
+      total += size;
+    }
+  });
+  return { usage, total };
+};
+
+// מסיר שדות תמונה מ-object (רקורסיבי)
+const IMAGE_FIELDS = ['image', 'images', 'photo', 'photos', 'appealEvidence', 'thumbnail'];
+export const stripImagesFromObject = (obj) => {
+  if (Array.isArray(obj)) return obj.map(stripImagesFromObject);
+  if (obj && typeof obj === 'object') {
+    const result = {};
+    for (const [k, v] of Object.entries(obj)) {
+      if (IMAGE_FIELDS.includes(k)) {
+        result[k] = Array.isArray(v) ? [] : null;
+      } else {
+        result[k] = stripImagesFromObject(v);
+      }
+    }
+    return result;
+  }
+  return obj;
 };

@@ -5,13 +5,17 @@ import SearchInput from '../../components/SearchInput';
 import EmptyState from '../../components/EmptyState';
 import { formatDateTime } from '../../utils/formatters';
 import DeviceQuickModal from '../../components/DeviceQuickModal';
-import { Users, Phone, Mail, MapPin, Wrench, FileText } from 'lucide-react';
+import { CustomerEditModal } from '../../components/CustomerEditModal';
+import { DeviceEditModal } from '../../components/DeviceEditModal';
+import { Users, Phone, Mail, MapPin, Wrench, FileText, Edit2 } from 'lucide-react';
 
 export default function OfficeCustomers() {
   const { state } = useAppContext();
   const [search, setSearch] = useState('');
   const [selectedCustomerId, setSelectedCustomerId] = useState(null);
   const [quickDevice, setQuickDevice] = useState(null);
+  const [editingCustomer, setEditingCustomer] = useState(null);
+  const [editingDevice, setEditingDevice] = useState(null);
 
   const filteredCustomers = state.customers.filter(c =>
     !search ||
@@ -83,8 +87,16 @@ export default function OfficeCustomers() {
                     <h2 className="text-xl font-bold text-slate-900">{selectedCustomer.name}</h2>
                     <p className="text-xs font-mono text-slate-400 mt-1">{selectedCustomer.id}</p>
                   </div>
-                  <div className="text-left text-xs text-slate-500">
-                    <p>נוצר ב-{formatDateTime(selectedCustomer.created_date)}</p>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setEditingCustomer(selectedCustomer)}
+                      className="flex items-center gap-1 text-xs bg-orange-50 hover:bg-orange-100 text-orange-600 px-3 py-1.5 rounded-lg font-semibold border border-orange-200"
+                    >
+                      <Edit2 size={12} /> ערוך לקוח
+                    </button>
+                    <div className="text-left text-xs text-slate-500">
+                      <p>נוצר ב-{formatDateTime(selectedCustomer.created_date)}</p>
+                    </div>
                   </div>
                 </div>
 
@@ -124,20 +136,30 @@ export default function OfficeCustomers() {
                     {customerDevices.map(d => {
                       const deviceRepairs = state.repairs.filter(r => r.device_id === d.id);
                       return (
-                        <button
-                          key={d.id}
-                          onClick={() => setQuickDevice({ device: d, customer: selectedCustomer })}
-                          className="w-full text-right border border-slate-200 rounded-lg p-3 text-sm hover:border-blue-300 hover:bg-blue-50 transition-colors group"
-                        >
-                          <div className="flex justify-between mb-1">
-                            <p className="font-semibold group-hover:text-blue-700">{d.brand} {d.model}</p>
-                            <span className="text-xs font-mono text-slate-400">{d.id}</span>
+                        <div key={d.id} className="border border-slate-200 rounded-lg p-3 text-sm hover:border-blue-200 transition-colors">
+                          <div className="flex justify-between items-start mb-1">
+                            <button
+                              onClick={() => setQuickDevice({ device: d, customer: selectedCustomer })}
+                              className="text-right hover:text-blue-700 flex-1"
+                            >
+                              <p className="font-semibold">{d.brand} {d.model}</p>
+                              <p className="text-xs text-slate-500 mt-0.5">{d.type} {d.manufacturer_serial && `• Serial: ${d.manufacturer_serial}`}</p>
+                              {deviceRepairs.length > 0 && (
+                                <p className="text-xs text-orange-600 mt-1">{deviceRepairs.length} תיקונים</p>
+                              )}
+                            </button>
+                            <div className="flex items-center gap-1 mr-2">
+                              <span className="text-xs font-mono text-slate-400">{d.id}</span>
+                              <button
+                                onClick={() => setEditingDevice(d)}
+                                className="p-1 hover:bg-orange-100 rounded text-slate-400 hover:text-orange-600"
+                                title="ערוך מכשיר"
+                              >
+                                <Edit2 size={12} />
+                              </button>
+                            </div>
                           </div>
-                          <p className="text-xs text-slate-500">{d.type} {d.manufacturer_serial && `• Serial: ${d.manufacturer_serial}`}</p>
-                          {deviceRepairs.length > 0 && (
-                            <p className="text-xs text-orange-600 mt-1">{deviceRepairs.length} תיקונים</p>
-                          )}
-                        </button>
+                        </div>
                       );
                     })}
                   </div>
@@ -181,6 +203,12 @@ export default function OfficeCustomers() {
           repairs={state.repairs}
           onClose={() => setQuickDevice(null)}
         />
+      )}
+      {editingCustomer && (
+        <CustomerEditModal customer={editingCustomer} onClose={() => setEditingCustomer(null)} />
+      )}
+      {editingDevice && (
+        <DeviceEditModal device={editingDevice} onClose={() => setEditingDevice(null)} />
       )}
     </div>
   );

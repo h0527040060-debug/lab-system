@@ -63,6 +63,13 @@ export const SEED_STOCK_BATCHES = [
 ];
 
 // הגדרות ברירת מחדל
+export const DEFAULT_FIELD_LISTS = {
+  deviceTypes: [
+    'מקרר מסחרי', 'מקפיא מסחרי', 'תנור תעשייתי', 'תנור עגלה', 'מדיח כלים',
+    'משטח בישול', 'גריל', 'פריטוזה', 'במרה', 'מכונת קפה', 'מיקסר', 'מעבד מזון', 'אחר',
+  ],
+};
+
 export const SEED_SETTINGS = {
   business_name: 'הורוביץ - ציוד למטבחים מוסדיים',
   business_address: 'שלמה המלך 18, בני ברק',
@@ -70,6 +77,7 @@ export const SEED_SETTINGS = {
   vat_percent_display: 17, // לתצוגה בלבד במסך גביה
   alert_stuck_repair_days: 7,
   diagnostic_fee: 180,
+  fieldLists: DEFAULT_FIELD_LISTS,
 };
 
 // ייצוא ריק של ה-imports כדי למנוע אזהרות

@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from 'react';
 export default function AutocompleteInput({
   value,
   onChange,
+  onAddValue,
   suggestions = [],
   suggestionImages = [],
   placeholder = '',
@@ -68,7 +69,7 @@ export default function AutocompleteInput({
             <li>
               <button
                 type="button"
-                onMouseDown={() => select(value)}
+                onMouseDown={() => { select(value); onAddValue?.(value); }}
                 className="w-full text-right px-3 py-2 text-sm text-orange-600 font-semibold hover:bg-orange-50 border-t border-slate-100"
               >
                 + הוסף: {value}

@@ -1,11 +1,11 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { loadLogs, clearLogs } from '../../store/storage';
 import { formatDateTime } from '../../utils/formatters';
 import PageHeader from '../../components/PageHeader';
 import SearchInput from '../../components/SearchInput';
 import EmptyState from '../../components/EmptyState';
 import ConfirmDialog from '../../components/ConfirmDialog';
-import { ClipboardList, Trash2, Download } from 'lucide-react';
+import { ClipboardList, Trash2, Download, RefreshCw } from 'lucide-react';
 
 const ENTITY_LABELS = {
   repair:     'תיקון',
@@ -49,6 +49,13 @@ const PAGE_SIZE = 50;
 
 export default function OfficeLogs() {
   const [logs, setLogs] = useState(() => loadLogs());
+
+  // רענון בכל כניסה לעמוד + כל 5 שניות לפעולות חדשות
+  useEffect(() => { setLogs(loadLogs()); }, []);
+  useEffect(() => {
+    const interval = setInterval(() => setLogs(loadLogs()), 5000);
+    return () => clearInterval(interval);
+  }, []);
   const [search, setSearch] = useState('');
   const [entityFilter, setEntityFilter] = useState('all');
   const [userFilter, setUserFilter] = useState('all');
@@ -115,6 +122,12 @@ export default function OfficeLogs() {
         subtitle={`${logs.length} פעולות מתועדות`}
         action={
           <div className="flex gap-2">
+            <button
+              onClick={() => setLogs(loadLogs())}
+              className="flex items-center gap-1.5 text-sm bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-3 py-2 rounded-lg font-semibold"
+            >
+              <RefreshCw size={15} /> רענן
+            </button>
             <button
               onClick={handleExportCSV}
               className="flex items-center gap-1.5 text-sm bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-3 py-2 rounded-lg font-semibold"

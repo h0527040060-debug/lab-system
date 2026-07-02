@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { useAppContext } from '../store/AppContext';
+import { uploadToStorage } from '../store/supabaseStorage';
 import { REPAIR_STATUSES } from '../constants/statuses';
 import Modal from './Modal';
+import ConfirmDialog from './ConfirmDialog';
 import { Camera, Video, Upload, X, Check, AlertTriangle } from 'lucide-react';
 
 export default function ReleaseDocsModal({ repair, onClose }) {
@@ -11,6 +13,7 @@ export default function ReleaseDocsModal({ repair, onClose }) {
 
   const [media, setMedia] = useState([]);
   const [notes, setNotes] = useState('');
+  const [confirmDeleteMedia, setConfirmDeleteMedia] = useState(null);
 
   const handleMediaUpload = (e) => {
     const files = Array.from(e.target.files);
@@ -25,10 +28,11 @@ export default function ReleaseDocsModal({ repair, onClose }) {
       }
 
       const reader = new FileReader();
-      reader.onloadend = () => {
+      reader.onloadend = async () => {
+        const data = isVideo ? reader.result : await uploadToStorage(reader.result, 'release');
         setMedia(prev => [...prev, {
           type: isVideo ? 'video' : 'image',
-          data: reader.result,
+          data,
           name: file.name,
         }]);
       };
@@ -122,7 +126,7 @@ export default function ReleaseDocsModal({ repair, onClose }) {
                     {m.type === 'image' ? 'תמונה' : 'וידאו'}
                   </div>
                   <button
-                    onClick={() => removeMedia(idx)}
+                    onClick={() => setConfirmDeleteMedia(idx)}
                     className="absolute top-1 left-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                   >
                     <X size={14} />
@@ -144,6 +148,15 @@ export default function ReleaseDocsModal({ repair, onClose }) {
           />
         </div>
       </div>
+      <ConfirmDialog
+        open={confirmDeleteMedia !== null}
+        title="אישור מחיקה"
+        message="האם אתה בטוח שאתה רוצה למחוק את הקובץ?"
+        confirmLabel="מחק"
+        variant="danger"
+        onConfirm={() => { removeMedia(confirmDeleteMedia); setConfirmDeleteMedia(null); }}
+        onCancel={() => setConfirmDeleteMedia(null)}
+      />
     </Modal>
   );
 }

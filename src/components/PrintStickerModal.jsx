@@ -24,7 +24,11 @@ export default function PrintStickerModal({ repair, customer, device, onClose })
           >
             {/* QR */}
             <div className="flex justify-center mb-3">
-              <QRCodeSVG value={repair.id} size={130} level="M" />
+              <QRCodeSVG
+                value={`${window.location.origin}${window.location.pathname}#/repair/${repair.id}`}
+                size={130}
+                level="M"
+              />
             </div>
 
             {/* קוד תיקון */}

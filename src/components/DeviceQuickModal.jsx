@@ -1,8 +1,11 @@
-import { X, Hash, Cpu, User } from 'lucide-react';
+import { useState } from 'react';
+import { X, Hash, Cpu, User, Edit2 } from 'lucide-react';
 import { formatDateTime } from '../utils/formatters';
 import StatusBadge from './StatusBadge';
+import { DeviceEditModal } from './DeviceEditModal';
 
 export default function DeviceQuickModal({ device, customer, repairs = [], onClose }) {
+  const [showEdit, setShowEdit] = useState(false);
   if (!device) return null;
 
   const deviceRepairs = repairs
@@ -10,6 +13,7 @@ export default function DeviceQuickModal({ device, customer, repairs = [], onClo
     .sort((a, b) => new Date(b.date_intake) - new Date(a.date_intake));
 
   return (
+    <>
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div
         className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto"
@@ -20,9 +24,18 @@ export default function DeviceQuickModal({ device, customer, repairs = [], onClo
             <h2 className="font-bold text-lg text-slate-800">{device.brand} {device.model}</h2>
             <p className="font-mono text-xs text-slate-400">{device.id}</p>
           </div>
-          <button onClick={onClose} className="p-1 hover:bg-slate-100 rounded-lg text-slate-500">
-            <X size={18} />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setShowEdit(true)}
+              className="p-1.5 hover:bg-orange-100 rounded-lg text-slate-400 hover:text-orange-600"
+              title="ערוך מכשיר"
+            >
+              <Edit2 size={16} />
+            </button>
+            <button onClick={onClose} className="p-1 hover:bg-slate-100 rounded-lg text-slate-500">
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
         <div className="p-4 space-y-4">
@@ -73,5 +86,7 @@ export default function DeviceQuickModal({ device, customer, repairs = [], onClo
         </div>
       </div>
     </div>
+    {showEdit && <DeviceEditModal device={device} onClose={() => setShowEdit(false)} />}
+    </>
   );
 }

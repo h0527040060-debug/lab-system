@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import FloatingScrollbar from './FloatingScrollbar';
 import { useAppContext } from '../store/AppContext';
 import { ROLE_LABELS } from '../constants/userRoles';
-import { LogOut, Menu, X, Search } from 'lucide-react';
+import { LogOut, Menu, X, Search, Plus } from 'lucide-react';
 import NotificationBell from './NotificationBell';
 
 export default function Layout({ children, currentTab, onTabChange, tabs }) {
@@ -83,7 +83,7 @@ export default function Layout({ children, currentTab, onTabChange, tabs }) {
   );
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
+    <div className="h-screen overflow-hidden bg-slate-50 flex">
       {/* Desktop sidebar — in document flow */}
       <aside className={`hidden lg:block ${sidebarOpen ? 'w-64' : 'w-0'} transition-all duration-200 bg-slate-900 text-white overflow-hidden flex-shrink-0`}>
         {sidebarContent}
@@ -105,12 +105,24 @@ export default function Layout({ children, currentTab, onTabChange, tabs }) {
       {/* Main content */}
       <main className="flex-1 flex flex-col min-w-0">
         <header className="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between sticky top-0 z-10">
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 hover:bg-slate-100 rounded-lg"
-          >
-            {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="p-2 hover:bg-slate-100 rounded-lg"
+            >
+              {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
+            {(state.currentUser?.role === 'admin' || state.currentUser?.role === 'office') && (
+              <button
+                onClick={() => onTabChange('intake')}
+                className="flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold px-3 py-1.5 rounded-lg transition-colors"
+                title="קליטת תיקון חדש"
+              >
+                <Plus size={16} />
+                <span className="hidden sm:inline">תיקון חדש</span>
+              </button>
+            )}
+          </div>
           <div className="flex items-center gap-3">
             <button
               onClick={() => onTabChange('search')}
