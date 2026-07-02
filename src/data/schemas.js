@@ -49,6 +49,7 @@
  * @property {'customer'|'internal_used'} repair_type - סוג התיקון
  * @property {string} status - מתוך REPAIR_STATUSES
  * @property {string} warranty_type - מתוך WARRANTY_TYPES
+ * @property {number|null} [warranty_months] - תקופת אחריות לתיקון זה בחודשים (נספרת מ-date_intake)
  * @property {string} intake_date - ISO date
  * @property {string} [diagnosis_date]
  * @property {string} [completion_date]

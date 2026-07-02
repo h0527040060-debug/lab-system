@@ -49,13 +49,14 @@ export default function OfficeIntake({ onNavigate }) {
   const [deviceMode, setDeviceMode] = useState('select');
   const [selectedDeviceId, setSelectedDeviceId] = useState('');
   const [newDevice, setNewDevice] = useState({
-    type: '', brand: '', model: '', manufacturer_serial: '', purchase_date: '', purchase_cost: '', our_warranty_months: null,
+    type: '', brand: '', model: '', manufacturer_serial: '', purchase_date: '', our_warranty_months: null,
   });
 
   // נתוני תיקון
   const [complaint, setComplaint] = useState('');
   const [internalNotes, setInternalNotes] = useState('');
   const [warrantyType, setWarrantyType] = useState(WARRANTY_TYPES.PAID);
+  const [repairWarrantyMonths, setRepairWarrantyMonths] = useState(null);
   const [intakePhotos, setIntakePhotos] = useState([]);
   const [diagnosticFeeConfirmed, setDiagnosticFeeConfirmed] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -144,6 +145,7 @@ export default function OfficeIntake({ onNavigate }) {
       complaint,
       internal_notes: internalNotes,
       warranty_type: warrantyType,
+      warranty_months: repairWarrantyMonths || null,
       status: REPAIR_STATUSES.RED_INTAKE,
       date_intake: new Date().toISOString(),
       intake_by_user_id: state.currentUser?.id,
@@ -162,7 +164,8 @@ export default function OfficeIntake({ onNavigate }) {
     setNewCustomer({ name: '', phone: '', email: '', address: '', notes: '' });
     setDeviceMode('select');
     setSelectedDeviceId('');
-    setNewDevice({ type: '', brand: '', model: '', manufacturer_serial: '', purchase_date: '', purchase_cost: '', our_warranty_months: null });
+    setNewDevice({ type: '', brand: '', model: '', manufacturer_serial: '', purchase_date: '', our_warranty_months: null });
+    setRepairWarrantyMonths(null);
     setComplaint('');
     setInternalNotes('');
     setWarrantyType(WARRANTY_TYPES.PAID);
@@ -465,17 +468,6 @@ export default function OfficeIntake({ onNavigate }) {
                 />
               </div>
               <div>
-                <label className="text-xs text-slate-500 mb-1 block">עלות רכישה (₪)</label>
-                <input
-                  type="number"
-                  min="0"
-                  placeholder="0"
-                  value={newDevice.purchase_cost}
-                  onChange={(e) => setNewDevice({ ...newDevice, purchase_cost: e.target.value })}
-                  className="border border-slate-300 rounded-lg px-3 py-2 w-full"
-                />
-              </div>
-              <div>
                 <label className="text-xs text-slate-500 mb-1 block">אחריות שלנו</label>
                 <div className="flex gap-2 items-center flex-wrap">
                   {[3, 12].map(m => (
@@ -596,6 +588,41 @@ export default function OfficeIntake({ onNavigate }) {
                   </span>
                 </label>
               )}
+            </div>
+
+            {/* תקופת אחריות לתיקון זה */}
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                <ShieldCheck className="inline ml-1" size={16} />
+                תקופת אחריות לתיקון זה
+              </label>
+              <div className="flex gap-2 items-center flex-wrap">
+                {[3, 12].map(m => (
+                  <button
+                    type="button"
+                    key={m}
+                    onClick={() => setRepairWarrantyMonths(prev => prev === m ? null : m)}
+                    className={`px-3 py-1.5 rounded-lg text-sm border ${repairWarrantyMonths === m ? 'bg-orange-500 text-white border-orange-500' : 'border-slate-300 text-slate-600 hover:border-orange-400'}`}
+                  >
+                    {m} חודשים
+                  </button>
+                ))}
+                <input
+                  type="number"
+                  min="1"
+                  max="120"
+                  placeholder="אחר"
+                  value={repairWarrantyMonths && ![3, 12].includes(repairWarrantyMonths) ? repairWarrantyMonths : ''}
+                  onChange={e => setRepairWarrantyMonths(e.target.value ? Number(e.target.value) : null)}
+                  className="w-20 border border-slate-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:border-orange-400"
+                />
+              </div>
+              {repairWarrantyMonths && (() => {
+                const expiry = new Date();
+                expiry.setMonth(expiry.getMonth() + repairWarrantyMonths);
+                const d = expiry.toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                return <p className="text-xs text-emerald-600 mt-1.5 font-medium">האחריות תפוג ב-{d}</p>;
+              })()}
             </div>
 
             <div>

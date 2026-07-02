@@ -1,13 +1,12 @@
 import { useState } from 'react';
 import { useAppContext } from '../../store/AppContext';
-import { formatDate } from '../../utils/formatters';
 import PageHeader from '../../components/PageHeader';
 import SearchInput from '../../components/SearchInput';
 import EmptyState from '../../components/EmptyState';
 import CustomerQuickModal from '../../components/CustomerQuickModal';
 import DeviceQuickModal from '../../components/DeviceQuickModal';
 import { DeviceEditModal } from '../../components/DeviceEditModal';
-import { Wrench, ShieldCheck, AlertCircle, Edit2 } from 'lucide-react';
+import { Wrench, AlertCircle, Edit2 } from 'lucide-react';
 
 export default function OfficeDevices() {
   const { state } = useAppContext();
@@ -36,11 +35,6 @@ export default function OfficeDevices() {
       return bCount - aCount;
     });
 
-  const isInWarranty = (device) => {
-    if (!device.warranty_until) return false;
-    return new Date(device.warranty_until) > new Date();
-  };
-
   return (
     <div>
       <PageHeader title="מאגר מכשירים" subtitle={`${state.devices.length} מכשירים במערכת`} />
@@ -62,7 +56,6 @@ export default function OfficeDevices() {
                 <th className="text-right p-3 font-semibold">Serial יצרן</th>
                 <th className="text-right p-3 font-semibold">בעלים</th>
                 <th className="text-right p-3 font-semibold">תיקונים</th>
-                <th className="text-right p-3 font-semibold">אחריות יצרן</th>
                 <th className="p-3"></th>
               </tr>
             </thead>
@@ -70,7 +63,6 @@ export default function OfficeDevices() {
               {filteredDevices.map(d => {
                 const owner = state.customers.find(c => c.id === d.owner_customer_id);
                 const repairsCount = state.repairs.filter(r => r.device_id === d.id).length;
-                const inWarranty = isInWarranty(d);
                 const problematic = repairsCount >= 3;
 
                 return (
@@ -108,16 +100,6 @@ export default function OfficeDevices() {
                         {problematic && <AlertCircle size={14} className="text-red-500" />}
                       </div>
                       {problematic && <p className="text-xs text-red-500">בעייתי</p>}
-                    </td>
-                    <td className="p-3">
-                      {d.warranty_until ? (
-                        <div className={`flex items-center gap-1 text-xs ${inWarranty ? 'text-green-600' : 'text-slate-400'}`}>
-                          <ShieldCheck size={12} />
-                          {inWarranty ? `עד ${formatDate(d.warranty_until)}` : 'פגה'}
-                        </div>
-                      ) : (
-                        <span className="text-xs text-slate-400">—</span>
-                      )}
                     </td>
                     <td className="p-3 text-center">
                       <button
