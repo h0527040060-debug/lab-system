@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAppContext } from '../../store/AppContext';
+import { uploadToStorage } from '../../store/supabaseStorage';
 import { generateCustomerId, generateDeviceId, generateRepairId } from '../../utils/idGenerators';
 import { loadFromStorage, storageKeys } from '../../store/storage';
 import { REPAIR_STATUSES } from '../../constants/statuses';
@@ -89,9 +90,10 @@ export default function OfficeIntake({ onNavigate }) {
       const reader = new FileReader();
       reader.onloadend = async () => {
         const compressed = await compressImage(reader.result);
+        const url = await uploadToStorage(compressed, 'intake');
         setIntakePhotos(prev => {
           if (prev.length >= MAX_PHOTOS) return prev;
-          return [...prev, compressed];
+          return [...prev, url];
         });
       };
       reader.readAsDataURL(file);
