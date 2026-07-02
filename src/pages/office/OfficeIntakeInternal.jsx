@@ -38,7 +38,7 @@ export default function OfficeIntakeInternal({ onNavigate }) {
   const [selectedDeviceId, setSelectedDeviceId] = useState('');
   const [deviceSearch, setDeviceSearch] = useState('');
   const [newDevice, setNewDevice] = useState({
-    type: '', brand: '', model: '', manufacturer_serial: '', purchase_date: '',
+    type: '', brand: '', model: '', manufacturer_serial: '', purchase_date: '', purchase_cost: '',
   });
 
   // נתוני תיקון
@@ -281,12 +281,23 @@ export default function OfficeIntakeInternal({ onNavigate }) {
                 onChange={(e) => setNewDevice({ ...newDevice, manufacturer_serial: e.target.value })}
                 className="border border-slate-300 rounded-lg px-3 py-2 col-span-2"
               />
-              <div className="col-span-2">
+              <div>
                 <label className="text-xs text-slate-500 mb-1 block">תאריך רכישה (יד שנייה)</label>
                 <input
                   type="date"
                   value={newDevice.purchase_date}
                   onChange={(e) => setNewDevice({ ...newDevice, purchase_date: e.target.value })}
+                  className="border border-slate-300 rounded-lg px-3 py-2 w-full"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">עלות רכישה (₪)</label>
+                <input
+                  type="number"
+                  min="0"
+                  placeholder="0"
+                  value={newDevice.purchase_cost}
+                  onChange={(e) => setNewDevice({ ...newDevice, purchase_cost: e.target.value })}
                   className="border border-slate-300 rounded-lg px-3 py-2 w-full"
                 />
               </div>

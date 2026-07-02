@@ -97,10 +97,37 @@ export default function LabHistory() {
                   {selectedDevice.purchase_date && (
                     <p><span className="text-slate-500">תאריך רכישה:</span> {selectedDevice.purchase_date}</p>
                   )}
+                  {selectedDevice.purchase_cost && (
+                    <p><span className="text-slate-500">עלות רכישה:</span> {Number(selectedDevice.purchase_cost).toLocaleString('he-IL')}₪</p>
+                  )}
                   {selectedDevice.warranty_until && (
                     <p><span className="text-slate-500">תוקף אחריות:</span> {selectedDevice.warranty_until}</p>
                   )}
                 </div>
+                {selectedDevice.purchase_cost && deviceRepairs.length > 0 && (() => {
+                  const repairTotal = deviceRepairs.reduce((sum, r) => {
+                    const labor = (r.work_items || []).reduce((s, w) => s + (Number(w.price) || 0), 0);
+                    const parts = (r.parts_used || []).reduce((s, p) => s + (Number(p.price_per_unit) || 0) * (Number(p.quantity) || 1), 0);
+                    return sum + labor + parts;
+                  }, 0);
+                  const grandTotal = Number(selectedDevice.purchase_cost) + repairTotal;
+                  return (
+                    <div className="mt-3 pt-3 border-t border-slate-200 bg-slate-50 rounded-lg px-3 py-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">עלות רכישה:</span>
+                        <span>{Number(selectedDevice.purchase_cost).toLocaleString('he-IL')}₪</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">סה"כ תיקונים וחלקים:</span>
+                        <span>{repairTotal.toLocaleString('he-IL')}₪</span>
+                      </div>
+                      <div className="flex justify-between font-bold text-purple-700 mt-1 border-t border-slate-300 pt-1">
+                        <span>עלות כוללת למכשיר:</span>
+                        <span>{grandTotal.toLocaleString('he-IL')}₪</span>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
 
               <div className="bg-white rounded-xl shadow-sm p-6">
