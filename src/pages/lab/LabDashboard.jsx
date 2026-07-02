@@ -145,9 +145,14 @@ function KanbanColumn({ title, count, repairs, state, onSelect, color, disabled 
               >
                 <div className="flex justify-between mb-1">
                   <span className="font-mono text-xs font-bold text-orange-600">{r.id}</span>
-                  <Clock size={12} className="text-slate-400" />
+                  <div className="flex items-center gap-1">
+                    {r.repair_type === 'internal_used' && (
+                      <span className="bg-purple-100 text-purple-700 text-xs font-bold px-1.5 py-0.5 rounded">🛒 פנימי</span>
+                    )}
+                    <Clock size={12} className="text-slate-400" />
+                  </div>
                 </div>
-                <p className="font-semibold text-sm">{customer?.name}</p>
+                <p className="font-semibold text-sm">{r.repair_type === 'internal_used' ? '— פנימי —' : customer?.name}</p>
                 <p className="text-xs text-slate-600 mt-1">{device?.brand} {device?.model}</p>
                 <p className="text-xs text-slate-500 mt-1 line-clamp-2">{r.complaint}</p>
                 <p className="text-xs text-slate-400 mt-1">{formatDateTime(r.date_intake)}</p>

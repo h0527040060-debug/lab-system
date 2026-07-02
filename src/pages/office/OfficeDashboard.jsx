@@ -36,6 +36,12 @@ export default function OfficeDashboard() {
     return intakeDate.toDateString() === new Date().toDateString();
   }).length;
 
+  const internalRepairs = state.repairs.filter(r => r.repair_type === 'internal_used');
+  const internalCompleted = internalRepairs.filter(r => r.status === REPAIR_STATUSES.GREEN_COMPLETE);
+  const internalPartsCost = internalCompleted.reduce((sum, r) => sum + (r.internal_parts_cost || 0), 0);
+  const internalPurchaseCost = internalCompleted.reduce((sum, r) => sum + (r.purchase_cost || 0), 0);
+  const internalHours = internalCompleted.reduce((sum, r) => sum + (r.actual_hours || 0), 0);
+
   return (
     <div>
       <PageHeader title="דשבורד משרד" subtitle="סקירה כללית של העסק" />
@@ -169,6 +175,31 @@ export default function OfficeDashboard() {
           )}
         </ChartCard>
       </div>
+
+      {/* סטטיסטיקת יד שנייה */}
+      {internalRepairs.length > 0 && (
+        <div className="mt-6 bg-purple-50 border border-purple-200 rounded-xl p-5">
+          <h3 className="font-bold text-purple-900 text-base mb-4">🛒 מוצרי יד שנייה — סיכום</h3>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-white rounded-lg border border-purple-200 p-3 text-center">
+              <p className="text-2xl font-bold text-purple-700">{internalRepairs.length}</p>
+              <p className="text-xs text-slate-500 mt-1">מוצרים בסה"כ</p>
+            </div>
+            <div className="bg-white rounded-lg border border-purple-200 p-3 text-center">
+              <p className="text-2xl font-bold text-green-700">{internalCompleted.length}</p>
+              <p className="text-xs text-slate-500 mt-1">טיפולים הושלמו</p>
+            </div>
+            <div className="bg-white rounded-lg border border-purple-200 p-3 text-center">
+              <p className="text-2xl font-bold text-orange-700">{formatMoney(internalPartsCost + internalPurchaseCost)}</p>
+              <p className="text-xs text-slate-500 mt-1">עלות כוללת (רכישה+חלקים)</p>
+            </div>
+            <div className="bg-white rounded-lg border border-purple-200 p-3 text-center">
+              <p className="text-2xl font-bold text-blue-700">{internalHours.toFixed(1)}h</p>
+              <p className="text-xs text-slate-500 mt-1">שעות עבודה</p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

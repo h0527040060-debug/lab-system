@@ -120,11 +120,15 @@ export default function DiagnosisModal({ repair, onClose }) {
       alert('יש למלא אבחון ראשוני');
       return;
     }
+    // מוצר יד שנייה: דילוג ישיר לעבודה (ללא אישור לקוח)
+    const nextStatus = repair.repair_type === 'internal_used'
+      ? REPAIR_STATUSES.YELLOW_READY_TO_WORK
+      : REPAIR_STATUSES.YELLOW_DIAGNOSIS;
     dispatch({
       type: 'UPDATE_REPAIR',
       payload: {
         id: repair.id,
-        status: REPAIR_STATUSES.YELLOW_DIAGNOSIS,
+        status: nextStatus,
         diagnosis,
         diagnosed_work_codes: selectedWorks,
         diagnosed_parts: selectedParts,

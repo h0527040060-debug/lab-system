@@ -5,6 +5,7 @@ import { OFFICE_TABS } from '../constants/tabs';
 
 import OfficeDashboard from './office/OfficeDashboard';
 import OfficeIntake from './office/OfficeIntake';
+import OfficeIntakeInternal from './office/OfficeIntakeInternal';
 import OfficeApproval from './office/OfficeApproval';
 import OfficeAppeals from './office/OfficeAppeals';
 import OfficePayment from './office/OfficePayment';
@@ -26,6 +27,7 @@ const PAGE_COMPONENTS = {
   kanban: (props) => <KanbanBoard role={props.role || 'office'} />,
   dashboard: OfficeDashboard,
   intake: OfficeIntake,
+  'intake-internal': OfficeIntakeInternal,
   approval: OfficeApproval,
   appeals: OfficeAppeals,
   payment: OfficePayment,

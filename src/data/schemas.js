@@ -45,7 +45,8 @@
  * @typedef {Object} Repair
  * @property {string} id - QR_YYYYMMDD_XXX
  * @property {string} device_id
- * @property {string} customer_id
+ * @property {string|null} customer_id - null עבור מוצרי יד שנייה פנימיים
+ * @property {'customer'|'internal_used'} repair_type - סוג התיקון
  * @property {string} status - מתוך REPAIR_STATUSES
  * @property {string} warranty_type - מתוך WARRANTY_TYPES
  * @property {string} intake_date - ISO date
