@@ -27,6 +27,7 @@ import DiagnosisModal from '../../components/DiagnosisModal';
 import WorkSessionModal from '../../components/WorkSessionModal';
 import ReleaseDocsModal from '../../components/ReleaseDocsModal';
 import RepairDetailModal from '../../components/RepairDetailModal';
+import FloatingScrollbar from '../../components/FloatingScrollbar';
 import {
   Stethoscope, Wrench, Camera, RotateCcw, Search,
   ChevronLeft, ChevronRight, GripVertical, MoreVertical,
@@ -354,6 +355,7 @@ export default function KanbanBoard({ role = 'office' }) {
   const [activeRepairId, setActiveRepairId] = useState(null);
   const [pendingTransition, setPendingTransition] = useState(null);
   const [detailRepairId, setDetailRepairId] = useState(null);
+  const columnsRef = useRef(null);
 
   const [cardOrders, setCardOrders] = useState(() => {
     const orders = {};
@@ -507,39 +509,6 @@ export default function KanbanBoard({ role = 'office' }) {
   const draggedCustomer = draggedRepair ? state.customers.find(c => c.id === draggedRepair.customer_id) : null;
   const draggedDevice = draggedRepair ? state.devices.find(d => d.id === draggedRepair.device_id) : null;
 
-  // phantom scrollbar — מסנכרן גלילה אופקית ונשאר קבוע בתחתית המסך
-  const scrollRef = useRef(null);
-  const phantomRef = useRef(null);
-  const [phantomWidth, setPhantomWidth] = useState(0);
-  const isSyncingRef = useRef(false);
-
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-
-    const updateWidth = () => setPhantomWidth(el.scrollWidth);
-    updateWidth();
-
-    const ro = new ResizeObserver(updateWidth);
-    ro.observe(el);
-
-    const onRealScroll = () => {
-      if (isSyncingRef.current) return;
-      isSyncingRef.current = true;
-      if (phantomRef.current) phantomRef.current.scrollLeft = el.scrollLeft;
-      isSyncingRef.current = false;
-    };
-    el.addEventListener('scroll', onRealScroll);
-
-    return () => { ro.disconnect(); el.removeEventListener('scroll', onRealScroll); };
-  }, []);
-
-  const handlePhantomScroll = (e) => {
-    if (isSyncingRef.current) return;
-    isSyncingRef.current = true;
-    if (scrollRef.current) scrollRef.current.scrollLeft = e.target.scrollLeft;
-    isSyncingRef.current = false;
-  };
 
   return (
     <div className="flex flex-col h-full -m-6 p-4">
@@ -579,7 +548,7 @@ export default function KanbanBoard({ role = 'office' }) {
       {/* לוח */}
       <DndContext sensors={sensors} collisionDetection={pointerWithin} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <SortableContext items={columnOrder} strategy={horizontalListSortingStrategy}>
-          <div ref={scrollRef} className="flex gap-3 overflow-x-auto pb-3 flex-1 min-h-0 items-stretch" style={{ scrollbarWidth: 'none' }}>
+          <div ref={columnsRef} className="flex gap-3 overflow-x-auto pb-4 flex-1 items-start">
             {columnOrder.map(statusId => (
               <KanbanColumn
                 key={statusId}
@@ -625,6 +594,7 @@ export default function KanbanBoard({ role = 'office' }) {
           onAction={handleAction}
         />
       )}
+      <FloatingScrollbar targetRef={columnsRef} />
 
       {/* דיאלוג אזהרת מעבר סטטוס */}
       {pendingTransition && (
@@ -661,16 +631,6 @@ export default function KanbanBoard({ role = 'office' }) {
           </div>
         </div>
       )}
-
-      {/* phantom scrollbar — קבוע בתחתית המסך, מסנכרן עם הלוח */}
-      <div
-        ref={phantomRef}
-        onScroll={handlePhantomScroll}
-        className="overflow-x-auto"
-        style={{ position: 'fixed', bottom: 0, left: 0, right: 0, height: 10, zIndex: 20 }}
-      >
-        <div style={{ width: phantomWidth, height: 1 }} />
-      </div>
     </div>
   );
 }
