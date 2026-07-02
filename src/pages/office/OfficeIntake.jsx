@@ -49,7 +49,7 @@ export default function OfficeIntake({ onNavigate }) {
   const [deviceMode, setDeviceMode] = useState('select');
   const [selectedDeviceId, setSelectedDeviceId] = useState('');
   const [newDevice, setNewDevice] = useState({
-    type: '', brand: '', model: '', manufacturer_serial: '', purchase_date: '', purchase_cost: '', warranty_until: '',
+    type: '', brand: '', model: '', manufacturer_serial: '', purchase_date: '', purchase_cost: '', our_warranty_months: null,
   });
 
   // נתוני תיקון
@@ -162,7 +162,7 @@ export default function OfficeIntake({ onNavigate }) {
     setNewCustomer({ name: '', phone: '', email: '', address: '', notes: '' });
     setDeviceMode('select');
     setSelectedDeviceId('');
-    setNewDevice({ type: '', brand: '', model: '', manufacturer_serial: '', purchase_date: '', warranty_until: '' });
+    setNewDevice({ type: '', brand: '', model: '', manufacturer_serial: '', purchase_date: '', purchase_cost: '', our_warranty_months: null });
     setComplaint('');
     setInternalNotes('');
     setWarrantyType(WARRANTY_TYPES.PAID);
@@ -476,13 +476,29 @@ export default function OfficeIntake({ onNavigate }) {
                 />
               </div>
               <div>
-                <label className="text-xs text-slate-500 mb-1 block">תוקף אחריות יצרן</label>
-                <input
-                  type="date"
-                  value={newDevice.warranty_until}
-                  onChange={(e) => setNewDevice({ ...newDevice, warranty_until: e.target.value })}
-                  className="border border-slate-300 rounded-lg px-3 py-2 w-full"
-                />
+                <label className="text-xs text-slate-500 mb-1 block">אחריות שלנו</label>
+                <div className="flex gap-2 items-center flex-wrap">
+                  {[3, 12].map(m => (
+                    <button
+                      type="button"
+                      key={m}
+                      onClick={() => setNewDevice(d => ({ ...d, our_warranty_months: d.our_warranty_months === m ? null : m }))}
+                      className={`px-3 py-1.5 rounded-lg text-sm border ${newDevice.our_warranty_months === m ? 'bg-orange-500 text-white border-orange-500' : 'border-slate-300 text-slate-600 hover:border-orange-400'}`}
+                    >
+                      {m} חודשים
+                    </button>
+                  ))}
+                  <input
+                    type="number"
+                    min="1"
+                    max="120"
+                    placeholder="אחר"
+                    value={newDevice.our_warranty_months && ![3, 12].includes(newDevice.our_warranty_months) ? newDevice.our_warranty_months : ''}
+                    onChange={e => setNewDevice(d => ({ ...d, our_warranty_months: e.target.value ? Number(e.target.value) : null }))}
+                    className="w-20 border border-slate-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:border-orange-400"
+                  />
+                  {newDevice.our_warranty_months && <span className="text-xs text-slate-500">{newDevice.our_warranty_months} חודשים</span>}
+                </div>
               </div>
             </div>
           )}
