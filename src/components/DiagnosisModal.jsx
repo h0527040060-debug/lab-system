@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAppContext } from '../store/AppContext';
+import { uploadToStorage } from '../store/supabaseStorage';
 import { REPAIR_STATUSES } from '../constants/statuses';
 import { WARRANTY_TYPES, WARRANTY_LABELS } from '../constants/warranty';
 import { formatDateTime, formatMoney } from '../utils/formatters';
@@ -137,7 +138,10 @@ export default function DiagnosisModal({ repair, onClose }) {
     const files = Array.from(e.target.files);
     files.forEach(file => {
       const reader = new FileReader();
-      reader.onloadend = () => setAppealEvidence(prev => [...prev, reader.result]);
+      reader.onloadend = async () => {
+        const url = await uploadToStorage(reader.result, 'appeals');
+        setAppealEvidence(prev => [...prev, url]);
+      };
       reader.readAsDataURL(file);
     });
   };

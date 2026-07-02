@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { useAppContext as useApp } from '../../../store/AppContext';
+import { uploadToStorage } from '../../../store/supabaseStorage';
 import { generateInternalBarcode } from '../../../utils/idGenerators';
 import Modal from '../../../components/Modal';
 import ConfirmDialog from '../../../components/ConfirmDialog';
@@ -80,16 +81,17 @@ export default function PartEditModal({ part, onSave, onClose }) {
 
   // ——— תמונות ———
   const handleImageUpload = (e) => {
-    const realImages = form.images.filter(img => img.startsWith('data:'));
+    const realImages = form.images.filter(img => img.startsWith('data:') || img.startsWith('http'));
     const canAdd = 4 - realImages.length;
     if (canAdd <= 0) return;
     const files = Array.from(e.target.files).slice(0, canAdd);
     files.forEach(file => {
       const reader = new FileReader();
-      reader.onloadend = () => {
+      reader.onloadend = async () => {
+        const url = await uploadToStorage(reader.result, 'parts');
         setForm(f => ({
           ...f,
-          images: [...f.images.filter(img => img.startsWith('data:')), reader.result].slice(0, 4)
+          images: [...f.images.filter(img => img.startsWith('data:') || img.startsWith('http')), url].slice(0, 4)
         }));
       };
       reader.readAsDataURL(file);
@@ -138,12 +140,13 @@ export default function PartEditModal({ part, onSave, onClose }) {
     const files = Array.from(e.target.files).slice(0, canAdd);
     files.forEach(file => {
       const reader = new FileReader();
-      reader.onloadend = () => {
+      reader.onloadend = async () => {
+        const url = await uploadToStorage(reader.result, 'parts');
         setForm(f => ({
           ...f,
           assembly_instructions: {
             ...f.assembly_instructions,
-            images: [...(f.assembly_instructions.images || []), reader.result].slice(0, 10)
+            images: [...(f.assembly_instructions.images || []), url].slice(0, 10)
           }
         }));
       };

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export default function ImageGalleryModal({ images = [], startIndex = 0, altText = '', onClose }) {
-  const realImages = images.filter(img => img?.startsWith('data:image/'));
+  const realImages = images.filter(img => img && (img.startsWith('data:image/') || img.startsWith('http')));
   const clampedStart = Math.min(startIndex, realImages.length - 1);
   const [current, setCurrent] = useState(clampedStart >= 0 ? clampedStart : 0);
 
