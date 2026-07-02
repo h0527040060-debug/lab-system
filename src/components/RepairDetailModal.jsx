@@ -51,6 +51,7 @@ export default function RepairDetailModal({ repair, customer, device, onClose, o
   const [showEditRepair, setShowEditRepair] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState(null);
   const [confirmDeletePhoto, setConfirmDeletePhoto] = useState(null);
+  const [showDeleteRepair, setShowDeleteRepair] = useState(false);
   const statusDisplay = getStatusDisplay(repair.status, state.statusConfig);
 
   const diagnosedParts = repair.diagnosed_parts || [];
@@ -270,6 +271,12 @@ export default function RepairDetailModal({ repair, customer, device, onClose, o
 
             {/* פעולות */}
             <div className="flex flex-wrap gap-2 pt-1 border-t border-slate-100">
+              <button
+                onClick={() => setShowDeleteRepair(true)}
+                className="flex items-center gap-1.5 text-xs bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1.5 rounded-lg font-semibold border border-red-200"
+              >
+                <Trash2 size={12} /> מחק
+              </button>
               <WhatsAppButton repair={repair} customer={customer} device={device} type="customer" />
               <button
                 onClick={() => setShowEditRepair(true)}
@@ -339,6 +346,15 @@ export default function RepairDetailModal({ repair, customer, device, onClose, o
         variant="danger"
         onConfirm={() => { handleDeleteDevicePhoto(confirmDeletePhoto); setConfirmDeletePhoto(null); }}
         onCancel={() => setConfirmDeletePhoto(null)}
+      />
+      <ConfirmDialog
+        open={showDeleteRepair}
+        title="מחיקת קריאה"
+        message={`האם אתה בטוח שאתה רוצה למחוק את הקריאה ${repair.id}? פעולה זו אינה ניתנת לביטול.`}
+        confirmLabel="מחק לצמיתות"
+        variant="danger"
+        onConfirm={() => { dispatch({ type: 'DELETE_REPAIR', payload: repair.id }); setShowDeleteRepair(false); onClose(); }}
+        onCancel={() => setShowDeleteRepair(false)}
       />
     </>
   );
