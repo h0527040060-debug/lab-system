@@ -25,14 +25,14 @@ function formatSeconds(sec) {
   return `${m} דקות`;
 }
 
-function getWarrantyStatus(repair, device) {
-  if (!device?.our_warranty_months) return null;
-  const start = new Date(repair.created_at || repair.date_intake);
+function getWarrantyStatus(repair) {
+  if (!repair?.warranty_months) return null;
+  const start = new Date(repair.date_intake);
   const expiry = new Date(start);
-  expiry.setMonth(expiry.getMonth() + device.our_warranty_months);
+  expiry.setMonth(expiry.getMonth() + repair.warranty_months);
   const daysLeft = Math.ceil((expiry - new Date()) / (1000 * 60 * 60 * 24));
   if (daysLeft <= 0) return { expired: true };
-  if (daysLeft > 30) return { expired: false, months: Math.ceil(daysLeft / 30) };
+  if (daysLeft > 30) return { expired: false, months: Math.floor(daysLeft / 30) };
   return { expired: false, days: daysLeft };
 }
 
@@ -174,7 +174,7 @@ export default function RepairDetailModal({ repair, customer, device, onClose, o
 
             {/* חיווי אחריות שלנו */}
             {(() => {
-              const ws = getWarrantyStatus(repair, device);
+              const ws = getWarrantyStatus(repair);
               if (!ws) return null;
               return (
                 <div className={`rounded-xl px-3 py-2 text-sm font-semibold flex items-center gap-2 ${ws.expired ? 'bg-red-50 text-red-600 border border-red-200' : ws.days ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}`}>
