@@ -324,7 +324,7 @@ function CreateOrderModal({ supplierName, items, onConfirm, onClose }) {
         {items.map(({ part, recommendedQty, supplier }) => (
           <div key={part.id} className="bg-slate-50 rounded-lg p-3 flex items-center justify-between">
             <div>
-              <p className="font-semibold text-sm">{part.images?.[0]} {part.name}</p>
+              <p className="font-semibold text-sm">{part.name}</p>
               <p className="text-xs text-slate-500">{recommendedQty} × {formatMoney(supplier.price)}</p>
             </div>
             <p className="font-bold">{formatMoney(recommendedQty * supplier.price)}</p>
