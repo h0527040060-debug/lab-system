@@ -47,7 +47,7 @@ export function DeviceEditModal({ device, onClose }) {
     type: device.type || '',
     manufacturer_serial: device.manufacturer_serial || '',
     manufacture_year: device.manufacture_year || '',
-    warranty_until: device.warranty_until || '',
+    our_warranty_months: device.our_warranty_months || null,
     notes: device.notes || '',
     images: device.images || [],
   });
@@ -170,13 +170,29 @@ export function DeviceEditModal({ device, onClose }) {
           </div>
         </div>
         <div>
-          <label className="block text-sm font-semibold text-slate-700 mb-1">אחריות יצרן עד</label>
-          <input
-            type="date"
-            value={form.warranty_until ? form.warranty_until.split('T')[0] : ''}
-            onChange={e => set('warranty_until', e.target.value)}
-            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-400"
-          />
+          <label className="block text-sm font-semibold text-slate-700 mb-1">אחריות שלנו</label>
+          <div className="flex gap-2 items-center flex-wrap">
+            {[3, 12].map(m => (
+              <button
+                type="button"
+                key={m}
+                onClick={() => set('our_warranty_months', form.our_warranty_months === m ? null : m)}
+                className={`px-3 py-1.5 rounded-lg text-sm border ${form.our_warranty_months === m ? 'bg-orange-500 text-white border-orange-500' : 'border-slate-300 text-slate-600 hover:border-orange-400'}`}
+              >
+                {m} חודשים
+              </button>
+            ))}
+            <input
+              type="number"
+              min="1"
+              max="120"
+              placeholder="אחר"
+              value={form.our_warranty_months && ![3, 12].includes(form.our_warranty_months) ? form.our_warranty_months : ''}
+              onChange={e => set('our_warranty_months', e.target.value ? Number(e.target.value) : null)}
+              className="w-20 border border-slate-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:border-orange-400"
+            />
+            {form.our_warranty_months && <span className="text-xs text-slate-500">{form.our_warranty_months} חודשים</span>}
+          </div>
         </div>
         <div>
           <label className="block text-sm font-semibold text-slate-700 mb-1">הערות</label>

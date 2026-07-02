@@ -25,6 +25,17 @@ function formatSeconds(sec) {
   return `${m} דקות`;
 }
 
+function getWarrantyStatus(repair, device) {
+  if (!device?.our_warranty_months) return null;
+  const start = new Date(repair.created_at || repair.date_intake);
+  const expiry = new Date(start);
+  expiry.setMonth(expiry.getMonth() + device.our_warranty_months);
+  const daysLeft = Math.ceil((expiry - new Date()) / (1000 * 60 * 60 * 24));
+  if (daysLeft <= 0) return { expired: true };
+  if (daysLeft > 30) return { expired: false, months: Math.ceil(daysLeft / 30) };
+  return { expired: false, days: daysLeft };
+}
+
 const MAX_DEVICE_PHOTOS = 4;
 const PHOTO_MAX_PX = 800;
 const PHOTO_QUALITY = 0.7;
@@ -160,6 +171,22 @@ export default function RepairDetailModal({ repair, customer, device, onClose, o
                 <p className="font-semibold text-slate-800">{WARRANTY_LABELS[repair.warranty_type] || repair.warranty_type || '—'}</p>
               </div>
             </div>
+
+            {/* חיווי אחריות שלנו */}
+            {(() => {
+              const ws = getWarrantyStatus(repair, device);
+              if (!ws) return null;
+              return (
+                <div className={`rounded-xl px-3 py-2 text-sm font-semibold flex items-center gap-2 ${ws.expired ? 'bg-red-50 text-red-600 border border-red-200' : ws.days ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}`}>
+                  <span>{ws.expired ? '⚠️' : '🛡️'}</span>
+                  {ws.expired
+                    ? 'פג תוקף האחריות'
+                    : ws.months
+                    ? `נותרו ${ws.months} חודשים לסיום האחריות`
+                    : `נותרו ${ws.days} ימים לסיום האחריות`}
+                </div>
+              );
+            })()}
 
             {/* תלונה */}
             {repair.complaint && (
