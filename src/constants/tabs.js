@@ -2,6 +2,7 @@ export const OFFICE_TABS = [
   { id: 'kanban', label: 'תצוגת לוח', icon: '🗂️' },
   { id: 'dashboard', label: 'דשבורד', icon: '📊' },
   { id: 'intake', label: 'קליטה', icon: '🔴' },
+  { id: 'intake-internal', label: 'יד שנייה', icon: '🛒' },
   { id: 'approval', label: 'אישור תמחור', icon: '💰' },
   { id: 'appeals', label: 'ערעורי אחריות', icon: '⚠️' },
   { id: 'payment', label: 'גביה', icon: '💳' },

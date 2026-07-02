@@ -25,7 +25,10 @@ export default function OfficePayment() {
   const [quickDevice, setQuickDevice] = useState(null);
 
   const pendingPayments = state.repairs
-    .filter(r => r.status === REPAIR_STATUSES.PENDING_PAYMENT || r.status === REPAIR_STATUSES.CUSTOMER_REFUSED)
+    .filter(r =>
+      (r.status === REPAIR_STATUSES.PENDING_PAYMENT || r.status === REPAIR_STATUSES.CUSTOMER_REFUSED) &&
+      r.repair_type !== 'internal_used'
+    )
     .sort((a, b) => new Date(b.work_end || b.refused_at || b.date_intake) - new Date(a.work_end || a.refused_at || a.date_intake));
 
   return (

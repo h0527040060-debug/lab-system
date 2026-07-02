@@ -45,14 +45,16 @@ export default function ReleaseDocsModal({ repair, onClose }) {
   };
 
   const handleSubmit = () => {
+    const isInternal = repair.repair_type === 'internal_used';
     dispatch({
       type: 'UPDATE_REPAIR',
       payload: {
         id: repair.id,
-        status: REPAIR_STATUSES.PENDING_PAYMENT,
+        status: isInternal ? REPAIR_STATUSES.GREEN_COMPLETE : REPAIR_STATUSES.PENDING_PAYMENT,
         release_media: media,
         release_notes: notes,
         release_docs_at: new Date().toISOString(),
+        ...(isInternal && { completed_at: new Date().toISOString() }),
       }
     });
     onClose();
@@ -76,7 +78,7 @@ export default function ReleaseDocsModal({ repair, onClose }) {
             className="bg-green-600 hover:bg-green-700 disabled:bg-slate-300 text-white px-6 py-2 rounded-lg font-bold flex items-center gap-2"
           >
             <Check size={18} />
-            סיים תיעוד והעבר לגביה
+            {repair.repair_type === 'internal_used' ? 'סיים תיעוד והשלם טיפול' : 'סיים תיעוד והעבר לגביה'}
           </button>
         </div>
       }
