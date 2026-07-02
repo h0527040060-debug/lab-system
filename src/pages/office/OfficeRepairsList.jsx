@@ -15,7 +15,8 @@ import CustomerQuickModal from '../../components/CustomerQuickModal';
 import DeviceQuickModal from '../../components/DeviceQuickModal';
 import StatusPickerPopover from '../../components/StatusPickerPopover';
 import WhatsAppButton from '../../components/WhatsAppButton';
-import { FileText, Stethoscope, Wrench, Camera, Printer, Edit2, MoreVertical } from 'lucide-react';
+import { FileText, Stethoscope, Wrench, Camera, Printer, Edit2, MoreVertical, Trash2 } from 'lucide-react';
+import ConfirmDialog from '../../components/ConfirmDialog';
 import { RepairEditModal } from '../../components/RepairEditModal';
 
 const getActionForStatus = (status) => {
@@ -29,7 +30,7 @@ const getActionForStatus = (status) => {
 };
 
 export default function OfficeRepairsList() {
-  const { state } = useAppContext();
+  const { state, dispatch } = useAppContext();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [activeRepairId, setActiveRepairId] = useState(null);
@@ -40,6 +41,7 @@ export default function OfficeRepairsList() {
   const [statusPickerRepairId, setStatusPickerRepairId] = useState(null);
   const [editRepair, setEditRepair] = useState(null);
   const [openMenuId, setOpenMenuId] = useState(null);
+  const [deleteRepairId, setDeleteRepairId] = useState(null);
 
   useEffect(() => {
     if (!openMenuId) return;
@@ -231,6 +233,14 @@ export default function OfficeRepairsList() {
                                 <Camera size={13} /> תיעוד
                               </button>
                             )}
+                            <div className="border-t border-slate-100 mt-1 pt-1">
+                              <button
+                                onClick={() => { setDeleteRepairId(r.id); setOpenMenuId(null); }}
+                                className="flex items-center gap-2 w-full px-3 py-1.5 text-xs hover:bg-red-50 text-red-600"
+                              >
+                                <Trash2 size={13} /> מחק קריאה
+                              </button>
+                            </div>
                           </div>
                         )}
                       </td>
@@ -279,6 +289,15 @@ export default function OfficeRepairsList() {
           onClose={() => setQuickDevice(null)}
         />
       )}
+      <ConfirmDialog
+        open={!!deleteRepairId}
+        title="מחיקת קריאה"
+        message={`האם אתה בטוח שאתה רוצה למחוק את הקריאה ${deleteRepairId}? פעולה זו אינה ניתנת לביטול.`}
+        confirmLabel="מחק לצמיתות"
+        variant="danger"
+        onConfirm={() => { dispatch({ type: 'DELETE_REPAIR', payload: deleteRepairId }); setDeleteRepairId(null); }}
+        onCancel={() => setDeleteRepairId(null)}
+      />
     </div>
   );
 }
