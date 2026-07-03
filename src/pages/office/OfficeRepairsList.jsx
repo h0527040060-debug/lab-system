@@ -163,6 +163,8 @@ export default function OfficeRepairsList({ onNavigate }) {
           <div className="relative text-center">
             <button
               onClick={(e) => { e.stopPropagation(); setOpenMenuId(prev => prev === r.id ? null : r.id); }}
+              aria-label="פעולות לקריאה"
+              aria-expanded={openMenuId === r.id}
               className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-700"
             >
               <MoreVertical size={16} />

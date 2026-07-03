@@ -75,6 +75,8 @@ export default function Layout({ children, currentTab, onTabChange, tabs }) {
               key={tab.id}
               onClick={() => handleTabChange(tab.id)}
               title={collapsed ? tab.label : undefined}
+              aria-label={collapsed ? tab.label : undefined}
+              aria-current={active ? 'page' : undefined}
               className={`w-full flex items-center transition-colors duration-150 relative ${
                 collapsed ? 'justify-center px-2 py-3' : 'gap-3 text-right px-4 py-2.5'
               } ${active
@@ -113,6 +115,7 @@ export default function Layout({ children, currentTab, onTabChange, tabs }) {
         <button
           onClick={handleLogout}
           title={collapsed ? 'התנתק' : undefined}
+          aria-label="התנתק"
           className={`w-full flex items-center text-slate-400 hover:text-white text-sm transition-colors ${collapsed ? 'justify-center p-1' : 'gap-2'}`}
         >
           <LogOut size={16} />
@@ -147,6 +150,8 @@ export default function Layout({ children, currentTab, onTabChange, tabs }) {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
+              aria-label={sidebarOpen ? 'סגור תפריט' : 'פתח תפריט'}
+              aria-expanded={sidebarOpen}
               className="p-2 hover:bg-slate-100 rounded-lg text-slate-600 transition-colors"
             >
               {sidebarOpen && window.innerWidth < 1024 ? <X size={20} /> : <Menu size={20} />}
@@ -186,6 +191,7 @@ export default function Layout({ children, currentTab, onTabChange, tabs }) {
             )}
             <button
               onClick={() => setCmdOpen(true)}
+              aria-label="חיפוש מהיר (Ctrl+K)"
               className="p-2 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-slate-800 transition-colors"
               title="חיפוש מהיר (Ctrl+K)"
             >
@@ -218,6 +224,7 @@ export default function Layout({ children, currentTab, onTabChange, tabs }) {
               <button
                 key={tab.id}
                 onClick={() => handleTabChange(tab.id)}
+                aria-current={active ? 'page' : undefined}
                 className={`flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-xs font-medium transition-colors relative ${
                   active ? 'text-orange-500' : 'text-slate-500 hover:text-slate-800'
                 }`}

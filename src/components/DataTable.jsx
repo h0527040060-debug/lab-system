@@ -76,6 +76,7 @@ export default function DataTable({
                   key={col.key}
                   className={`text-right px-3 py-2.5 font-semibold text-slate-600 whitespace-nowrap select-none ${col.className || ''} ${col.sortable ? 'cursor-pointer hover:bg-slate-100 transition-colors' : ''}`}
                   onClick={col.sortable ? () => handleSort(col.key) : undefined}
+                  aria-sort={col.sortable && sortKey === col.key ? (sortDir === 'asc' ? 'ascending' : 'descending') : undefined}
                 >
                   <div className="flex items-center gap-1 justify-start">
                     <span>{col.label}</span>
@@ -135,6 +136,7 @@ export default function DataTable({
             <button
               onClick={() => setPage(p => Math.max(1, p - 1))}
               disabled={safePage === 1}
+              aria-label="עמוד קודם"
               className="p-1.5 rounded-lg hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
               <ChevronRight size={14} />
@@ -146,6 +148,8 @@ export default function DataTable({
                 <button
                   key={pg}
                   onClick={() => setPage(pg)}
+                  aria-label={`עמוד ${pg}`}
+                  aria-current={pg === safePage ? 'page' : undefined}
                   className={`w-7 h-7 rounded-lg text-xs font-medium transition-colors ${pg === safePage ? 'bg-orange-500 text-white' : 'hover:bg-slate-200'}`}
                 >
                   {pg}
@@ -155,6 +159,7 @@ export default function DataTable({
             <button
               onClick={() => setPage(p => Math.min(totalPages, p + 1))}
               disabled={safePage === totalPages}
+              aria-label="עמוד הבא"
               className="p-1.5 rounded-lg hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
               <ChevronLeft size={14} />

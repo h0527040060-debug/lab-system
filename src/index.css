@@ -122,6 +122,17 @@ button:active:not(:disabled) {
   transform: scale(0.97);
 }
 
+/* ניווט מקלדת — טבעת focus ברורה */
+:focus-visible {
+  outline: 2px solid #f39200;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+/* ביטול outline רק בלחיצת עכבר/מגע, לא במקלדת */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
 /* כרטיסים */
 .card-hover {
   transition: box-shadow 0.18s ease, transform 0.18s ease;

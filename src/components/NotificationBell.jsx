@@ -11,7 +11,7 @@ export default function NotificationBell({ onNavigate }) {
 
   if (notifications.length === 0) {
     return (
-      <button className="p-2 text-slate-400 cursor-default" disabled>
+      <button className="p-2 text-slate-400 cursor-default" disabled aria-label="אין התראות">
         <Bell size={20} />
       </button>
     );
@@ -21,6 +21,8 @@ export default function NotificationBell({ onNavigate }) {
     <div className="relative">
       <button
         onClick={() => setOpen(!open)}
+        aria-label={`התראות (${notifications.length})`}
+        aria-expanded={open}
         className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg relative"
       >
         <Bell size={20} />
