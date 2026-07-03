@@ -683,11 +683,41 @@ export const AppProvider = ({ children }) => {
 
   if (dbLoading) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-white font-semibold text-lg">מתחבר למסד הנתונים...</p>
-          <p className="text-slate-400 text-sm mt-1">טוען נתונים מהשרת</p>
+      <div className="h-screen bg-slate-50 flex overflow-hidden" dir="rtl">
+        {/* סיידבר skeleton */}
+        <div className="hidden lg:flex w-56 shrink-0 bg-slate-900 flex-col p-4 gap-3">
+          <div className="skeleton rounded-lg h-9 w-full opacity-30 mb-2" />
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="skeleton rounded-lg h-8 w-full opacity-20" style={{ animationDelay: `${i * 60}ms` }} />
+          ))}
+        </div>
+        {/* תוכן skeleton */}
+        <div className="flex-1 flex flex-col min-w-0">
+          <div className="bg-white border-b border-slate-200 px-4 py-3 flex items-center gap-3">
+            <div className="skeleton rounded-lg h-8 w-8" />
+            <div className="skeleton rounded-lg h-8 w-24" />
+            <div className="flex-1" />
+            <div className="skeleton rounded-lg h-8 w-8" />
+            <div className="skeleton rounded-lg h-8 w-8" />
+          </div>
+          <div className="flex-1 p-6 space-y-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="skeleton rounded-xl h-24" style={{ animationDelay: `${i * 80}ms` }} />
+              ))}
+            </div>
+            <div className="skeleton rounded-xl h-64 w-full" />
+            <div className="space-y-2">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="skeleton rounded-lg h-12 w-full" style={{ animationDelay: `${i * 50}ms` }} />
+              ))}
+            </div>
+          </div>
+        </div>
+        {/* אינדיקטור טעינה */}
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-sm px-4 py-2 rounded-full flex items-center gap-2 shadow-lg">
+          <div className="w-3 h-3 border-2 border-orange-400 border-t-transparent rounded-full animate-spin" />
+          <span>טוען נתונים...</span>
         </div>
       </div>
     );

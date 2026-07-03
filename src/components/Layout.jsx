@@ -4,6 +4,7 @@ import { useAppContext } from '../store/AppContext';
 import { ROLE_LABELS } from '../constants/userRoles';
 import { LogOut, Menu, X, Search, Plus } from 'lucide-react';
 import NotificationBell from './NotificationBell';
+import { Button } from './Button';
 
 // טאבים שמופיעים בניווט התחתון במובייל
 const BOTTOM_NAV_IDS = {
@@ -141,27 +142,28 @@ export default function Layout({ children, currentTab, onTabChange, tabs }) {
             )}
 
             {(role === 'admin' || role === 'office') && (
-              <button
+              <Button
                 onClick={() => onTabChange('intake')}
-                className="hidden sm:flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white text-sm font-semibold px-3 py-1.5 rounded-lg shadow-sm transition-colors"
+                icon={<Plus size={16} />}
+                size="sm"
+                className="hidden sm:inline-flex"
                 title="קליטת תיקון חדש"
               >
-                <Plus size={16} />
-                <span>תיקון חדש</span>
-              </button>
+                תיקון חדש
+              </Button>
             )}
           </div>
 
           <div className="flex items-center gap-2">
             {/* כפתור "תיקון חדש" — מובייל בלבד (אייקון בלבד) */}
             {(role === 'admin' || role === 'office') && (
-              <button
+              <Button
                 onClick={() => onTabChange('intake')}
-                className="sm:hidden p-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors"
+                icon={<Plus size={18} />}
+                size="sm"
+                className="sm:hidden !px-2"
                 title="קליטת תיקון חדש"
-              >
-                <Plus size={18} />
-              </button>
+              />
             )}
             <button
               onClick={() => onTabChange('search')}

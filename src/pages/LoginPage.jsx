@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useAppContext } from '../store/AppContext';
 import { LogIn } from 'lucide-react';
 import RegisterPage from './RegisterPage';
+import { Button } from '../components/Button';
 
 export default function LoginPage() {
   const { state, dispatch } = useAppContext();
@@ -83,13 +84,9 @@ export default function LoginPage() {
             <p className="text-red-600 text-sm text-center">{error}</p>
           )}
 
-          <button
-            type="submit"
-            className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2.5 rounded-lg flex items-center justify-center gap-2 transition-colors"
-          >
-            <LogIn size={18} />
+          <Button type="submit" icon={<LogIn size={18} />} size="lg" className="w-full">
             כניסה למערכת
-          </button>
+          </Button>
         </form>
 
         <div className="mt-6 text-center space-y-2">
