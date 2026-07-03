@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useAppContext as useApp } from '../../store/AppContext';
 import { formatMoney, formatDate } from '../../utils/formatters';
 import { generatePurchaseOrderId } from '../../utils/idGenerators';
@@ -30,6 +30,9 @@ export default function OfficeOrders() {
   const [createOrderFromSupplier, setCreateOrderFromSupplier] = useState(null);
   const [viewingOrder, setViewingOrder] = useState(null);
   const [receivingOrder, setReceivingOrder] = useState(null);
+
+  const [lightbox, setLightbox] = useState(null);
+  const openLightbox = useCallback((src) => setLightbox(src), []);
 
   const shortagesBySupplier = groupShortagesBySupplier(state.parts, state.stockBatches);
   const inquiriesBySupplier = getInquiriesBySupplier(state.repairs);
@@ -154,7 +157,7 @@ export default function OfficeOrders() {
                           <td className="p-2">
                             <div className="flex items-center gap-2">
                               {part.images?.[0] && (
-                                <img src={part.images[0]} alt="" className="w-8 h-8 object-cover rounded shrink-0" />
+                                <img src={part.images[0]} alt="" className="w-8 h-8 object-cover rounded shrink-0 cursor-pointer hover:opacity-80" onClick={() => openLightbox(part.images[0])} />
                               )}
                               <div>
                                 <p className="font-semibold text-xs">{part.name}</p>
@@ -204,7 +207,7 @@ export default function OfficeOrders() {
                         {item.images?.length > 0 && (
                           <div className="flex gap-1 shrink-0">
                             {item.images.map((src, i) => (
-                              <img key={i} src={src} alt="" className="w-12 h-12 object-cover rounded border border-amber-200" />
+                              <img key={i} src={src} alt="" className="w-12 h-12 object-cover rounded border border-amber-200 cursor-pointer hover:opacity-80" onClick={() => openLightbox(src)} />
                             ))}
                           </div>
                         )}
@@ -299,6 +302,19 @@ export default function OfficeOrders() {
         onConfirm={() => handleReceiveOrder(receivingOrder)}
         onCancel={() => setReceivingOrder(null)}
       />
+
+      {lightbox && (
+        <div
+          className="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center"
+          onClick={() => setLightbox(null)}
+        >
+          <img src={lightbox} alt="" className="max-w-full max-h-full object-contain" />
+          <button
+            onClick={() => setLightbox(null)}
+            className="absolute top-4 left-4 text-white bg-black/50 rounded-full w-9 h-9 flex items-center justify-center text-xl hover:bg-black/80"
+          >✕</button>
+        </div>
+      )}
     </div>
   );
 }
