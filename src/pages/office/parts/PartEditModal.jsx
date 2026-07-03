@@ -45,6 +45,8 @@ export default function PartEditModal({ part, onSave, onClose }) {
   const [activeTab, setActiveTab] = useState('basic');
   const [lastPriceEdit, setLastPriceEdit] = useState('markup');
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [uploadingImages, setUploadingImages] = useState(false);
+  const [uploadingAssembly, setUploadingAssembly] = useState(false);
   const imageInputRef = useRef();
   const docInputRef = useRef();
   const assemblyImgRef = useRef();
@@ -80,23 +82,33 @@ export default function PartEditModal({ part, onSave, onClose }) {
   };
 
   // ——— תמונות ———
-  const handleImageUpload = (e) => {
-    const realImages = form.images.filter(img => img.startsWith('data:') || img.startsWith('http'));
-    const canAdd = 4 - realImages.length;
+  const isValidImage = (img) => img && (img.startsWith('data:') || img.startsWith('http'));
+
+  const handleImageUpload = async (e) => {
+    const currentImages = form.images.filter(isValidImage);
+    const canAdd = 4 - currentImages.length;
     if (canAdd <= 0) return;
     const files = Array.from(e.target.files).slice(0, canAdd);
-    files.forEach(file => {
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const url = await uploadToStorage(reader.result, 'parts');
+    e.target.value = '';
+    if (!files.length) return;
+    setUploadingImages(true);
+    try {
+      for (const file of files) {
+        const dataUrl = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+        const url = await uploadToStorage(dataUrl, 'parts');
         setForm(f => ({
           ...f,
-          images: [...f.images.filter(img => img.startsWith('data:') || img.startsWith('http')), url].slice(0, 4)
+          images: [...f.images.filter(isValidImage), url].slice(0, 4)
         }));
-      };
-      reader.readAsDataURL(file);
-    });
-    e.target.value = '';
+      }
+    } finally {
+      setUploadingImages(false);
+    }
   };
 
   const removeImage = (idx) => {
@@ -134,25 +146,33 @@ export default function PartEditModal({ part, onSave, onClose }) {
   };
 
   // ——— הוראות הרכבה ———
-  const handleAssemblyImageUpload = (e) => {
-    const canAdd = 10 - (form.assembly_instructions.images?.length || 0);
+  const handleAssemblyImageUpload = async (e) => {
+    const canAdd = 10 - (form.assembly_instructions.images?.filter(isValidImage).length || 0);
     if (canAdd <= 0) return;
     const files = Array.from(e.target.files).slice(0, canAdd);
-    files.forEach(file => {
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const url = await uploadToStorage(reader.result, 'parts');
+    e.target.value = '';
+    if (!files.length) return;
+    setUploadingAssembly(true);
+    try {
+      for (const file of files) {
+        const dataUrl = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+        const url = await uploadToStorage(dataUrl, 'parts');
         setForm(f => ({
           ...f,
           assembly_instructions: {
             ...f.assembly_instructions,
-            images: [...(f.assembly_instructions.images || []), url].slice(0, 10)
+            images: [...(f.assembly_instructions.images || []).filter(isValidImage), url].slice(0, 10)
           }
         }));
-      };
-      reader.readAsDataURL(file);
-    });
-    e.target.value = '';
+      }
+    } finally {
+      setUploadingAssembly(false);
+    }
   };
 
   const removeAssemblyImage = (idx) => {
@@ -215,8 +235,8 @@ export default function PartEditModal({ part, onSave, onClose }) {
     { id: 'assembly', label: 'הרכבה' },
   ];
 
-  const realImages = form.images.filter(img => img.startsWith('data:'));
-  const assemblyImages = form.assembly_instructions.images || [];
+  const realImages = form.images.filter(isValidImage);
+  const assemblyImages = (form.assembly_instructions.images || []).filter(isValidImage);
 
   return (
     <Modal
@@ -395,8 +415,9 @@ export default function PartEditModal({ part, onSave, onClose }) {
             <div className="flex items-center justify-between mb-2">
               <h4 className="text-sm font-semibold text-slate-700 flex items-center gap-1">
                 <ImagePlus size={14} /> תמונות המוצר (עד 4)
+                {uploadingImages && <span className="text-xs text-orange-500 font-normal mr-1">מעלה...</span>}
               </h4>
-              {realImages.length < 4 && (
+              {realImages.length < 4 && !uploadingImages && (
                 <button onClick={() => imageInputRef.current?.click()}
                   className="text-xs text-orange-600 hover:text-orange-700 font-semibold flex items-center gap-1">
                   <Plus size={12} /> הוסף תמונה
@@ -567,8 +588,9 @@ export default function PartEditModal({ part, onSave, onClose }) {
             <div className="flex items-center justify-between mb-2">
               <label className="text-xs font-semibold flex items-center gap-1">
                 <ImagePlus size={12} /> תמונות הרכבה (עד 10)
+                {uploadingAssembly && <span className="text-xs text-orange-500 font-normal mr-1">מעלה...</span>}
               </label>
-              {assemblyImages.length < 10 && (
+              {assemblyImages.length < 10 && !uploadingAssembly && (
                 <button onClick={() => assemblyImgRef.current?.click()}
                   className="text-xs text-orange-600 hover:text-orange-700 font-semibold flex items-center gap-1">
                   <Plus size={12} /> הוסף תמונה
