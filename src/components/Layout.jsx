@@ -5,10 +5,21 @@ import { ROLE_LABELS } from '../constants/userRoles';
 import { LogOut, Menu, X, Search, Plus } from 'lucide-react';
 import NotificationBell from './NotificationBell';
 
+// טאבים שמופיעים בניווט התחתון במובייל
+const BOTTOM_NAV_IDS = {
+  office: ['kanban', 'intake', 'repairs', 'customers', 'search'],
+  admin:  ['kanban', 'intake', 'repairs', 'customers', 'search'],
+  lab:    ['kanban', 'dashboard', 'search', 'history'],
+};
+
 export default function Layout({ children, currentTab, onTabChange, tabs }) {
   const { state, dispatch } = useAppContext();
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 1024);
   const mainRef = useRef(null);
+
+  const role = state.currentUser?.role || 'office';
+  const bottomNavIds = BOTTOM_NAV_IDS[role] || BOTTOM_NAV_IDS.office;
+  const bottomNavTabs = bottomNavIds.map(id => tabs.find(t => t.id === id)).filter(Boolean);
 
   const handleLogout = () => {
     if (confirm('להתנתק מהמערכת?')) {
@@ -18,65 +29,65 @@ export default function Layout({ children, currentTab, onTabChange, tabs }) {
 
   const roleLabel = ROLE_LABELS[state.currentUser?.role] || '';
 
-  const sidebarContent = (
+  const sidebarContent = (collapsed) => (
     <div className="h-full flex flex-col">
-      <div className="p-4 border-b border-slate-700">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center font-bold text-white text-lg">
+      <div className={`border-b border-slate-700 ${collapsed ? 'p-3' : 'p-4'}`}>
+        <div className={`flex items-center ${collapsed ? 'justify-center' : 'gap-3'}`}>
+          <div className="w-9 h-9 bg-orange-500 rounded-lg flex items-center justify-center font-bold text-white text-base shrink-0">
             ה
           </div>
-          <div>
-            <p className="text-sm font-bold leading-tight">{state.settings.business_name.split(' - ')[0]}</p>
-            <p className="text-xs text-slate-400">{roleLabel}</p>
-          </div>
+          {!collapsed && (
+            <div className="min-w-0">
+              <p className="text-sm font-bold leading-tight truncate">{state.settings.business_name.split(' - ')[0]}</p>
+              <p className="text-xs text-slate-400">{roleLabel}</p>
+            </div>
+          )}
         </div>
       </div>
 
       <nav className="flex-1 overflow-y-auto py-2">
-        {tabs.map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => { onTabChange(tab.id); if (window.innerWidth < 1024) setSidebarOpen(false); }}
-            className={`w-full text-right px-4 py-3 flex items-center gap-3 transition-colors ${
-              currentTab === tab.id
-                ? 'bg-orange-500 text-white font-semibold'
-                : 'text-slate-300 hover:bg-slate-800'
-            }`}
-          >
-            <span className="text-lg">{tab.icon}</span>
-            <span className="text-sm">{tab.label}</span>
-          </button>
-        ))}
+        {tabs.map(tab => {
+          const active = currentTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => { onTabChange(tab.id); if (window.innerWidth < 1024) setSidebarOpen(false); }}
+              title={collapsed ? tab.label : undefined}
+              className={`w-full flex items-center transition-colors duration-150 ${
+                collapsed ? 'justify-center px-2 py-3' : 'gap-3 text-right px-4 py-2.5'
+              } ${active ? 'bg-orange-500 text-white font-semibold' : 'text-slate-300 hover:bg-slate-800'}`}
+            >
+              <span className="text-lg leading-none">{tab.icon}</span>
+              {!collapsed && <span className="text-sm">{tab.label}</span>}
+            </button>
+          );
+        })}
       </nav>
 
-      <div className="p-4 border-t border-slate-700">
-        <div className="flex items-center gap-2 mb-3">
-          {state.currentUser?.picture ? (
-            <img
-              src={state.currentUser.picture}
-              alt={state.currentUser.name}
-              className="w-8 h-8 rounded-full object-cover flex-shrink-0"
-            />
-          ) : (
-            <div className="w-8 h-8 rounded-full bg-slate-600 flex items-center justify-center flex-shrink-0 text-xs font-bold text-white">
-              {state.currentUser?.name?.charAt(0) || '?'}
+      <div className={`border-t border-slate-700 ${collapsed ? 'p-2' : 'p-4'}`}>
+        {!collapsed && (
+          <div className="flex items-center gap-2 mb-3">
+            {state.currentUser?.picture ? (
+              <img src={state.currentUser.picture} alt={state.currentUser.name}
+                className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-slate-600 flex items-center justify-center flex-shrink-0 text-xs font-bold text-white">
+                {state.currentUser?.name?.charAt(0) || '?'}
+              </div>
+            )}
+            <div className="overflow-hidden">
+              <p className="text-sm font-medium text-white truncate leading-tight">{state.currentUser?.name || ''}</p>
+              <p className="text-xs text-slate-400 truncate">{state.currentUser?.email || roleLabel}</p>
             </div>
-          )}
-          <div className="overflow-hidden">
-            <p className="text-sm font-medium text-white truncate leading-tight">
-              {state.currentUser?.name || ''}
-            </p>
-            <p className="text-xs text-slate-400 truncate">
-              {state.currentUser?.email || roleLabel}
-            </p>
           </div>
-        </div>
+        )}
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-2 text-slate-400 hover:text-white text-sm transition-colors"
+          title={collapsed ? 'התנתק' : undefined}
+          className={`w-full flex items-center text-slate-400 hover:text-white text-sm transition-colors ${collapsed ? 'justify-center p-1' : 'gap-2'}`}
         >
           <LogOut size={16} />
-          <span>התנתק</span>
+          {!collapsed && <span>התנתק</span>}
         </button>
       </div>
     </div>
@@ -84,38 +95,37 @@ export default function Layout({ children, currentTab, onTabChange, tabs }) {
 
   return (
     <div className="h-screen overflow-hidden bg-slate-50 flex">
-      {/* Desktop sidebar — in document flow */}
-      <aside className={`hidden lg:block ${sidebarOpen ? 'w-64' : 'w-0'} transition-all duration-200 bg-slate-900 text-white overflow-hidden flex-shrink-0`}>
-        {sidebarContent}
+      {/* Desktop sidebar */}
+      <aside className={`hidden lg:block shrink-0 transition-all duration-200 bg-slate-900 text-white overflow-hidden ${
+        sidebarOpen ? 'w-56' : 'w-14'
+      }`}>
+        {sidebarContent(!sidebarOpen)}
       </aside>
 
-      {/* Mobile sidebar — fixed overlay */}
+      {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <>
-          <div
-            className="fixed inset-0 bg-black/40 z-20 lg:hidden"
-            onClick={() => setSidebarOpen(false)}
-          />
-          <aside className="fixed top-0 right-0 h-full w-64 bg-slate-900 text-white z-30 lg:hidden overflow-hidden">
-            {sidebarContent}
+          <div className="fixed inset-0 bg-black/40 z-20 lg:hidden" onClick={() => setSidebarOpen(false)} />
+          <aside className="fixed top-0 right-0 h-full w-64 bg-slate-900 text-white z-30 lg:hidden overflow-hidden animate-slide-up">
+            {sidebarContent(false)}
           </aside>
         </>
       )}
 
       {/* Main content */}
       <main className="flex-1 flex flex-col min-w-0">
-        <header className="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between sticky top-0 z-10">
+        <header className="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between sticky top-0 z-10 shadow-sm">
           <div className="flex items-center gap-2">
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="p-2 hover:bg-slate-100 rounded-lg"
+              className="p-2 hover:bg-slate-100 rounded-lg text-slate-600"
             >
-              {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
+              {sidebarOpen && window.innerWidth < 1024 ? <X size={20} /> : <Menu size={20} />}
             </button>
-            {(state.currentUser?.role === 'admin' || state.currentUser?.role === 'office') && (
+            {(role === 'admin' || role === 'office') && (
               <button
                 onClick={() => onTabChange('intake')}
-                className="flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold px-3 py-1.5 rounded-lg transition-colors"
+                className="flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white text-sm font-semibold px-3 py-1.5 rounded-lg shadow-sm"
                 title="קליטת תיקון חדש"
               >
                 <Plus size={16} />
@@ -138,11 +148,35 @@ export default function Layout({ children, currentTab, onTabChange, tabs }) {
           </div>
         </header>
 
-        <div ref={mainRef} className="flex-1 overflow-auto p-4 lg:p-6">
+        {/* תוכן ראשי — עם ריפוד תחתון למובייל בגלל ניווט תחתון */}
+        <div ref={mainRef} className="flex-1 overflow-auto p-4 lg:p-6 pb-20 lg:pb-6">
           {children}
         </div>
         <FloatingScrollbar targetRef={mainRef} />
       </main>
+
+      {/* ניווט תחתון — מובייל בלבד */}
+      {bottomNavTabs.length > 0 && (
+        <nav className="lg:hidden fixed bottom-0 right-0 left-0 bg-white border-t border-slate-200 z-20 flex shadow-[0_-2px_8px_rgba(0,0,0,0.06)]">
+          {bottomNavTabs.map(tab => {
+            const active = currentTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => onTabChange(tab.id)}
+                className={`flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-xs font-medium transition-colors ${
+                  active ? 'text-orange-500' : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                <span className={`text-xl leading-none transition-transform ${active ? 'scale-110' : ''}`}>
+                  {tab.icon}
+                </span>
+                <span className="leading-tight">{tab.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+      )}
     </div>
   );
 }
