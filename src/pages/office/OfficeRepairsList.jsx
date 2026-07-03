@@ -42,6 +42,7 @@ export default function OfficeRepairsList({ onNavigate }) {
   const [statusPickerRepairId, setStatusPickerRepairId] = useState(null);
   const [editRepair, setEditRepair] = useState(null);
   const [openMenuId, setOpenMenuId] = useState(null);
+  const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
   const [deleteRepairId, setDeleteRepairId] = useState(null);
 
   useEffect(() => {
@@ -162,7 +163,7 @@ export default function OfficeRepairsList({ onNavigate }) {
         return (
           <div className="relative text-center">
             <button
-              onClick={(e) => { e.stopPropagation(); setOpenMenuId(prev => prev === r.id ? null : r.id); }}
+              onClick={(e) => { e.stopPropagation(); const rect = e.currentTarget.getBoundingClientRect(); setMenuPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right }); setOpenMenuId(prev => prev === r.id ? null : r.id); }}
               aria-label="פעולות לקריאה"
               aria-expanded={openMenuId === r.id}
               className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-700"
@@ -170,7 +171,7 @@ export default function OfficeRepairsList({ onNavigate }) {
               <MoreVertical size={16} />
             </button>
             {openMenuId === r.id && (
-              <div className="absolute left-0 top-8 z-30 bg-white border border-slate-200 rounded-xl shadow-lg py-1 min-w-[140px] text-right" onClick={e => e.stopPropagation()}>
+              <div style={{ position: 'fixed', top: menuPos.top, right: menuPos.right }} className="z-50 bg-white border border-slate-200 rounded-xl shadow-lg py-1 min-w-[140px] text-right" onClick={e => e.stopPropagation()}>
                 <button onClick={() => { setPrintRepair({ repair: r, customer, device }); setOpenMenuId(null); }} className="flex items-center gap-2 w-full px-3 py-1.5 text-xs hover:bg-slate-50 text-slate-700">
                   <Printer size={13} /> הדפס QR
                 </button>
@@ -250,7 +251,7 @@ export default function OfficeRepairsList({ onNavigate }) {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden animate-fade-in" style={{ animationDelay: '80ms' }}>
+      <div className="bg-white rounded-xl shadow-sm animate-fade-in" style={{ animationDelay: '80ms' }}>
         <DataTable
           columns={columns}
           data={filteredRepairs}

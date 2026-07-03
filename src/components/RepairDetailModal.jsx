@@ -111,7 +111,7 @@ export default function RepairDetailModal({ repair, customer, device, onClose, o
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 pb-20 sm:pb-4" onClick={onClose}>
         <div
           className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto"
           onClick={e => e.stopPropagation()}
