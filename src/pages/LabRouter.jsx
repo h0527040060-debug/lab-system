@@ -20,7 +20,9 @@ export default function LabRouter() {
 
   return (
     <Layout currentTab={currentTab} onTabChange={setCurrentTab} tabs={LAB_TABS}>
-      <PageComponent />
+      <div key={currentTab} className="animate-fade-in">
+        <PageComponent />
+      </div>
     </Layout>
   );
 }

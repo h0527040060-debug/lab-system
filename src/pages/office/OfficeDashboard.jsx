@@ -48,40 +48,20 @@ export default function OfficeDashboard() {
 
       {/* KPI כרטיסים */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <KPICard
-          icon={DollarSign}
-          label='הכנסות סה"כ'
-          value={formatMoney(summary.totalRevenue)}
-          subtitle={`${summary.completedCount} תיקונים`}
-          color="green"
-        />
-        <KPICard
-          icon={TrendingUp}
-          label="רווח נקי"
-          value={formatMoney(summary.netProfit)}
-          subtitle={formatPercent(summary.netMargin) + ' מההכנסות'}
-          color={summary.netProfit >= 0 ? 'blue' : 'red'}
-        />
-        <KPICard
-          icon={Wrench}
-          label="קריאות פעילות"
-          value={activeRepairs}
-          subtitle={`${todayRepairs} נקלטו היום`}
-          color="orange"
-        />
-        <KPICard
-          icon={Users}
-          label="לקוחות פעילים"
-          value={state.customers.length}
-          subtitle={`${state.devices.length} מכשירים`}
-          color="purple"
-        />
+        <KPICard icon={DollarSign} label='הכנסות סה"כ' value={formatMoney(summary.totalRevenue)}
+          subtitle={`${summary.completedCount} תיקונים`} color="green" style={{ animationDelay: '0ms' }} />
+        <KPICard icon={TrendingUp} label="רווח נקי" value={formatMoney(summary.netProfit)}
+          subtitle={formatPercent(summary.netMargin) + ' מההכנסות'} color={summary.netProfit >= 0 ? 'blue' : 'red'} style={{ animationDelay: '60ms' }} />
+        <KPICard icon={Wrench} label="קריאות פעילות" value={activeRepairs}
+          subtitle={`${todayRepairs} נקלטו היום`} color="orange" style={{ animationDelay: '120ms' }} />
+        <KPICard icon={Users} label="לקוחות פעילים" value={state.customers.length}
+          subtitle={`${state.devices.length} מכשירים`} color="purple" style={{ animationDelay: '180ms' }} />
       </div>
 
       {/* 4 גרפים */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* גרף 1: הכנסות חודשיות */}
-        <ChartCard title="הכנסות 6 חודשים אחרונים">
+        <ChartCard title="הכנסות 6 חודשים אחרונים" style={{ animationDelay: '240ms' }}>
           {monthlyRevenue.some(m => m.revenue > 0) ? (
             <ResponsiveContainer width="100%" height={250}>
               <LineChart data={monthlyRevenue}>
@@ -204,7 +184,7 @@ export default function OfficeDashboard() {
   );
 }
 
-function KPICard({ icon: Icon, label, value, subtitle, color }) {
+function KPICard({ icon: Icon, label, value, subtitle, color, style }) {
   const colors = {
     green: 'bg-green-50 text-green-700 border-green-200',
     blue: 'bg-blue-50 text-blue-700 border-blue-200',
@@ -213,7 +193,7 @@ function KPICard({ icon: Icon, label, value, subtitle, color }) {
     red: 'bg-red-50 text-red-700 border-red-200',
   };
   return (
-    <div className={`rounded-xl border p-4 ${colors[color]}`}>
+    <div className={`rounded-xl border p-4 animate-fade-in ${colors[color]}`} style={style}>
       <div className="flex items-start justify-between">
         <div>
           <p className="text-xs font-medium opacity-75">{label}</p>
@@ -226,9 +206,9 @@ function KPICard({ icon: Icon, label, value, subtitle, color }) {
   );
 }
 
-function ChartCard({ title, children }) {
+function ChartCard({ title, children, style }) {
   return (
-    <div className="bg-white rounded-xl shadow-sm p-4">
+    <div className="bg-white rounded-xl shadow-sm p-4 animate-fade-in" style={style}>
       <h3 className="font-bold text-slate-800 mb-3">{title}</h3>
       {children}
     </div>

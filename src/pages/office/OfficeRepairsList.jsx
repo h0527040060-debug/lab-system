@@ -84,7 +84,7 @@ export default function OfficeRepairsList() {
     <div>
       <PageHeader title="כל הקריאות" subtitle={`${state.repairs.length} קריאות במערכת`} />
 
-      <div className="bg-white rounded-xl shadow-sm p-4 mb-4">
+      <div className="bg-white rounded-xl shadow-sm p-4 mb-4 animate-fade-in">
         <div className="grid md:grid-cols-3 gap-3">
           <SearchInput
             value={search}
@@ -105,7 +105,7 @@ export default function OfficeRepairsList() {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm overflow-hidden animate-fade-in" style={{ animationDelay: '80ms' }}>
         {filteredRepairs.length === 0 ? (
           <EmptyState
             icon={FileText}
