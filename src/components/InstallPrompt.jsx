@@ -1,15 +1,21 @@
 import { useState, useEffect } from 'react';
 import { Download, X } from 'lucide-react';
 
-const STORAGE_KEY = 'horovitz_pwa_install_dismissed';
+const DISMISSED_KEY = 'horovitz_pwa_install_dismissed';
+
+const isStandalone = () =>
+  window.matchMedia('(display-mode: standalone)').matches ||
+  window.navigator.standalone === true;
 
 export function InstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    const dismissed = localStorage.getItem(STORAGE_KEY);
-    if (dismissed) return;
+    // כבר מותקן כ-PWA — לא להציע
+    if (isStandalone()) return;
+    // המשתמש דחה בעבר
+    if (localStorage.getItem(DISMISSED_KEY)) return;
 
     const handler = (e) => {
       e.preventDefault();
@@ -18,7 +24,18 @@ export function InstallPrompt() {
     };
 
     window.addEventListener('beforeinstallprompt', handler);
-    return () => window.removeEventListener('beforeinstallprompt', handler);
+
+    // אם התקין — סמן ואל תציג שוב
+    const onInstalled = () => {
+      localStorage.setItem(DISMISSED_KEY, '1');
+      setVisible(false);
+    };
+    window.addEventListener('appinstalled', onInstalled);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handler);
+      window.removeEventListener('appinstalled', onInstalled);
+    };
   }, []);
 
   const handleInstall = async () => {
@@ -26,13 +43,14 @@ export function InstallPrompt() {
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
     if (outcome === 'accepted') {
-      setVisible(false);
+      localStorage.setItem(DISMISSED_KEY, '1');
     }
     setDeferredPrompt(null);
+    setVisible(false);
   };
 
   const handleDismiss = () => {
-    localStorage.setItem(STORAGE_KEY, '1');
+    localStorage.setItem(DISMISSED_KEY, '1');
     setVisible(false);
   };
 
