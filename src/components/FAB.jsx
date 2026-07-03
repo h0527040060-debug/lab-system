@@ -6,6 +6,7 @@ export function FAB({ icon, label, onClick, title }) {
     <button
       onClick={onClick}
       title={title || label}
+      aria-label={title || label}
       className="fixed bottom-20 right-4 lg:bottom-8 lg:right-8 z-40
         bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white
         rounded-full shadow-lg hover:shadow-xl

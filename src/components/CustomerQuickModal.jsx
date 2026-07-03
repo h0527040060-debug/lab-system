@@ -28,10 +28,11 @@ export default function CustomerQuickModal({ customer, repairs = [], devices = [
               onClick={() => setShowEdit(true)}
               className="p-1.5 hover:bg-orange-100 rounded-lg text-slate-400 hover:text-orange-600"
               title="ערוך לקוח"
+              aria-label="ערוך לקוח"
             >
               <Edit2 size={16} />
             </button>
-            <button onClick={onClose} className="p-1 hover:bg-slate-100 rounded-lg text-slate-500">
+            <button onClick={onClose} aria-label="סגור" className="p-1 hover:bg-slate-100 rounded-lg text-slate-500">
               <X size={18} />
             </button>
           </div>

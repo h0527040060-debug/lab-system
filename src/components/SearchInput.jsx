@@ -16,6 +16,7 @@ export default function SearchInput({ value, onChange, placeholder = 'חיפוש
       {value && (
         <button
           onClick={() => onChange('')}
+          aria-label="נקה חיפוש"
           className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
         >
           <X size={14} />

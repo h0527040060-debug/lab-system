@@ -1,11 +1,19 @@
 import { AlertTriangle } from 'lucide-react';
 import { Button } from './Button';
+import { useEffect } from 'react';
 
 export default function ConfirmDialog({ open, title, message, confirmLabel = 'אישור', cancelLabel = 'ביטול', onConfirm, onCancel, variant = 'default' }) {
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e) => { if (e.key === 'Escape') onCancel(); };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [open, onCancel]);
+
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-[2px] flex items-center justify-center z-50 p-4 animate-fade-in">
+    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-[2px] flex items-center justify-center z-50 p-4 animate-fade-in" role="dialog" aria-modal="true" aria-label={title}>
       <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 animate-scale-in">
         <div className="flex items-start gap-3 mb-5">
           {variant === 'danger' && (

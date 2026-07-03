@@ -163,6 +163,7 @@ export default function OfficeCustomers() {
                                 onClick={() => setEditingDevice(d)}
                                 className="p-1 hover:bg-orange-100 rounded text-slate-400 hover:text-orange-600"
                                 title="ערוך מכשיר"
+                                aria-label="ערוך מכשיר"
                               >
                                 <Edit2 size={12} />
                               </button>
