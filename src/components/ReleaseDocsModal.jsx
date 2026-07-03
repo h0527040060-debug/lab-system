@@ -66,6 +66,7 @@ export default function ReleaseDocsModal({ repair, onClose }) {
     <Modal
       open={true}
       onClose={onClose}
+      sheet
       title={`תיעוד תקינות - ${repair.id}`}
       subtitle={`${customer?.name} • ${device?.brand} ${device?.model}`}
       maxWidth="max-w-2xl"

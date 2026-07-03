@@ -99,6 +99,7 @@ export function DeviceEditModal({ device, onClose }) {
     <Modal
       open
       onClose={onClose}
+      sheet
       title="עריכת מכשיר"
       subtitle={device.id}
       maxWidth="max-w-lg"

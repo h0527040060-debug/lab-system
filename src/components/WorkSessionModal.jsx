@@ -143,6 +143,7 @@ export default function WorkSessionModal({ repair, onClose }) {
     <Modal
       open={true}
       onClose={onClose}
+      sheet
       title={`ביצוע תיקון: ${repair.id}`}
       subtitle={`${customer?.name} • ${device?.brand} ${device?.model}`}
       maxWidth="max-w-5xl"

@@ -22,6 +22,7 @@ export function RepairEditModal({ repair, onClose }) {
     <Modal
       open
       onClose={onClose}
+      sheet
       title="עריכת פרטי תיקון"
       subtitle={repair.id}
       maxWidth="max-w-lg"

@@ -58,74 +58,123 @@ export default function OfficeDevices() {
             ) : null}
           />
         ) : (
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 border-b border-slate-200">
-              <tr>
-                <th className="text-right p-3 font-semibold">קוד מכשיר</th>
-                <th className="text-right p-3 font-semibold">סוג</th>
-                <th className="text-right p-3 font-semibold">יצרן / דגם</th>
-                <th className="text-right p-3 font-semibold">Serial יצרן</th>
-                <th className="text-right p-3 font-semibold">בעלים</th>
-                <th className="text-right p-3 font-semibold">תיקונים</th>
-                <th className="p-3"></th>
-              </tr>
-            </thead>
-            <tbody>
+          <>
+            {/* מובייל — כרטיסים */}
+            <div className="sm:hidden divide-y divide-slate-100">
               {filteredDevices.map((d, i) => {
                 const owner = state.customers.find(c => c.id === d.owner_customer_id);
                 const repairsCount = state.repairs.filter(r => r.device_id === d.id).length;
                 const problematic = repairsCount >= 3;
-
                 return (
-                  <tr key={d.id} style={stagger(i)} className="border-b border-slate-100 hover:bg-slate-50 animate-fade-in">
-                    <td className="p-3">
+                  <div key={d.id} style={stagger(i)} className="p-3 animate-fade-in">
+                    <div className="flex justify-between items-start mb-1">
                       <button
                         onClick={() => setQuickDevice({ device: d, customer: owner })}
-                        className="font-mono text-xs font-bold text-orange-600 hover:underline"
-                      >{d.id}</button>
-                    </td>
-                    <td className="p-3">{d.type}</td>
-                    <td className="p-3">
-                      <button
-                        onClick={() => setQuickDevice({ device: d, customer: owner })}
-                        className="text-right hover:text-blue-600 group"
+                        className="text-right flex-1"
                       >
-                        <p className="font-semibold group-hover:underline">{d.brand}</p>
-                        <p className="text-xs text-slate-500">{d.model}</p>
+                        <p className="font-semibold text-sm">{d.brand} {d.model}</p>
+                        <p className="text-xs text-slate-500">{d.type} {d.manufacturer_serial && `• ${d.manufacturer_serial}`}</p>
                       </button>
-                    </td>
-                    <td className="p-3 font-mono text-xs">{d.manufacturer_serial || '—'}</td>
-                    <td className="p-3 text-xs">
-                      {owner ? (
-                        <button
-                          onClick={() => setQuickCustomer(owner)}
-                          className="hover:text-blue-600 hover:underline"
-                        >{owner.name}</button>
-                      ) : '—'}
-                    </td>
-                    <td className="p-3">
-                      <div className="flex items-center gap-1">
-                        <span className={`font-bold ${problematic ? 'text-red-600' : repairsCount > 0 ? 'text-orange-600' : 'text-slate-400'}`}>
-                          {repairsCount}
-                        </span>
-                        {problematic && <AlertCircle size={14} className="text-red-500" />}
-                      </div>
-                      {problematic && <p className="text-xs text-red-500">בעייתי</p>}
-                    </td>
-                    <td className="p-3 text-center">
                       <button
                         onClick={() => setEditingDevice(d)}
-                        className="p-1.5 hover:bg-orange-100 rounded-lg text-slate-400 hover:text-orange-600"
+                        className="p-2 hover:bg-orange-100 rounded-lg text-slate-400 hover:text-orange-600 mr-1"
                         title="ערוך מכשיר"
                       >
                         <Edit2 size={14} />
                       </button>
-                    </td>
-                  </tr>
+                    </div>
+                    <div className="flex items-center justify-between mt-1">
+                      <button
+                        onClick={() => setQuickDevice({ device: d, customer: owner })}
+                        className="font-mono text-xs text-orange-600 hover:underline"
+                      >{d.id}</button>
+                      <div className="flex items-center gap-2 text-xs">
+                        {owner && (
+                          <button onClick={() => setQuickCustomer(owner)} className="text-slate-500 hover:text-blue-600 hover:underline">{owner.name}</button>
+                        )}
+                        <span className={`font-bold flex items-center gap-0.5 ${problematic ? 'text-red-600' : repairsCount > 0 ? 'text-orange-600' : 'text-slate-400'}`}>
+                          {repairsCount} תיקונים
+                          {problematic && <AlertCircle size={12} />}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 );
               })}
-            </tbody>
-          </table>
+            </div>
+
+            {/* דסקטופ — טבלה */}
+            <div className="hidden sm:block overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-slate-50 border-b border-slate-200">
+                  <tr>
+                    <th className="text-right p-3 font-semibold">קוד מכשיר</th>
+                    <th className="text-right p-3 font-semibold">סוג</th>
+                    <th className="text-right p-3 font-semibold">יצרן / דגם</th>
+                    <th className="text-right p-3 font-semibold">Serial יצרן</th>
+                    <th className="text-right p-3 font-semibold">בעלים</th>
+                    <th className="text-right p-3 font-semibold">תיקונים</th>
+                    <th className="p-3"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredDevices.map((d, i) => {
+                    const owner = state.customers.find(c => c.id === d.owner_customer_id);
+                    const repairsCount = state.repairs.filter(r => r.device_id === d.id).length;
+                    const problematic = repairsCount >= 3;
+
+                    return (
+                      <tr key={d.id} style={stagger(i)} className="border-b border-slate-100 hover:bg-slate-50 animate-fade-in">
+                        <td className="p-3">
+                          <button
+                            onClick={() => setQuickDevice({ device: d, customer: owner })}
+                            className="font-mono text-xs font-bold text-orange-600 hover:underline"
+                          >{d.id}</button>
+                        </td>
+                        <td className="p-3">{d.type}</td>
+                        <td className="p-3">
+                          <button
+                            onClick={() => setQuickDevice({ device: d, customer: owner })}
+                            className="text-right hover:text-blue-600 group"
+                          >
+                            <p className="font-semibold group-hover:underline">{d.brand}</p>
+                            <p className="text-xs text-slate-500">{d.model}</p>
+                          </button>
+                        </td>
+                        <td className="p-3 font-mono text-xs">{d.manufacturer_serial || '—'}</td>
+                        <td className="p-3 text-xs">
+                          {owner ? (
+                            <button
+                              onClick={() => setQuickCustomer(owner)}
+                              className="hover:text-blue-600 hover:underline"
+                            >{owner.name}</button>
+                          ) : '—'}
+                        </td>
+                        <td className="p-3">
+                          <div className="flex items-center gap-1">
+                            <span className={`font-bold ${problematic ? 'text-red-600' : repairsCount > 0 ? 'text-orange-600' : 'text-slate-400'}`}>
+                              {repairsCount}
+                            </span>
+                            {problematic && <AlertCircle size={14} className="text-red-500" />}
+                          </div>
+                          {problematic && <p className="text-xs text-red-500">בעייתי</p>}
+                        </td>
+                        <td className="p-3 text-center">
+                          <button
+                            onClick={() => setEditingDevice(d)}
+                            className="p-2 hover:bg-orange-100 rounded-lg text-slate-400 hover:text-orange-600"
+                            title="ערוך מכשיר"
+                          >
+                            <Edit2 size={14} />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
       {quickCustomer && (
