@@ -187,7 +187,9 @@ export default function Layout({ children, currentTab, onTabChange, tabs }) {
 
         {/* תוכן ראשי — עם ריפוד תחתון למובייל בגלל ניווט תחתון */}
         <div ref={mainRef} className="flex-1 overflow-auto p-4 lg:p-6 pb-20 lg:pb-6">
-          {children}
+          <div key={currentTab} className="animate-fade-in">
+            {children}
+          </div>
         </div>
         <FloatingScrollbar targetRef={mainRef} />
       </main>

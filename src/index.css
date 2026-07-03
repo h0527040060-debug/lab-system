@@ -138,6 +138,16 @@ button:active:not(:disabled) {
   animation: shimmer 1.4s linear infinite;
 }
 
+/* הפחתת תנועה — נגישות */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* גלילה חלקה */
 * {
   scrollbar-width: thin;

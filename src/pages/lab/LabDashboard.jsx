@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAppContext } from '../../store/AppContext';
+import { useStagger } from '../../hooks/useStagger';
 import { REPAIR_STATUSES } from '../../constants/statuses';
 import { formatDateTime } from '../../utils/formatters';
 import PageHeader from '../../components/PageHeader';
@@ -110,6 +111,7 @@ export default function LabDashboard() {
 }
 
 function KanbanColumn({ title, count, repairs, state, onSelect, color, disabled }) {
+  const stagger = useStagger(35);
   const colorMap = {
     red: 'border-red-200 bg-red-50',
     yellow: 'border-yellow-200 bg-yellow-50',
@@ -131,7 +133,7 @@ function KanbanColumn({ title, count, repairs, state, onSelect, color, disabled 
         {repairs.length === 0 ? (
           <p className="text-center text-slate-500 text-sm py-6">אין כעת</p>
         ) : (
-          repairs.map(r => {
+          repairs.map((r, i) => {
             const customer = state.customers.find(c => c.id === r.customer_id);
             const device = state.devices.find(d => d.id === r.device_id);
             return (
@@ -139,7 +141,8 @@ function KanbanColumn({ title, count, repairs, state, onSelect, color, disabled 
                 key={r.id}
                 onClick={() => !disabled && onSelect(r)}
                 disabled={disabled}
-                className={`w-full text-right bg-white rounded-lg p-3 border border-slate-200 transition-all ${
+                style={stagger(i)}
+                className={`w-full text-right bg-white rounded-lg p-3 border border-slate-200 transition-all animate-fade-in ${
                   disabled ? 'opacity-60 cursor-default' : 'hover:border-orange-300 hover:shadow-md cursor-pointer'
                 }`}
               >
