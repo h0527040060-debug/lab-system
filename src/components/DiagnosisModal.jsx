@@ -270,6 +270,7 @@ export default function DiagnosisModal({ repair, onClose }) {
     <Modal
       open={true}
       onClose={onClose}
+      sheet
       title={`אבחון: ${repair.id}`}
       subtitle={`${customer?.name} • ${device?.brand} ${device?.model}`}
       maxWidth="max-w-5xl"

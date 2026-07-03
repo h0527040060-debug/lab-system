@@ -25,6 +25,7 @@ export function CustomerEditModal({ customer, onClose }) {
     <Modal
       open
       onClose={onClose}
+      sheet
       title="עריכת לקוח"
       subtitle={customer.id}
       maxWidth="max-w-lg"
