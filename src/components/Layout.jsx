@@ -21,6 +21,8 @@ export default function Layout({ children, currentTab, onTabChange, tabs }) {
   const bottomNavIds = BOTTOM_NAV_IDS[role] || BOTTOM_NAV_IDS.office;
   const bottomNavTabs = bottomNavIds.map(id => tabs.find(t => t.id === id)).filter(Boolean);
 
+  const currentTabInfo = tabs.find(t => t.id === currentTab);
+
   const handleLogout = () => {
     if (confirm('להתנתק מהמערכת?')) {
       dispatch({ type: 'LOGOUT' });
@@ -53,11 +55,18 @@ export default function Layout({ children, currentTab, onTabChange, tabs }) {
               key={tab.id}
               onClick={() => { onTabChange(tab.id); if (window.innerWidth < 1024) setSidebarOpen(false); }}
               title={collapsed ? tab.label : undefined}
-              className={`w-full flex items-center transition-colors duration-150 ${
+              className={`w-full flex items-center transition-colors duration-150 relative ${
                 collapsed ? 'justify-center px-2 py-3' : 'gap-3 text-right px-4 py-2.5'
-              } ${active ? 'bg-orange-500 text-white font-semibold' : 'text-slate-300 hover:bg-slate-800'}`}
+              } ${active
+                  ? 'bg-slate-800 text-white font-semibold'
+                  : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+              }`}
             >
-              <span className="text-lg leading-none">{tab.icon}</span>
+              {/* פס אינדיקטור active */}
+              {active && (
+                <span className="absolute right-0 top-1 bottom-1 w-0.5 bg-orange-500 rounded-full" />
+              )}
+              <span className={`text-lg leading-none ${active ? 'text-orange-400' : ''}`}>{tab.icon}</span>
               {!collapsed && <span className="text-sm">{tab.label}</span>}
             </button>
           );
@@ -118,31 +127,51 @@ export default function Layout({ children, currentTab, onTabChange, tabs }) {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="p-2 hover:bg-slate-100 rounded-lg text-slate-600"
+              className="p-2 hover:bg-slate-100 rounded-lg text-slate-600 transition-colors"
             >
               {sidebarOpen && window.innerWidth < 1024 ? <X size={20} /> : <Menu size={20} />}
             </button>
+
+            {/* כותרת הדף הנוכחי — מובייל + טאבלט */}
+            {currentTabInfo && (
+              <div className="flex items-center gap-1.5 lg:hidden">
+                <span className="text-base leading-none">{currentTabInfo.icon}</span>
+                <span className="text-sm font-semibold text-slate-700">{currentTabInfo.label}</span>
+              </div>
+            )}
+
             {(role === 'admin' || role === 'office') && (
               <button
                 onClick={() => onTabChange('intake')}
-                className="flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white text-sm font-semibold px-3 py-1.5 rounded-lg shadow-sm"
+                className="hidden sm:flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white text-sm font-semibold px-3 py-1.5 rounded-lg shadow-sm transition-colors"
                 title="קליטת תיקון חדש"
               >
                 <Plus size={16} />
-                <span className="hidden sm:inline">תיקון חדש</span>
+                <span>תיקון חדש</span>
               </button>
             )}
           </div>
-          <div className="flex items-center gap-3">
+
+          <div className="flex items-center gap-2">
+            {/* כפתור "תיקון חדש" — מובייל בלבד (אייקון בלבד) */}
+            {(role === 'admin' || role === 'office') && (
+              <button
+                onClick={() => onTabChange('intake')}
+                className="sm:hidden p-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors"
+                title="קליטת תיקון חדש"
+              >
+                <Plus size={18} />
+              </button>
+            )}
             <button
               onClick={() => onTabChange('search')}
-              className="p-2 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-slate-800"
+              className="p-2 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-slate-800 transition-colors"
               title="חיפוש גלובלי"
             >
               <Search size={20} />
             </button>
             <NotificationBell onNavigate={onTabChange} />
-            <div className="text-sm text-slate-600 hidden sm:block">
+            <div className="text-sm text-slate-600 hidden md:block">
               {state.settings.business_phone}
             </div>
           </div>
@@ -164,10 +193,14 @@ export default function Layout({ children, currentTab, onTabChange, tabs }) {
               <button
                 key={tab.id}
                 onClick={() => onTabChange(tab.id)}
-                className={`flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-xs font-medium transition-colors ${
+                className={`flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-xs font-medium transition-colors relative ${
                   active ? 'text-orange-500' : 'text-slate-500 hover:text-slate-800'
                 }`}
               >
+                {/* פס אינדיקטור עליון */}
+                {active && (
+                  <span className="absolute top-0 right-2 left-2 h-0.5 bg-orange-500 rounded-full" />
+                )}
                 <span className={`text-xl leading-none transition-transform ${active ? 'scale-110' : ''}`}>
                   {tab.icon}
                 </span>
