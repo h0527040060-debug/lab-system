@@ -199,7 +199,7 @@ function KPICard({ icon: Icon, label, value, subtitle, color, style }) {
     red: 'bg-red-50 text-red-700 border-red-200',
   };
   return (
-    <div className={`rounded-xl border p-4 animate-fade-in ${colors[color]}`} style={style}>
+    <div className={`rounded-xl border p-4 animate-fade-in card-hover ${colors[color]}`} style={style}>
       <div className="flex items-start justify-between">
         <div>
           <p className="text-xs font-medium opacity-75">{label}</p>
@@ -214,7 +214,7 @@ function KPICard({ icon: Icon, label, value, subtitle, color, style }) {
 
 function ChartCard({ title, children, style }) {
   return (
-    <div className="bg-white rounded-xl shadow-sm p-4 animate-fade-in" style={style}>
+    <div className="bg-white rounded-xl shadow-sm p-4 animate-fade-in card-hover" style={style}>
       <h3 className="font-bold text-slate-800 mb-3">{title}</h3>
       {children}
     </div>

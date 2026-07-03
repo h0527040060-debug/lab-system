@@ -52,7 +52,7 @@ function ToastItem({ toast, onClose }) {
       `}
       style={{ fontFamily: 'Heebo, sans-serif' }}
     >
-      <Icon size={18} className="shrink-0" />
+      <Icon size={18} className="shrink-0 animate-scale-in" />
       <span className="flex-1 leading-snug">{toast.message}</span>
       <X size={14} className="shrink-0 opacity-60" />
       {/* סרגל התקדמות */}

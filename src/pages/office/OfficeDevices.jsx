@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAppContext } from '../../store/AppContext';
+import { useStagger } from '../../hooks/useStagger';
 import PageHeader from '../../components/PageHeader';
 import SearchInput from '../../components/SearchInput';
 import EmptyState from '../../components/EmptyState';
@@ -14,6 +15,7 @@ export default function OfficeDevices() {
   const [quickCustomer, setQuickCustomer] = useState(null);
   const [quickDevice, setQuickDevice] = useState(null);
   const [editingDevice, setEditingDevice] = useState(null);
+  const stagger = useStagger(25);
 
   const filteredDevices = [...state.devices]
     .filter(d => {
@@ -60,13 +62,13 @@ export default function OfficeDevices() {
               </tr>
             </thead>
             <tbody>
-              {filteredDevices.map(d => {
+              {filteredDevices.map((d, i) => {
                 const owner = state.customers.find(c => c.id === d.owner_customer_id);
                 const repairsCount = state.repairs.filter(r => r.device_id === d.id).length;
                 const problematic = repairsCount >= 3;
 
                 return (
-                  <tr key={d.id} className="border-b border-slate-100 hover:bg-slate-50">
+                  <tr key={d.id} style={stagger(i)} className="border-b border-slate-100 hover:bg-slate-50 animate-fade-in">
                     <td className="p-3">
                       <button
                         onClick={() => setQuickDevice({ device: d, customer: owner })}
