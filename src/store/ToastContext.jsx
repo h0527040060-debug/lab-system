@@ -47,7 +47,7 @@ function ToastItem({ toast, onClose }) {
         flex items-center gap-3 text-white text-sm font-semibold px-4 py-3 rounded-xl shadow-2xl cursor-pointer
         min-w-[240px] max-w-[340px] overflow-hidden relative
         transition-all duration-300
-        ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}
+        ${visible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8'}
         ${bg}
       `}
       style={{ fontFamily: 'Heebo, sans-serif' }}
@@ -72,7 +72,7 @@ function ToastItem({ toast, onClose }) {
 function ToastContainer({ toasts, onClose }) {
   if (!toasts.length) return null;
   return (
-    <div className="fixed bottom-6 left-6 z-[9999] flex flex-col gap-2 items-start">
+    <div className="fixed bottom-20 lg:bottom-6 right-4 lg:right-6 z-[9999] flex flex-col gap-2 items-end">
       {toasts.map(t => (
         <ToastItem key={t.id} toast={t} onClose={() => onClose(t.id)} />
       ))}
