@@ -3,6 +3,7 @@ import { useAppContext } from '../store/AppContext';
 import { LogIn } from 'lucide-react';
 import RegisterPage from './RegisterPage';
 import { Button } from '../components/Button';
+import { FloatingInput } from '../components/FloatingField';
 
 export default function LoginPage() {
   const { state, dispatch } = useAppContext();
@@ -48,37 +49,28 @@ export default function LoginPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">כתובת מייל</label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              autoComplete="username"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              required
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
-              placeholder="your@email.com"
-              dir="ltr"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">סיסמה</label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              required
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
-              placeholder="••••••••"
-              dir="ltr"
-            />
-          </div>
+          <FloatingInput
+            label="כתובת מייל"
+            type="email"
+            id="email"
+            name="email"
+            autoComplete="username"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            required
+            dir="ltr"
+          />
+          <FloatingInput
+            label="סיסמה"
+            type="password"
+            id="password"
+            name="password"
+            autoComplete="current-password"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            required
+            dir="ltr"
+          />
 
           {error && (
             <p className="text-red-600 text-sm text-center">{error}</p>
