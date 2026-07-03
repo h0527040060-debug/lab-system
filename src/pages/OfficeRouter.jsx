@@ -55,7 +55,9 @@ export default function OfficeRouter() {
 
   return (
     <Layout currentTab={currentTab} onTabChange={setCurrentTab} tabs={visibleTabs}>
-      <PageComponent onNavigate={setCurrentTab} role={isAdmin ? 'admin' : 'office'} />
+      <div key={currentTab} className="animate-fade-in">
+        <PageComponent onNavigate={setCurrentTab} role={isAdmin ? 'admin' : 'office'} />
+      </div>
     </Layout>
   );
 }

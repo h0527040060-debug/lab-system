@@ -174,7 +174,7 @@ function KanbanCard({ repair, customer, device, isDragging, onAction, onOpenDeta
 
   return (
     <div
-      className={`bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden transition-all cursor-pointer hover:shadow-md hover:border-slate-300
+      className={`bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden transition-all cursor-pointer hover:shadow-md hover:border-slate-300 animate-fade-in
         ${isDragging ? 'opacity-50 rotate-1 shadow-lg' : ''}
         ${dimmed ? 'opacity-20' : 'opacity-100'}
       `}
