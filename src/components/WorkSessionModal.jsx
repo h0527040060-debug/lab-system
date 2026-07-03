@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAppContext } from '../store/AppContext';
+import { useToast } from '../store/ToastContext';
 import { REPAIR_STATUSES } from '../constants/statuses';
 import { formatMoney, formatDateTime } from '../utils/formatters';
 import { useStopwatch } from '../hooks/useStopwatch';
@@ -14,6 +15,7 @@ import AssemblyInstructionsViewer from './AssemblyInstructionsViewer';
 
 export default function WorkSessionModal({ repair, onClose }) {
   const { state, dispatch } = useAppContext();
+  const { showToast } = useToast();
 
   const customer = state.customers.find(c => c.id === repair.customer_id);
   const device = state.devices.find(d => d.id === repair.device_id);
@@ -98,7 +100,7 @@ export default function WorkSessionModal({ repair, onClose }) {
       }
     });
 
-    alert('הסטופר נסגר! הקריאה עברה ל"📸 ממתין תיעוד". יש להעלות תמונה/וידאו תקינות.');
+    showToast('הסטופר נסגר! הקריאה עברה ל"ממתין תיעוד" — יש להעלות תמונה/וידאו', 'info', 4000);
     setConfirmAction(null);
     onClose();
   };

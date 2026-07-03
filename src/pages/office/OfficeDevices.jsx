@@ -47,7 +47,16 @@ export default function OfficeDevices() {
 
       <div className="bg-white rounded-xl shadow-sm overflow-hidden">
         {filteredDevices.length === 0 ? (
-          <EmptyState icon={Wrench} title="אין מכשירים" description={state.devices.length === 0 ? 'עוד לא נוספו מכשירים' : 'לא נמצאו תוצאות'} />
+          <EmptyState
+            icon={Wrench}
+            title="אין מכשירים"
+            description={state.devices.length === 0 ? 'מכשירים נרשמים אוטומטית בקליטת תיקון' : 'לא נמצאו תוצאות לחיפוש זה'}
+            action={state.devices.length === 0 && onNavigate ? (
+              <button onClick={() => onNavigate('intake')} className="mt-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold rounded-lg transition-colors">
+                קלוט תיקון ראשון
+              </button>
+            ) : null}
+          />
         ) : (
           <table className="w-full text-sm">
             <thead className="bg-slate-50 border-b border-slate-200">

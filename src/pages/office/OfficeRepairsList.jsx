@@ -256,6 +256,11 @@ export default function OfficeRepairsList({ onNavigate }) {
           mobileCard={mobileCard}
           emptyTitle="אין קריאות"
           emptyDescription={state.repairs.length === 0 ? 'עוד לא נקלטו קריאות תיקון' : 'לא נמצאו תוצאות בחיפוש'}
+          emptyAction={state.repairs.length === 0 && onNavigate ? (
+            <button onClick={() => onNavigate('intake')} className="mt-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold rounded-lg transition-colors">
+              קלוט קריאה ראשונה
+            </button>
+          ) : null}
         />
       </div>
 

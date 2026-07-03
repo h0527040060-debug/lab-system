@@ -18,6 +18,7 @@ export default function Layout({ children, currentTab, onTabChange, tabs }) {
   const { state, dispatch } = useAppContext();
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 1024);
   const [cmdOpen, setCmdOpen] = useState(false);
+  const [logoutConfirm, setLogoutConfirm] = useState(false);
   const mainRef = useRef(null);
 
   useEffect(() => {
@@ -43,11 +44,7 @@ export default function Layout({ children, currentTab, onTabChange, tabs }) {
 
   const currentTabInfo = tabs.find(t => t.id === currentTab);
 
-  const handleLogout = () => {
-    if (confirm('להתנתק מהמערכת?')) {
-      dispatch({ type: 'LOGOUT' });
-    }
-  };
+  const handleLogout = () => setLogoutConfirm(true);
 
   const roleLabel = ROLE_LABELS[state.currentUser?.role] || '';
 
@@ -208,6 +205,25 @@ export default function Layout({ children, currentTab, onTabChange, tabs }) {
       </main>
 
       <CommandPalette isOpen={cmdOpen} onClose={() => setCmdOpen(false)} onNavigate={handleTabChange} />
+
+      {logoutConfirm && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setLogoutConfirm(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-xs w-full text-right animate-scale-in" onClick={e => e.stopPropagation()}>
+            <h3 className="font-bold text-slate-900 text-base mb-1">התנתקות מהמערכת</h3>
+            <p className="text-sm text-slate-500 mb-5">האם אתה בטוח שברצונך להתנתק?</p>
+            <div className="flex gap-2 justify-start flex-row-reverse">
+              <button
+                onClick={() => { dispatch({ type: 'LOGOUT' }); setLogoutConfirm(false); }}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-lg transition-colors"
+              >התנתק</button>
+              <button
+                onClick={() => setLogoutConfirm(false)}
+                className="px-4 py-2 border border-slate-300 hover:bg-slate-50 text-slate-700 text-sm font-semibold rounded-lg transition-colors"
+              >ביטול</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ניווט תחתון — מובייל בלבד */}
       {bottomNavTabs.length > 0 && (

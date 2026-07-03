@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { useAppContext } from '../store/AppContext';
+import { useToast } from '../store/ToastContext';
 import { uploadToStorage } from '../store/supabaseStorage';
 import { REPAIR_STATUSES } from '../constants/statuses';
 import { WARRANTY_TYPES, WARRANTY_LABELS } from '../constants/warranty';
@@ -40,6 +41,7 @@ const readFile = (file) =>
 
 export default function DiagnosisModal({ repair, onClose }) {
   const { state, dispatch } = useAppContext();
+  const { showToast } = useToast();
 
   const customer = state.customers.find(c => c.id === repair.customer_id);
   const device = state.devices.find(d => d.id === repair.device_id);
@@ -181,7 +183,7 @@ export default function DiagnosisModal({ repair, onClose }) {
 
   const handleSubmitDiagnosis = () => {
     if (!diagnosis) {
-      alert('יש למלא אבחון ראשוני');
+      showToast('יש למלא אבחון ראשוני לפני שמירה', 'error');
       return;
     }
     // מוצר יד שנייה: דילוג ישיר לעבודה (ללא אישור לקוח)
@@ -217,7 +219,7 @@ export default function DiagnosisModal({ repair, onClose }) {
 
   const handleSubmitAppeal = () => {
     if (!appealReason || appealEvidence.length === 0) {
-      alert('יש למלא סיבה ולהעלות לפחות תמונה אחת');
+      showToast('יש למלא סיבה לערעור ולהעלות לפחות תמונה אחת', 'error');
       return;
     }
     dispatch({

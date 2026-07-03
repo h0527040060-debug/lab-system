@@ -45,7 +45,12 @@ export default function OfficeCustomers() {
               <EmptyState
                 icon={Users}
                 title="אין לקוחות"
-                description={state.customers.length === 0 ? 'עוד לא נקלטו לקוחות במערכת' : 'לא נמצאו תוצאות'}
+                description={state.customers.length === 0 ? 'הוסף את הלקוח הראשון שלך' : 'לא נמצאו תוצאות'}
+                action={state.customers.length === 0 ? (
+                  <button onClick={() => setEditingCustomer({})} className="mt-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold rounded-lg transition-colors">
+                    הוסף לקוח חדש
+                  </button>
+                ) : null}
               />
             ) : (
               filteredCustomers.map((c, i) => {

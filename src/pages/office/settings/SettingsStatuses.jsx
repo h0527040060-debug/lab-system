@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAppContext } from '../../../store/AppContext';
+import { useToast } from '../../../store/ToastContext';
 import ConfirmDialog from '../../../components/ConfirmDialog';
 import { getStatusDisplay, PLACEHOLDER_TAGS } from '../../../utils/statusConfig';
 import { Edit2, Trash2, Check, X, Plus, MessageCircle } from 'lucide-react';
@@ -92,6 +93,7 @@ function StatusEditModal({ form, setForm, onSave, onClose, insertPlaceholder }) 
 
 export function SettingsStatuses() {
   const { state, dispatch } = useAppContext();
+  const { showToast } = useToast();
   const [editingStatusId, setEditingStatusId] = useState(null);
   const [editStatusForm, setEditStatusForm] = useState({});
   const [showAddStatus, setShowAddStatus] = useState(false);
@@ -166,7 +168,7 @@ export function SettingsStatuses() {
                         <span className="text-green-500 p-1"><MessageCircle size={13} /></span>
                       )}
                       <button
-                        onClick={() => usage === 0 ? setConfirmDelete(s) : alert(`לא ניתן למחוק — ${usage} תיקונים משתמשים בסטטוס זה`)}
+                        onClick={() => usage === 0 ? setConfirmDelete(s) : showToast(`לא ניתן למחוק — ${usage} תיקונים משתמשים בסטטוס זה`, 'error')}
                         className={`p-1 ${usage === 0 ? 'text-slate-400 hover:text-red-600' : 'text-slate-200 cursor-not-allowed'}`}
                       >
                         <Trash2 size={15} />
