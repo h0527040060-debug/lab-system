@@ -18,6 +18,7 @@ import { Stethoscope, Wrench, Camera, Printer, Edit2, MoreVertical, Trash2, File
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { RepairEditModal } from '../../components/RepairEditModal';
 import DataTable from '../../components/DataTable';
+import { FAB } from '../../components/FAB';
 
 const getActionForStatus = (status) => {
   if ([REPAIR_STATUSES.RED_INTAKE, REPAIR_STATUSES.YELLOW_DIAGNOSIS, REPAIR_STATUSES.YELLOW_APPEAL].includes(status))
@@ -29,7 +30,7 @@ const getActionForStatus = (status) => {
   return null;
 };
 
-export default function OfficeRepairsList() {
+export default function OfficeRepairsList({ onNavigate }) {
   const { state, dispatch } = useAppContext();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -280,6 +281,7 @@ export default function OfficeRepairsList() {
         onConfirm={() => { dispatch({ type: 'DELETE_REPAIR', payload: deleteRepairId }); setDeleteRepairId(null); }}
         onCancel={() => setDeleteRepairId(null)}
       />
+      {onNavigate && <FAB label="תיקון חדש" onClick={() => onNavigate('intake')} title="קליטת תיקון חדש" />}
     </div>
   );
 }

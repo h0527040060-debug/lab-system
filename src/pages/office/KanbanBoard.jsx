@@ -28,6 +28,7 @@ import WorkSessionModal from '../../components/WorkSessionModal';
 import ReleaseDocsModal from '../../components/ReleaseDocsModal';
 import RepairDetailModal from '../../components/RepairDetailModal';
 import FloatingScrollbar from '../../components/FloatingScrollbar';
+import { FAB } from '../../components/FAB';
 import {
   Stethoscope, Wrench, Camera, RotateCcw, Search,
   ChevronLeft, ChevronRight, GripVertical, MoreVertical,
@@ -324,7 +325,7 @@ function KanbanColumn({ statusId, repairs, customers, devices, collapsed, onTogg
 }
 
 // ─── לוח ראשי ─────────────────────────────────────────────────────────────────
-export default function KanbanBoard({ role = 'office' }) {
+export default function KanbanBoard({ role = 'office', onNavigate }) {
   const { state, dispatch } = useAppContext();
   const effectiveRole = role === 'admin' ? 'office' : role;
   const storageKey = 'kanban_columns_' + effectiveRole;
@@ -595,6 +596,10 @@ export default function KanbanBoard({ role = 'office' }) {
         />
       )}
       <FloatingScrollbar targetRef={columnsRef} />
+
+      {onNavigate && (role === 'office' || role === 'admin') && (
+        <FAB icon={undefined} label="תיקון חדש" onClick={() => onNavigate('intake')} title="קליטת תיקון חדש" />
+      )}
 
       {/* דיאלוג אזהרת מעבר סטטוס */}
       {pendingTransition && (
