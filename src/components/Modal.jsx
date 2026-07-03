@@ -18,16 +18,15 @@ export default function Modal({ open, onClose, title, subtitle, children, maxWid
   if (sheet) {
     return (
       <div
-        className="fixed inset-0 z-50 flex flex-col justify-end sm:items-center sm:justify-center sm:p-4 animate-fade-in"
+        className="fixed inset-0 z-50 flex flex-col items-center justify-center p-4 animate-fade-in"
         role="dialog"
         aria-modal="true"
         aria-label={title}
       >
         <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[2px]" onClick={onClose} />
-        <div className={`relative bg-white w-full sm:rounded-2xl sm:shadow-xl sm:w-full sm:${maxWidth} sm:max-h-[90vh] max-h-[92vh] flex flex-col rounded-t-2xl animate-slide-up sm:animate-scale-in`}>
+        <div className={`relative bg-white rounded-2xl shadow-xl w-full ${maxWidth} max-h-[90vh] flex flex-col animate-scale-in`}>
           <div className="flex items-start justify-between px-5 py-4 border-b border-slate-200">
-            <div className="absolute top-2 left-1/2 -translate-x-1/2 w-10 h-1 bg-slate-300 rounded-full sm:hidden" />
-            <div className="mt-2 sm:mt-0">
+            <div>
               <h2 className="text-base font-bold text-slate-900 leading-tight">{title}</h2>
               {subtitle && <p className="text-sm text-slate-500 mt-0.5">{subtitle}</p>}
             </div>

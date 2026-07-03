@@ -201,8 +201,8 @@ export default function Layout({ children, currentTab, onTabChange, tabs }) {
           </div>
         </header>
 
-        {/* תוכן ראשי — עם ריפוד תחתון למובייל בגלל ניווט תחתון */}
-        <div ref={mainRef} className="flex-1 overflow-auto p-4 lg:p-6 pb-20 lg:pb-6">
+        {/* תוכן ראשי */}
+        <div ref={mainRef} className="flex-1 overflow-auto p-4 lg:p-6">
           <div key={currentTab} className="animate-fade-in">
             {children}
           </div>
@@ -231,33 +231,6 @@ export default function Layout({ children, currentTab, onTabChange, tabs }) {
         </div>
       )}
 
-      {/* ניווט תחתון — מובייל בלבד */}
-      {bottomNavTabs.length > 0 && (
-        <nav className="lg:hidden fixed bottom-0 right-0 left-0 bg-white border-t border-slate-200 z-20 flex shadow-[0_-2px_8px_rgba(0,0,0,0.06)]">
-          {bottomNavTabs.map(tab => {
-            const active = currentTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => handleTabChange(tab.id)}
-                aria-current={active ? 'page' : undefined}
-                className={`flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-xs font-medium transition-colors relative ${
-                  active ? 'text-orange-500' : 'text-slate-500 hover:text-slate-800'
-                }`}
-              >
-                {/* פס אינדיקטור עליון */}
-                {active && (
-                  <span className="absolute top-0 right-2 left-2 h-0.5 bg-orange-500 rounded-full" />
-                )}
-                <span className={`text-xl leading-none transition-transform ${active ? 'scale-110' : ''}`}>
-                  {tab.icon}
-                </span>
-                <span className="leading-tight">{tab.label}</span>
-              </button>
-            );
-          })}
-        </nav>
-      )}
     </div>
   );
 }
