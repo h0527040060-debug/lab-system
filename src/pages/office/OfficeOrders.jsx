@@ -153,7 +153,9 @@ export default function OfficeOrders() {
                         <tr key={part.id} className="border-t">
                           <td className="p-2">
                             <div className="flex items-center gap-2">
-                              <span>{part.images?.[0]}</span>
+                              {part.images?.[0] && (
+                                <img src={part.images[0]} alt="" className="w-8 h-8 object-cover rounded shrink-0" />
+                              )}
                               <div>
                                 <p className="font-semibold text-xs">{part.name}</p>
                                 <p className="text-xs text-slate-500">{part.manufacturer_sku}</p>
