@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAppContext } from '../../store/AppContext';
+import { consumeSearchBridge } from '../../utils/searchBridge';
 import { formatDateTime } from '../../utils/formatters';
 import PageHeader from '../../components/PageHeader';
 import SearchInput from '../../components/SearchInput';
@@ -9,7 +10,7 @@ import { Search, Wrench, Package, FileText } from 'lucide-react';
 
 export default function LabSearch() {
   const { state } = useAppContext();
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(() => consumeSearchBridge());
 
   if (!query) {
     return (

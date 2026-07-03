@@ -1,10 +1,11 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import FloatingScrollbar from './FloatingScrollbar';
 import { useAppContext } from '../store/AppContext';
 import { ROLE_LABELS } from '../constants/userRoles';
 import { LogOut, Menu, X, Search, Plus } from 'lucide-react';
 import NotificationBell from './NotificationBell';
 import { Button } from './Button';
+import { CommandPalette } from './CommandPalette';
 
 // טאבים שמופיעים בניווט התחתון במובייל
 const BOTTOM_NAV_IDS = {
@@ -16,7 +17,19 @@ const BOTTOM_NAV_IDS = {
 export default function Layout({ children, currentTab, onTabChange, tabs }) {
   const { state, dispatch } = useAppContext();
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 1024);
+  const [cmdOpen, setCmdOpen] = useState(false);
   const mainRef = useRef(null);
+
+  useEffect(() => {
+    const handler = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setCmdOpen(true);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
 
   const handleTabChange = (id) => {
     onTabChange(id);
@@ -172,9 +185,9 @@ export default function Layout({ children, currentTab, onTabChange, tabs }) {
               />
             )}
             <button
-              onClick={() => handleTabChange('search')}
+              onClick={() => setCmdOpen(true)}
               className="p-2 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-slate-800 transition-colors"
-              title="חיפוש גלובלי"
+              title="חיפוש מהיר (Ctrl+K)"
             >
               <Search size={20} />
             </button>
@@ -193,6 +206,8 @@ export default function Layout({ children, currentTab, onTabChange, tabs }) {
         </div>
         <FloatingScrollbar targetRef={mainRef} />
       </main>
+
+      <CommandPalette isOpen={cmdOpen} onClose={() => setCmdOpen(false)} onNavigate={handleTabChange} />
 
       {/* ניווט תחתון — מובייל בלבד */}
       {bottomNavTabs.length > 0 && (

@@ -9,6 +9,7 @@ import DeviceQuickModal from '../../components/DeviceQuickModal';
 import { CustomerEditModal } from '../../components/CustomerEditModal';
 import { DeviceEditModal } from '../../components/DeviceEditModal';
 import { Users, Phone, Mail, MapPin, Wrench, FileText, Edit2 } from 'lucide-react';
+import { FAB } from '../../components/FAB';
 
 export default function OfficeCustomers() {
   const { state } = useAppContext();
@@ -213,6 +214,7 @@ export default function OfficeCustomers() {
       {editingDevice && (
         <DeviceEditModal device={editingDevice} onClose={() => setEditingDevice(null)} />
       )}
+      <FAB label="לקוח חדש" onClick={() => setEditingCustomer({})} title="הוספת לקוח חדש" />
     </div>
   );
 }

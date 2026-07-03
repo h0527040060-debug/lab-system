@@ -24,7 +24,7 @@ import KanbanBoard from './office/KanbanBoard';
 import OfficePickup from './office/OfficePickup';
 
 const PAGE_COMPONENTS = {
-  kanban: (props) => <KanbanBoard role={props.role || 'office'} />,
+  kanban: (props) => <KanbanBoard role={props.role || 'office'} onNavigate={props.onNavigate} />,
   dashboard: OfficeDashboard,
   intake: OfficeIntake,
   'intake-internal': OfficeIntakeInternal,
@@ -55,9 +55,7 @@ export default function OfficeRouter() {
 
   return (
     <Layout currentTab={currentTab} onTabChange={setCurrentTab} tabs={visibleTabs}>
-      <div key={currentTab} className="animate-fade-in">
-        <PageComponent onNavigate={setCurrentTab} role={isAdmin ? 'admin' : 'office'} />
-      </div>
+      <PageComponent onNavigate={setCurrentTab} role={isAdmin ? 'admin' : 'office'} />
     </Layout>
   );
 }
