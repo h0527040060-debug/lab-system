@@ -9,6 +9,10 @@ import { generateWorkCodeId, generateInternalBarcode } from '../utils/idGenerato
 import Modal from './Modal';
 import InfoCard from './InfoCard';
 import { User, Wrench, FileText, History, ShieldAlert, Camera, Send, CheckSquare, Square, BookOpen, Search, Plus, HelpCircle, X } from 'lucide-react';
+import PartThumbnail from './PartThumbnail';
+import AssemblyInstructionsViewer from './AssemblyInstructionsViewer';
+import { WorkCatalogEditModal } from './WorkCatalogEditModal';
+import { PartEditModal } from './PartEditModal';
 
 const IMG_MAX_PX = 800;
 const IMG_QUALITY = 0.7;
@@ -33,10 +37,6 @@ const readFile = (file) =>
     reader.onload = (e) => resolve(e.target.result);
     reader.readAsDataURL(file);
   });
-import PartThumbnail from './PartThumbnail';
-import AssemblyInstructionsViewer from './AssemblyInstructionsViewer';
-import { WorkCatalogEditModal } from './WorkCatalogEditModal';
-import { PartEditModal } from './PartEditModal';
 
 export default function DiagnosisModal({ repair, onClose }) {
   const { state, dispatch } = useAppContext();
