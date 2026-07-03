@@ -491,6 +491,21 @@ export default function OfficeIntake({ onNavigate }) {
                   />
                   {newDevice.our_warranty_months && <span className="text-xs text-slate-500">{newDevice.our_warranty_months} חודשים</span>}
                 </div>
+                {/* חיווי מיידי של סטטוס אחריות */}
+                {newDevice.our_warranty_months && newDevice.purchase_date && (() => {
+                  const expiry = new Date(newDevice.purchase_date);
+                  expiry.setMonth(expiry.getMonth() + newDevice.our_warranty_months);
+                  const daysLeft = Math.ceil((expiry - new Date()) / (1000 * 60 * 60 * 24));
+                  if (daysLeft <= 0) return (
+                    <p className="text-xs text-red-600 font-semibold mt-1.5">פג תוקף האחריות</p>
+                  );
+                  if (daysLeft > 30) return (
+                    <p className="text-xs text-emerald-600 font-semibold mt-1.5">נותרו {Math.ceil(daysLeft / 30)} חודשים לאחריות</p>
+                  );
+                  return (
+                    <p className="text-xs text-amber-600 font-semibold mt-1.5">נותרו {daysLeft} ימים לאחריות</p>
+                  );
+                })()}
               </div>
             </div>
           )}
@@ -590,40 +605,28 @@ export default function OfficeIntake({ onNavigate }) {
               )}
             </div>
 
-            {/* תקופת אחריות לתיקון זה */}
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
-                <ShieldCheck className="inline ml-1" size={16} />
-                תקופת אחריות לתיקון זה
-              </label>
-              <div className="flex gap-2 items-center flex-wrap">
-                {[3, 12].map(m => (
-                  <button
-                    type="button"
-                    key={m}
-                    onClick={() => setRepairWarrantyMonths(prev => prev === m ? null : m)}
-                    className={`px-3 py-1.5 rounded-lg text-sm border ${repairWarrantyMonths === m ? 'bg-orange-500 text-white border-orange-500' : 'border-slate-300 text-slate-600 hover:border-orange-400'}`}
-                  >
-                    {m} חודשים
-                  </button>
-                ))}
-                <input
-                  type="number"
-                  min="1"
-                  max="120"
-                  placeholder="אחר"
-                  value={repairWarrantyMonths && ![3, 12].includes(repairWarrantyMonths) ? repairWarrantyMonths : ''}
-                  onChange={e => setRepairWarrantyMonths(e.target.value ? Number(e.target.value) : null)}
-                  className="w-20 border border-slate-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:border-orange-400"
-                />
-              </div>
-              {repairWarrantyMonths && (() => {
-                const expiry = new Date();
-                expiry.setMonth(expiry.getMonth() + repairWarrantyMonths);
-                const d = expiry.toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' });
-                return <p className="text-xs text-emerald-600 mt-1.5 font-medium">האחריות תפוג ב-{d}</p>;
-              })()}
-            </div>
+            {/* סטטוס אחריות מהמכשיר */}
+            {(() => {
+              const deviceId = selectedDeviceId || null;
+              const device = deviceId ? state.devices.find(d => d.id === deviceId) : (deviceMode === 'new' ? null : null);
+              const d = device || (deviceMode === 'new' ? newDevice : null);
+              if (!d?.our_warranty_months || !d?.purchase_date) return null;
+              const expiry = new Date(d.purchase_date);
+              expiry.setMonth(expiry.getMonth() + d.our_warranty_months);
+              const daysLeft = Math.ceil((expiry - new Date()) / (1000 * 60 * 60 * 24));
+              return (
+                <div className="flex items-center gap-2">
+                  <ShieldCheck size={16} className={daysLeft > 0 ? 'text-emerald-600' : 'text-red-500'} />
+                  <span className={`text-sm font-semibold ${daysLeft > 0 ? (daysLeft <= 30 ? 'text-amber-600' : 'text-emerald-700') : 'text-red-600'}`}>
+                    {daysLeft <= 0
+                      ? 'פג תוקף האחריות'
+                      : daysLeft > 30
+                      ? `נותרו ${Math.ceil(daysLeft / 30)} חודשים לאחריות`
+                      : `נותרו ${daysLeft} ימים לאחריות`}
+                  </span>
+                </div>
+              );
+            })()}
 
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-2">
