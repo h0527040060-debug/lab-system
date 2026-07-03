@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { exportAllData, importAllData, clearAllStorage } from '../../../store/storage';
 import ConfirmDialog from '../../../components/ConfirmDialog';
+import { useToast } from '../../../store/ToastContext';
 import { Download, Upload, Trash2 } from 'lucide-react';
 
 export function SettingsMisc() {
   const [confirmReset, setConfirmReset] = useState(false);
+  const { showToast } = useToast();
 
   const handleExport = () => {
     const data = exportAllData();
@@ -28,7 +30,7 @@ export function SettingsMisc() {
         importAllData(data);
         window.location.reload();
       } catch {
-        alert('שגיאה בקריאת הקובץ');
+        showToast('שגיאה בקריאת הקובץ — ודא שהקובץ תקין', 'error');
       }
     };
     reader.readAsText(file);

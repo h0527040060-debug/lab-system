@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAppContext } from '../../../store/AppContext';
+import { useToast } from '../../../store/ToastContext';
 import { DEFAULT_ROLE_CONFIG } from '../../../store/AppContext';
 import { REPAIR_STATUSES } from '../../../constants/statuses';
 import { getStatusDisplay } from '../../../utils/statusConfig';
@@ -16,6 +17,7 @@ function RolePanel({ roleKey, roleData, statusConfig, onSave }) {
   const { label, icon, desc } = ROLE_LABELS[roleKey];
   const [selected, setSelected] = useState(new Set(roleData?.visible_statuses ?? []));
   const [saved, setSaved] = useState(false);
+  const { showToast } = useToast();
 
   const toggle = (statusId) => {
     setSelected(prev => {
@@ -28,7 +30,7 @@ function RolePanel({ roleKey, roleData, statusConfig, onSave }) {
 
   const handleSave = () => {
     if (selected.size === 0) {
-      alert('יש לבחור לפחות סטטוס אחד לתפקיד זה');
+      showToast('יש לבחור לפחות סטטוס אחד לתפקיד זה', 'error');
       return;
     }
     onSave(roleKey, Array.from(selected));

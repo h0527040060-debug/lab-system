@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAppContext } from '../store/AppContext';
+import { useToast } from '../store/ToastContext';
 import { uploadToStorage } from '../store/supabaseStorage';
 import { REPAIR_STATUSES } from '../constants/statuses';
 import Modal from './Modal';
@@ -8,6 +9,7 @@ import { Camera, Video, Upload, X, Check, AlertTriangle } from 'lucide-react';
 
 export default function ReleaseDocsModal({ repair, onClose }) {
   const { state, dispatch } = useAppContext();
+  const { showToast } = useToast();
   const customer = state.customers.find(c => c.id === repair.customer_id);
   const device = state.devices.find(d => d.id === repair.device_id);
 
@@ -23,7 +25,7 @@ export default function ReleaseDocsModal({ repair, onClose }) {
       if (!isVideo && !isImage) return;
 
       if (file.size > 10 * 1024 * 1024) {
-        alert(`קובץ "${file.name}" גדול מדי (מקס׳ 10MB)`);
+        showToast(`קובץ "${file.name}" גדול מדי — מקסימום 10MB`, 'error');
         return;
       }
 

@@ -21,6 +21,7 @@ export default function DataTable({
   mobileCard,
   emptyTitle = 'אין נתונים',
   emptyDescription = '',
+  emptyAction,
   className = '',
 }) {
   const [sortKey, setSortKey] = useState(null);
@@ -59,7 +60,7 @@ export default function DataTable({
   };
 
   if (data.length === 0) {
-    return <EmptyState icon={FileText} title={emptyTitle} description={emptyDescription} />;
+    return <EmptyState icon={FileText} title={emptyTitle} description={emptyDescription} action={emptyAction} />;
   }
 
   const visibleMobileCols = columns.filter(c => !c.hideMobile);
