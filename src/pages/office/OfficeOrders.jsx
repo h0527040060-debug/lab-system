@@ -7,6 +7,8 @@ import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
 import Modal from '../../components/Modal';
 import ConfirmDialog from '../../components/ConfirmDialog';
+import PartThumbnail from '../../components/PartThumbnail';
+import PartQuickModal from '../../components/PartQuickModal';
 import { ShoppingCart, AlertTriangle, Send, Package, CheckCircle2, HelpCircle } from 'lucide-react';
 
 const OPEN_STATUSES = new Set(['red_intake', 'yellow_diagnosis', 'yellow_appeal', 'yellow_waiting_approval', 'yellow_ready_to_work', 'in_work', 'pending_release_docs', 'pending_payment']);
@@ -30,6 +32,7 @@ export default function OfficeOrders() {
   const [createOrderFromSupplier, setCreateOrderFromSupplier] = useState(null);
   const [viewingOrder, setViewingOrder] = useState(null);
   const [receivingOrder, setReceivingOrder] = useState(null);
+  const [viewingPart, setViewingPart] = useState(null);
 
   const [lightbox, setLightbox] = useState(null);
   const openLightbox = useCallback((src) => setLightbox(src), []);
@@ -156,13 +159,11 @@ export default function OfficeOrders() {
                         <tr key={part.id} className="border-t">
                           <td className="p-2">
                             <div className="flex items-center gap-2">
-                              {part.images?.[0] && (
-                                <img src={part.images[0]} alt="" className="w-8 h-8 object-cover rounded shrink-0 cursor-pointer hover:opacity-80" onClick={() => openLightbox(part.images[0])} />
-                              )}
-                              <div>
-                                <p className="font-semibold text-xs">{part.name}</p>
+                              <PartThumbnail part={part} size="sm" onClick={() => setViewingPart(part)} />
+                              <button onClick={() => setViewingPart(part)} className="text-right hover:text-blue-600 group">
+                                <p className="font-semibold text-xs group-hover:underline">{part.name}</p>
                                 <p className="text-xs text-slate-500">{part.manufacturer_sku}</p>
-                              </div>
+                              </button>
                             </div>
                           </td>
                           <td className="p-2 text-center text-red-600 font-bold">{currentStock}</td>
@@ -287,11 +288,16 @@ export default function OfficeOrders() {
           items={createOrderFromSupplier.items}
           onConfirm={() => handleCreateOrder(createOrderFromSupplier.supplierName, createOrderFromSupplier.items)}
           onClose={() => setCreateOrderFromSupplier(null)}
+          onViewPart={setViewingPart}
         />
       )}
 
       {viewingOrder && (
-        <OrderDetailsModal order={viewingOrder} onClose={() => setViewingOrder(null)} />
+        <OrderDetailsModal order={viewingOrder} parts={state.parts} onClose={() => setViewingOrder(null)} onViewPart={setViewingPart} />
+      )}
+
+      {viewingPart && (
+        <PartQuickModal part={viewingPart} onClose={() => setViewingPart(null)} />
       )}
 
       <ConfirmDialog
@@ -319,7 +325,7 @@ export default function OfficeOrders() {
   );
 }
 
-function CreateOrderModal({ supplierName, items, onConfirm, onClose }) {
+function CreateOrderModal({ supplierName, items, onConfirm, onClose, onViewPart }) {
   const totalCost = items.reduce((sum, i) => sum + (i.recommendedQty * i.supplier.price), 0);
 
   return (
@@ -340,12 +346,15 @@ function CreateOrderModal({ supplierName, items, onConfirm, onClose }) {
     >
       <div className="space-y-2">
         {items.map(({ part, recommendedQty, supplier }) => (
-          <div key={part.id} className="bg-slate-50 rounded-lg p-3 flex items-center justify-between">
-            <div>
-              <p className="font-semibold text-sm">{part.name}</p>
-              <p className="text-xs text-slate-500">{recommendedQty} × {formatMoney(supplier.price)}</p>
+          <div key={part.id} className="bg-slate-50 rounded-lg p-3 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <PartThumbnail part={part} size="sm" onClick={() => onViewPart?.(part)} />
+              <button onClick={() => onViewPart?.(part)} className="text-right hover:text-blue-600 group min-w-0">
+                <p className="font-semibold text-sm group-hover:underline truncate">{part.name}</p>
+                <p className="text-xs text-slate-500">{recommendedQty} × {formatMoney(supplier.price)}</p>
+              </button>
             </div>
-            <p className="font-bold">{formatMoney(recommendedQty * supplier.price)}</p>
+            <p className="font-bold flex-shrink-0">{formatMoney(recommendedQty * supplier.price)}</p>
           </div>
         ))}
         <div className="bg-orange-50 rounded-lg p-3 flex justify-between font-bold text-orange-900">
@@ -357,7 +366,7 @@ function CreateOrderModal({ supplierName, items, onConfirm, onClose }) {
   );
 }
 
-function OrderDetailsModal({ order, onClose }) {
+function OrderDetailsModal({ order, parts = [], onClose, onViewPart }) {
   return (
     <Modal
       open={true}
@@ -367,15 +376,21 @@ function OrderDetailsModal({ order, onClose }) {
       maxWidth="max-w-2xl"
     >
       <div className="space-y-2">
-        {order.items.map((item, idx) => (
-          <div key={idx} className="bg-slate-50 rounded-lg p-3 flex justify-between">
-            <div>
-              <p className="font-semibold text-sm">{item.part_name}</p>
-              <p className="text-xs text-slate-500">{item.quantity} × {formatMoney(item.unit_cost)}</p>
+        {order.items.map((item, idx) => {
+          const part = parts.find(p => p.id === item.part_id);
+          return (
+          <div key={idx} className="bg-slate-50 rounded-lg p-3 flex justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              {part && <PartThumbnail part={part} size="sm" onClick={() => onViewPart?.(part)} />}
+              <button onClick={() => part && onViewPart?.(part)} disabled={!part} className="text-right hover:text-blue-600 group min-w-0 disabled:cursor-default">
+                <p className={`font-semibold text-sm truncate ${part ? 'group-hover:underline' : ''}`}>{item.part_name}</p>
+                <p className="text-xs text-slate-500">{item.quantity} × {formatMoney(item.unit_cost)}</p>
+              </button>
             </div>
-            <p className="font-bold">{formatMoney(item.total_cost)}</p>
+            <p className="font-bold flex-shrink-0">{formatMoney(item.total_cost)}</p>
           </div>
-        ))}
+          );
+        })}
         <div className="bg-blue-50 rounded-lg p-3 flex justify-between font-bold text-blue-900">
           <span>סה"כ:</span>
           <span className="text-lg">{formatMoney(order.total)}</span>

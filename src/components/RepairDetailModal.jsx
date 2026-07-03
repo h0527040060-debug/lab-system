@@ -10,6 +10,7 @@ import { RepairEditModal } from './RepairEditModal';
 import { CustomerEditModal } from './CustomerEditModal';
 import { DeviceEditModal } from './DeviceEditModal';
 import ImageGalleryModal from './ImageGalleryModal';
+import PartQuickModal from './PartQuickModal';
 
 const WARRANTY_LABELS = {
   paid: 'תשלום רגיל',
@@ -63,12 +64,13 @@ export default function RepairDetailModal({ repair, customer, device, onClose, o
   const [galleryIndex, setGalleryIndex] = useState(null);
   const [confirmDeletePhoto, setConfirmDeletePhoto] = useState(null);
   const [showDeleteRepair, setShowDeleteRepair] = useState(false);
+  const [viewingPart, setViewingPart] = useState(null);
   const statusDisplay = getStatusDisplay(repair.status, state.statusConfig);
 
   const diagnosedParts = repair.diagnosed_parts || [];
   const partsDetails = diagnosedParts.map(dp => {
     const part = state.parts?.find(p => p.id === dp.part_id || p.id === dp.id);
-    return { name: part?.name || dp.name || 'חלק', qty: dp.quantity || 1, price: dp.price || part?.price || 0 };
+    return { part, name: part?.name || dp.name || 'חלק', qty: dp.quantity || 1, price: dp.price || part?.price || 0 };
   });
 
   const elapsedTime = formatSeconds(repair.timer_seconds);
@@ -268,7 +270,13 @@ export default function RepairDetailModal({ repair, customer, device, onClose, o
                 <div className="space-y-1">
                   {partsDetails.map((p, i) => (
                     <div key={i} className="flex justify-between text-xs text-slate-700">
-                      <span>{p.name} {p.qty > 1 ? `×${p.qty}` : ''}</span>
+                      {p.part ? (
+                        <button onClick={() => setViewingPart(p.part)} className="text-right hover:text-blue-600 hover:underline">
+                          {p.name} {p.qty > 1 ? `×${p.qty}` : ''}
+                        </button>
+                      ) : (
+                        <span>{p.name} {p.qty > 1 ? `×${p.qty}` : ''}</span>
+                      )}
                       {p.price > 0 && <span className="font-semibold">{p.price * p.qty}₪</span>}
                     </div>
                   ))}
@@ -364,6 +372,9 @@ export default function RepairDetailModal({ repair, customer, device, onClose, o
           startIndex={galleryIndex}
           onClose={() => setGalleryIndex(null)}
         />
+      )}
+      {viewingPart && (
+        <PartQuickModal part={viewingPart} onClose={() => setViewingPart(null)} />
       )}
       <ConfirmDialog
         open={confirmDeletePhoto !== null}

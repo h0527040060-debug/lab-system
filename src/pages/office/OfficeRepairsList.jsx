@@ -14,11 +14,11 @@ import CustomerQuickModal from '../../components/CustomerQuickModal';
 import DeviceQuickModal from '../../components/DeviceQuickModal';
 import StatusPickerPopover from '../../components/StatusPickerPopover';
 import WhatsAppButton from '../../components/WhatsAppButton';
-import { Stethoscope, Wrench, Camera, Printer, Edit2, MoreVertical, Trash2, FileText } from 'lucide-react';
+import { Stethoscope, Wrench, Camera, Printer, Edit2, MoreVertical, Trash2 } from 'lucide-react';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { RepairEditModal } from '../../components/RepairEditModal';
 import DataTable from '../../components/DataTable';
-import { FAB } from '../../components/FAB';
+import RepairDetailModal from '../../components/RepairDetailModal';
 
 const getActionForStatus = (status) => {
   if ([REPAIR_STATUSES.RED_INTAKE, REPAIR_STATUSES.YELLOW_DIAGNOSIS, REPAIR_STATUSES.YELLOW_APPEAL].includes(status))
@@ -44,6 +44,7 @@ export default function OfficeRepairsList({ onNavigate }) {
   const [openMenuId, setOpenMenuId] = useState(null);
   const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
   const [deleteRepairId, setDeleteRepairId] = useState(null);
+  const [detailRepairId, setDetailRepairId] = useState(null);
 
   useEffect(() => {
     if (!openMenuId) return;
@@ -54,6 +55,9 @@ export default function OfficeRepairsList({ onNavigate }) {
 
   const activeRepair = activeRepairId ? state.repairs.find(r => r.id === activeRepairId) : null;
   const statusPickerRepair = statusPickerRepairId ? state.repairs.find(r => r.id === statusPickerRepairId) : null;
+  const detailRepair = detailRepairId ? state.repairs.find(r => r.id === detailRepairId) : null;
+  const detailCustomer = detailRepair ? state.customers.find(c => c.id === detailRepair.customer_id) : null;
+  const detailDevice = detailRepair ? state.devices.find(d => d.id === detailRepair.device_id) : null;
 
   const openModal = (repairId, modal) => {
     setActiveRepairId(repairId);
@@ -257,6 +261,7 @@ export default function OfficeRepairsList({ onNavigate }) {
           data={filteredRepairs}
           pageSize={25}
           mobileCard={mobileCard}
+          onRowClick={(r) => setDetailRepairId(r.id)}
           emptyTitle="אין קריאות"
           emptyDescription={state.repairs.length === 0 ? 'עוד לא נקלטו קריאות תיקון' : 'לא נמצאו תוצאות בחיפוש'}
           emptyAction={state.repairs.length === 0 && onNavigate ? (
@@ -289,7 +294,15 @@ export default function OfficeRepairsList({ onNavigate }) {
         onConfirm={() => { dispatch({ type: 'DELETE_REPAIR', payload: deleteRepairId }); setDeleteRepairId(null); }}
         onCancel={() => setDeleteRepairId(null)}
       />
-      {onNavigate && <FAB label="תיקון חדש" onClick={() => onNavigate('intake')} title="קליטת תיקון חדש" />}
+      {detailRepair && (
+        <RepairDetailModal
+          repair={detailRepair}
+          customer={detailCustomer}
+          device={detailDevice}
+          onClose={() => setDetailRepairId(null)}
+          onAction={(id, action) => { setDetailRepairId(null); openModal(id, action); }}
+        />
+      )}
     </div>
   );
 }

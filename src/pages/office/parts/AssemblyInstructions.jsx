@@ -3,6 +3,7 @@ import { useAppContext as useApp } from '../../../store/AppContext';
 import PartThumbnail from '../../../components/PartThumbnail';
 import AssemblyInstructionsViewer from '../../../components/AssemblyInstructionsViewer';
 import PartEditModal from './PartEditModal';
+import SearchInput from '../../../components/SearchInput';
 import EmptyState from '../../../components/EmptyState';
 import { BookOpen, Edit2, Eye } from 'lucide-react';
 
@@ -10,18 +11,31 @@ export default function AssemblyInstructions() {
   const { state, dispatch } = useApp();
   const [viewingPart, setViewingPart] = useState(null);
   const [editingPart, setEditingPart] = useState(null);
+  const [search, setSearch] = useState('');
 
   const handleSavePart = (partData) => {
     dispatch({ type: 'UPDATE_PART', payload: partData });
     setEditingPart(null);
   };
 
+  const matchesSearch = (p) => {
+    if (!search) return true;
+    const s = search.toLowerCase();
+    return (
+      p.name?.toLowerCase().includes(s) ||
+      p.manufacturer?.toLowerCase().includes(s) ||
+      p.manufacturer_sku?.toLowerCase().includes(s) ||
+      p.internal_barcode?.toLowerCase().includes(s) ||
+      p.category?.toLowerCase().includes(s)
+    );
+  };
+
   const partsWithInstructions = state.parts.filter(p =>
-    p.assembly_instructions?.text || p.assembly_instructions?.images?.length || p.assembly_instructions?.video_url
+    (p.assembly_instructions?.text || p.assembly_instructions?.images?.length || p.assembly_instructions?.video_url) && matchesSearch(p)
   );
 
   const partsWithout = state.parts.filter(p =>
-    !p.assembly_instructions?.text && !p.assembly_instructions?.images?.length && !p.assembly_instructions?.video_url
+    !p.assembly_instructions?.text && !p.assembly_instructions?.images?.length && !p.assembly_instructions?.video_url && matchesSearch(p)
   );
 
   return (
@@ -33,13 +47,18 @@ export default function AssemblyInstructions() {
         </p>
       </div>
 
+      <div className="bg-white rounded-xl border border-slate-200 p-3 mb-4">
+        <SearchInput value={search} onChange={setSearch} placeholder="חיפוש לפי שם, יצרן, מק״ט..." />
+      </div>
+
       {partsWithInstructions.length > 0 && (
         <div className="mb-6">
           <h3 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
             <BookOpen size={14} /> חלקים עם הוראות הרכבה
           </h3>
           <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[520px]">
               <thead className="bg-slate-50 border-b border-slate-200">
                 <tr>
                   <th className="text-right p-3 font-semibold">חלק</th>
@@ -93,6 +112,7 @@ export default function AssemblyInstructions() {
                 })}
               </tbody>
             </table>
+            </div>
           </div>
         </div>
       )}
@@ -101,7 +121,8 @@ export default function AssemblyInstructions() {
         <div>
           <h3 className="text-sm font-semibold text-slate-500 mb-3">חלקים ללא הוראות הרכבה</h3>
           <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[480px]">
               <tbody>
                 {partsWithout.map(part => (
                   <tr key={part.id} className="border-b border-slate-100 hover:bg-slate-50">
@@ -126,6 +147,7 @@ export default function AssemblyInstructions() {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         </div>
       )}
