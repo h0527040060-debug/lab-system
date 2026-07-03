@@ -28,7 +28,6 @@ import WorkSessionModal from '../../components/WorkSessionModal';
 import ReleaseDocsModal from '../../components/ReleaseDocsModal';
 import RepairDetailModal from '../../components/RepairDetailModal';
 import FloatingScrollbar from '../../components/FloatingScrollbar';
-import { FAB } from '../../components/FAB';
 import {
   Stethoscope, Wrench, Camera, RotateCcw, Search,
   ChevronLeft, ChevronRight, GripVertical, MoreVertical,
@@ -596,10 +595,6 @@ export default function KanbanBoard({ role = 'office', onNavigate }) {
         />
       )}
       <FloatingScrollbar targetRef={columnsRef} />
-
-      {onNavigate && (role === 'office' || role === 'admin') && (
-        <FAB icon={undefined} label="תיקון חדש" onClick={() => onNavigate('intake')} title="קליטת תיקון חדש" />
-      )}
 
       {/* דיאלוג אזהרת מעבר סטטוס */}
       {pendingTransition && (

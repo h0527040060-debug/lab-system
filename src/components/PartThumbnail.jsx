@@ -20,23 +20,20 @@ export default function PartThumbnail({ part, size = 'sm', className = '', onCli
     xl: 'text-5xl',
   }[size] || 'text-2xl';
 
-  if (isRealImage) {
-    const inner = (
-      <div className={`${sizeClass} bg-slate-100 rounded border border-slate-200 overflow-hidden flex-shrink-0 flex items-center justify-center ${className} ${onClick ? 'relative' : ''}`}>
-        <img src={mainImage} alt={part?.name || ''} className="w-full h-full object-contain" />
-        {onClick && <span className="absolute inset-0 bg-black/0 hover:bg-black/15 transition-colors" />}
-      </div>
-    );
-    return onClick ? (
-      <button type="button" onClick={onClick} className="cursor-zoom-in flex-shrink-0">
-        {inner}
-      </button>
-    ) : inner;
-  }
-
-  return (
-    <span className={`${emojiSize} flex-shrink-0 ${className}`}>
+  const inner = isRealImage ? (
+    <div className={`${sizeClass} bg-slate-100 rounded border border-slate-200 overflow-hidden flex-shrink-0 flex items-center justify-center relative ${className}`}>
+      <img src={mainImage} alt={part?.name || ''} className="w-full h-full object-contain" />
+      {onClick && <span className="absolute inset-0 bg-black/0 hover:bg-black/15 transition-colors" />}
+    </div>
+  ) : (
+    <span className={`${sizeClass} flex items-center justify-center ${emojiSize} flex-shrink-0 ${className}`}>
       {mainImage || '📦'}
     </span>
   );
+
+  return onClick ? (
+    <button type="button" onClick={onClick} className="cursor-pointer flex-shrink-0" title="הצג פרטי חלק">
+      {inner}
+    </button>
+  ) : inner;
 }

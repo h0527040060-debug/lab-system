@@ -8,7 +8,7 @@ export default function CustomerQuickModal({ customer, repairs = [], devices = [
   const [showEdit, setShowEdit] = useState(false);
   if (!customer) return null;
 
-  const customerDevices = devices.filter(d => d.customer_id === customer.id);
+  const customerDevices = devices.filter(d => d.owner_customer_id === customer.id);
   const customerRepairs = repairs
     .filter(r => r.customer_id === customer.id)
     .sort((a, b) => new Date(b.date_intake) - new Date(a.date_intake))

@@ -3,6 +3,8 @@ import { useAppContext as useApp } from '../../../store/AppContext';
 import { formatMoney } from '../../../utils/formatters';
 import { calculateWeightedAvgCost } from '../../../utils/inventory';
 import PartThumbnail from '../../../components/PartThumbnail';
+import SearchInput from '../../../components/SearchInput';
+import PartQuickModal from '../../../components/PartQuickModal';
 import EmptyState from '../../../components/EmptyState';
 import { Package, Edit2, Check, X } from 'lucide-react';
 
@@ -11,6 +13,20 @@ export default function PartsPricing() {
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState({});
   const [lastEdit, setLastEdit] = useState('markup');
+  const [search, setSearch] = useState('');
+  const [viewingPart, setViewingPart] = useState(null);
+
+  const filteredParts = state.parts.filter(p => {
+    if (!search) return true;
+    const s = search.toLowerCase();
+    return (
+      p.name?.toLowerCase().includes(s) ||
+      p.manufacturer?.toLowerCase().includes(s) ||
+      p.manufacturer_sku?.toLowerCase().includes(s) ||
+      p.internal_barcode?.toLowerCase().includes(s) ||
+      p.category?.toLowerCase().includes(s)
+    );
+  });
 
   const startEdit = (part) => {
     const avgCost = calculateWeightedAvgCost(part.id, state.stockBatches);
@@ -71,10 +87,15 @@ export default function PartsPricing() {
         <p className="text-sm text-slate-500">עריכת מחיר עלות, מחיר ללקוח ורווח — כל שינוי מחשב אוטומטית</p>
       </div>
 
+      <div className="bg-white rounded-xl border border-slate-200 p-3 mb-4">
+        <SearchInput value={search} onChange={setSearch} placeholder="חיפוש לפי שם, יצרן, מק״ט, ברקוד..." />
+      </div>
+
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        {state.parts.length === 0 ? (
-          <EmptyState icon={Package} title="אין חלקים בקטלוג" />
+        {filteredParts.length === 0 ? (
+          <EmptyState icon={Package} title={state.parts.length === 0 ? 'אין חלקים בקטלוג' : 'לא נמצאו תוצאות'} />
         ) : (
+          <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
@@ -87,7 +108,7 @@ export default function PartsPricing() {
               </tr>
             </thead>
             <tbody>
-              {state.parts.map(part => {
+              {filteredParts.map(part => {
                 const avgCost = calculateWeightedAvgCost(part.id, state.stockBatches);
                 const isEditing = editingId === part.id;
 
@@ -95,11 +116,11 @@ export default function PartsPricing() {
                   <tr key={part.id} className={`border-b border-slate-100 ${isEditing ? 'bg-orange-50' : 'hover:bg-slate-50'}`}>
                     <td className="p-3">
                       <div className="flex items-center gap-2">
-                        <PartThumbnail part={part} size="sm" />
-                        <div>
-                          <p className="font-semibold">{part.name}</p>
+                        <PartThumbnail part={part} size="sm" onClick={() => setViewingPart(part)} />
+                        <button onClick={() => setViewingPart(part)} className="text-right hover:text-blue-600 group">
+                          <p className="font-semibold group-hover:underline">{part.name}</p>
                           <p className="text-xs text-slate-500">{part.manufacturer}</p>
-                        </div>
+                        </button>
                       </div>
                     </td>
                     <td className="p-3 text-slate-500 font-mono text-xs">{formatMoney(avgCost)}</td>
@@ -146,8 +167,11 @@ export default function PartsPricing() {
               })}
             </tbody>
           </table>
+          </div>
         )}
       </div>
+
+      {viewingPart && <PartQuickModal part={viewingPart} onClose={() => setViewingPart(null)} />}
     </div>
   );
 }

@@ -202,7 +202,7 @@ export default function Layout({ children, currentTab, onTabChange, tabs }) {
         </header>
 
         {/* תוכן ראשי */}
-        <div ref={mainRef} className="flex-1 overflow-auto p-4 lg:p-6">
+        <div ref={mainRef} className="flex-1 overflow-y-auto overflow-x-hidden p-4 lg:p-6">
           <div key={currentTab} className="animate-fade-in">
             {children}
           </div>

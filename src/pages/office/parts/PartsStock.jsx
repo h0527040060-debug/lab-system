@@ -4,19 +4,35 @@ import { formatMoney } from '../../../utils/formatters';
 import { getTotalStock } from '../../../utils/fifo';
 import EmptyState from '../../../components/EmptyState';
 import PartThumbnail from '../../../components/PartThumbnail';
+import SearchInput from '../../../components/SearchInput';
+import PartQuickModal from '../../../components/PartQuickModal';
 import { Package } from 'lucide-react';
 
 export default function PartsStock() {
   const { state } = useApp();
   const [selectedPart, setSelectedPart] = useState(null);
+  const [search, setSearch] = useState('');
+  const [viewingPart, setViewingPart] = useState(null);
 
-  const partsWithStock = state.parts.map(p => ({
-    ...p,
-    totalStock: getTotalStock(p.id, state.stockBatches),
-    batches: state.stockBatches
-      .filter(b => b.part_id === p.id)
-      .sort((a, b) => new Date(a.received_date) - new Date(b.received_date)),
-  }));
+  const partsWithStock = state.parts
+    .filter(p => {
+      if (!search) return true;
+      const s = search.toLowerCase();
+      return (
+        p.name?.toLowerCase().includes(s) ||
+        p.manufacturer?.toLowerCase().includes(s) ||
+        p.manufacturer_sku?.toLowerCase().includes(s) ||
+        p.internal_barcode?.toLowerCase().includes(s) ||
+        p.category?.toLowerCase().includes(s)
+      );
+    })
+    .map(p => ({
+      ...p,
+      totalStock: getTotalStock(p.id, state.stockBatches),
+      batches: state.stockBatches
+        .filter(b => b.part_id === p.id)
+        .sort((a, b) => new Date(a.received_date) - new Date(b.received_date)),
+    }));
 
   const displayPart = selectedPart ? partsWithStock.find(p => p.id === selectedPart) : null;
   const displayBatches = displayPart ? displayPart.batches : state.stockBatches.sort((a, b) => new Date(a.received_date) - new Date(b.received_date));
@@ -33,8 +49,9 @@ export default function PartsStock() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {/* רשימת חלקים */}
         <div className="md:col-span-1 bg-white rounded-xl border border-slate-200 overflow-hidden">
-          <div className="p-3 border-b border-slate-200 bg-slate-50">
+          <div className="p-3 border-b border-slate-200 bg-slate-50 space-y-2">
             <p className="text-xs font-semibold text-slate-600">סינון לפי חלק</p>
+            <SearchInput value={search} onChange={setSearch} placeholder="חיפוש חלק..." />
           </div>
           <div className="overflow-y-auto max-h-96">
             <button
@@ -86,8 +103,10 @@ export default function PartsStock() {
                     <tr key={b.id} className="border-b border-slate-100 hover:bg-slate-50">
                       <td className="p-3">
                         <div className="flex items-center gap-2">
-                          <PartThumbnail part={part} size="xs" />
-                          <span className="text-xs font-medium">{part?.name || '—'}</span>
+                          <PartThumbnail part={part} size="xs" onClick={part ? () => setViewingPart(part) : undefined} />
+                          {part ? (
+                            <button onClick={() => setViewingPart(part)} className="text-xs font-medium hover:text-blue-600 hover:underline text-right">{part.name}</button>
+                          ) : <span className="text-xs font-medium">—</span>}
                         </div>
                       </td>
                       <td className="p-3 font-mono text-xs">{b.id}</td>
@@ -112,6 +131,8 @@ export default function PartsStock() {
           )}
         </div>
       </div>
+
+      {viewingPart && <PartQuickModal part={viewingPart} onClose={() => setViewingPart(null)} />}
     </div>
   );
 }
