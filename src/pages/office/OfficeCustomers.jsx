@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAppContext } from '../../store/AppContext';
+import { useStagger } from '../../hooks/useStagger';
 import PageHeader from '../../components/PageHeader';
 import SearchInput from '../../components/SearchInput';
 import EmptyState from '../../components/EmptyState';
@@ -16,6 +17,7 @@ export default function OfficeCustomers() {
   const [quickDevice, setQuickDevice] = useState(null);
   const [editingCustomer, setEditingCustomer] = useState(null);
   const [editingDevice, setEditingDevice] = useState(null);
+  const stagger = useStagger(40);
 
   const filteredCustomers = state.customers.filter(c =>
     !search ||
@@ -45,13 +47,14 @@ export default function OfficeCustomers() {
                 description={state.customers.length === 0 ? 'עוד לא נקלטו לקוחות במערכת' : 'לא נמצאו תוצאות'}
               />
             ) : (
-              filteredCustomers.map(c => {
+              filteredCustomers.map((c, i) => {
                 const repairsCount = state.repairs.filter(r => r.customer_id === c.id).length;
                 return (
                   <button
                     key={c.id}
                     onClick={() => setSelectedCustomerId(c.id)}
-                    className={`w-full text-right p-3 rounded-lg border ${selectedCustomerId === c.id ? 'bg-orange-50 border-orange-300' : 'border-transparent hover:bg-slate-50'}`}
+                    style={stagger(i)}
+                    className={`w-full text-right p-3 rounded-lg border animate-fade-in ${selectedCustomerId === c.id ? 'bg-orange-50 border-orange-300' : 'border-transparent hover:bg-slate-50'}`}
                   >
                     <div className="flex justify-between items-start mb-1">
                       <p className="font-semibold text-slate-900">{c.name}</p>

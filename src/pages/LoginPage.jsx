@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useAppContext } from '../store/AppContext';
 import { LogIn } from 'lucide-react';
 import RegisterPage from './RegisterPage';
@@ -12,6 +12,8 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [shakeKey, setShakeKey] = useState(0);
+  const formRef = useRef(null);
 
   const admins = state.users.filter(u => u.role === 'admin');
 
@@ -29,6 +31,7 @@ export default function LoginPage() {
 
     if (!user) {
       setError('מייל או סיסמה שגויים');
+      setShakeKey(k => k + 1);
       return;
     }
 
@@ -37,7 +40,11 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-slate-100 to-slate-200">
-      <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full">
+      <div
+        key={shakeKey || undefined}
+        className={`bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full ${shakeKey > 0 ? 'animate-shake' : ''}`}
+        ref={formRef}
+      >
         <div className="text-center mb-8">
           <div className="w-20 h-20 bg-orange-500 rounded-2xl mx-auto mb-4 flex items-center justify-center text-3xl font-bold text-white shadow-lg">
             ה
@@ -59,6 +66,7 @@ export default function LoginPage() {
             onChange={e => setEmail(e.target.value)}
             required
             dir="ltr"
+            error={!!error}
           />
           <FloatingInput
             label="סיסמה"
@@ -70,6 +78,7 @@ export default function LoginPage() {
             onChange={e => setPassword(e.target.value)}
             required
             dir="ltr"
+            error={!!error}
           />
 
           {error && (

@@ -11,6 +11,7 @@ import {
   PieChart, Pie, Cell, BarChart, Bar, Legend,
 } from 'recharts';
 import { TrendingUp, Users, Wrench, DollarSign } from 'lucide-react';
+import { useCountUp } from '../../hooks/useCountUp';
 
 const COLORS = ['#f97316', '#eab308', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
 
@@ -185,6 +186,11 @@ export default function OfficeDashboard() {
 }
 
 function KPICard({ icon: Icon, label, value, subtitle, color, style }) {
+  // אם value הוא מספר — מפעיל count-up animation
+  const numericTarget = typeof value === 'number' ? value : null;
+  const counted = useCountUp(numericTarget ?? 0, 700);
+  const displayValue = numericTarget !== null ? counted : value;
+
   const colors = {
     green: 'bg-green-50 text-green-700 border-green-200',
     blue: 'bg-blue-50 text-blue-700 border-blue-200',
@@ -197,7 +203,7 @@ function KPICard({ icon: Icon, label, value, subtitle, color, style }) {
       <div className="flex items-start justify-between">
         <div>
           <p className="text-xs font-medium opacity-75">{label}</p>
-          <p className="text-2xl font-bold mt-1">{value}</p>
+          <p className="text-2xl font-bold mt-1 tabular-nums">{displayValue}</p>
           {subtitle && <p className="text-xs opacity-75 mt-1">{subtitle}</p>}
         </div>
         <Icon size={24} className="opacity-50" />

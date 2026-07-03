@@ -18,6 +18,12 @@ export default function Layout({ children, currentTab, onTabChange, tabs }) {
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 1024);
   const mainRef = useRef(null);
 
+  const handleTabChange = (id) => {
+    onTabChange(id);
+    mainRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+    if (window.innerWidth < 1024) setSidebarOpen(false);
+  };
+
   const role = state.currentUser?.role || 'office';
   const bottomNavIds = BOTTOM_NAV_IDS[role] || BOTTOM_NAV_IDS.office;
   const bottomNavTabs = bottomNavIds.map(id => tabs.find(t => t.id === id)).filter(Boolean);
@@ -54,7 +60,7 @@ export default function Layout({ children, currentTab, onTabChange, tabs }) {
           return (
             <button
               key={tab.id}
-              onClick={() => { onTabChange(tab.id); if (window.innerWidth < 1024) setSidebarOpen(false); }}
+              onClick={() => handleTabChange(tab.id)}
               title={collapsed ? tab.label : undefined}
               className={`w-full flex items-center transition-colors duration-150 relative ${
                 collapsed ? 'justify-center px-2 py-3' : 'gap-3 text-right px-4 py-2.5'
@@ -143,7 +149,7 @@ export default function Layout({ children, currentTab, onTabChange, tabs }) {
 
             {(role === 'admin' || role === 'office') && (
               <Button
-                onClick={() => onTabChange('intake')}
+                onClick={() => handleTabChange('intake')}
                 icon={<Plus size={16} />}
                 size="sm"
                 className="hidden sm:inline-flex"
@@ -158,7 +164,7 @@ export default function Layout({ children, currentTab, onTabChange, tabs }) {
             {/* כפתור "תיקון חדש" — מובייל בלבד (אייקון בלבד) */}
             {(role === 'admin' || role === 'office') && (
               <Button
-                onClick={() => onTabChange('intake')}
+                onClick={() => handleTabChange('intake')}
                 icon={<Plus size={18} />}
                 size="sm"
                 className="sm:hidden !px-2"
@@ -166,7 +172,7 @@ export default function Layout({ children, currentTab, onTabChange, tabs }) {
               />
             )}
             <button
-              onClick={() => onTabChange('search')}
+              onClick={() => handleTabChange('search')}
               className="p-2 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-slate-800 transition-colors"
               title="חיפוש גלובלי"
             >
@@ -194,7 +200,7 @@ export default function Layout({ children, currentTab, onTabChange, tabs }) {
             return (
               <button
                 key={tab.id}
-                onClick={() => onTabChange(tab.id)}
+                onClick={() => handleTabChange(tab.id)}
                 className={`flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-xs font-medium transition-colors relative ${
                   active ? 'text-orange-500' : 'text-slate-500 hover:text-slate-800'
                 }`}
