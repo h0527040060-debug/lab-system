@@ -6,11 +6,22 @@ import PageHeader from '../../components/PageHeader';
 import SearchInput from '../../components/SearchInput';
 import StatusBadge from '../../components/StatusBadge';
 import EmptyState from '../../components/EmptyState';
+import PartThumbnail from '../../components/PartThumbnail';
+import DeviceQuickModal from '../../components/DeviceQuickModal';
+import PartQuickModal from '../../components/PartQuickModal';
+import RepairDetailModal from '../../components/RepairDetailModal';
 import { Search, Wrench, Package, FileText } from 'lucide-react';
 
-export default function LabSearch() {
+export default function LabSearch({ onNavigate }) {
   const { state } = useAppContext();
   const [query, setQuery] = useState(() => consumeSearchBridge());
+  const [quickDevice, setQuickDevice] = useState(null);
+  const [quickPart, setQuickPart] = useState(null);
+  const [detailRepairId, setDetailRepairId] = useState(null);
+
+  const detailRepair = detailRepairId ? state.repairs.find(r => r.id === detailRepairId) : null;
+  const detailCustomer = detailRepair ? state.customers.find(c => c.id === detailRepair.customer_id) : null;
+  const detailDevice = detailRepair ? state.devices.find(d => d.id === detailRepair.device_id) : null;
 
   if (!query) {
     return (
@@ -87,7 +98,7 @@ export default function LabSearch() {
                   const customer = state.customers.find(c => c.id === r.customer_id);
                   const device = state.devices.find(d => d.id === r.device_id);
                   return (
-                    <div key={r.id} className="border border-slate-200 rounded-lg p-3 hover:bg-slate-50">
+                    <div key={r.id} onClick={() => setDetailRepairId(r.id)} className="border border-slate-200 rounded-lg p-3 hover:bg-orange-50/50 cursor-pointer transition-colors">
                       <div className="flex justify-between items-start">
                         <div>
                           <div className="flex items-center gap-2 mb-1">
@@ -119,7 +130,7 @@ export default function LabSearch() {
                   const owner = state.customers.find(c => c.id === d.owner_customer_id);
                   const repairsCount = state.repairs.filter(r => r.device_id === d.id).length;
                   return (
-                    <div key={d.id} className="border border-slate-200 rounded-lg p-3 hover:bg-slate-50">
+                    <div key={d.id} onClick={() => setQuickDevice({ device: d, customer: owner })} className="border border-slate-200 rounded-lg p-3 hover:bg-orange-50/50 cursor-pointer transition-colors">
                       <div className="flex justify-between">
                         <div>
                           <div className="flex items-center gap-2 mb-1">
@@ -153,8 +164,9 @@ export default function LabSearch() {
                     .filter(b => b.part_id === p.id)
                     .reduce((sum, b) => sum + b.quantity_remaining, 0);
                   return (
-                    <div key={p.id} className="border border-slate-200 rounded-lg p-3 hover:bg-slate-50">
+                    <div key={p.id} onClick={() => setQuickPart(p)} className="border border-slate-200 rounded-lg p-3 hover:bg-orange-50/50 cursor-pointer transition-colors">
                       <div className="flex items-center gap-3">
+                        <PartThumbnail part={p} size="sm" />
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
                             <p className="font-semibold text-sm">{p.name}</p>
@@ -176,6 +188,22 @@ export default function LabSearch() {
             </div>
           )}
         </div>
+      )}
+
+      {quickDevice && (
+        <DeviceQuickModal device={quickDevice.device} customer={quickDevice.customer} repairs={state.repairs} onClose={() => setQuickDevice(null)} />
+      )}
+      {quickPart && (
+        <PartQuickModal part={quickPart} onClose={() => setQuickPart(null)} />
+      )}
+      {detailRepair && (
+        <RepairDetailModal
+          repair={detailRepair}
+          customer={detailCustomer}
+          device={detailDevice}
+          onClose={() => setDetailRepairId(null)}
+          onAction={() => { setDetailRepairId(null); onNavigate?.('kanban'); }}
+        />
       )}
     </div>
   );

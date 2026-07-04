@@ -1,16 +1,29 @@
 import { useState } from 'react';
 import { useAppContext } from '../../store/AppContext';
 import { consumeSearchBridge } from '../../utils/searchBridge';
-import { formatDateTime, formatMoney } from '../../utils/formatters';
+import { formatDateTime } from '../../utils/formatters';
 import PageHeader from '../../components/PageHeader';
 import SearchInput from '../../components/SearchInput';
 import StatusBadge from '../../components/StatusBadge';
 import EmptyState from '../../components/EmptyState';
+import PartThumbnail from '../../components/PartThumbnail';
+import CustomerQuickModal from '../../components/CustomerQuickModal';
+import DeviceQuickModal from '../../components/DeviceQuickModal';
+import PartQuickModal from '../../components/PartQuickModal';
+import RepairDetailModal from '../../components/RepairDetailModal';
 import { Search, Wrench, Package, FileText, Users, ExternalLink } from 'lucide-react';
 
 export default function OfficeSearch({ onNavigate }) {
   const { state } = useAppContext();
   const [query, setQuery] = useState(() => consumeSearchBridge());
+  const [quickCustomer, setQuickCustomer] = useState(null);
+  const [quickDevice, setQuickDevice] = useState(null);
+  const [quickPart, setQuickPart] = useState(null);
+  const [detailRepairId, setDetailRepairId] = useState(null);
+
+  const detailRepair = detailRepairId ? state.repairs.find(r => r.id === detailRepairId) : null;
+  const detailCustomer = detailRepair ? state.customers.find(c => c.id === detailRepair.customer_id) : null;
+  const detailDevice = detailRepair ? state.devices.find(d => d.id === detailRepair.device_id) : null;
 
   if (!query) {
     return (
@@ -106,7 +119,7 @@ export default function OfficeSearch({ onNavigate }) {
                   const deviceCount = state.devices.filter(d => d.owner_customer_id === c.id).length;
                   const repairCount = state.repairs.filter(r => r.customer_id === c.id).length;
                   return (
-                    <div key={c.id} className="border border-slate-200 rounded-lg p-3 hover:bg-slate-50">
+                    <div key={c.id} onClick={() => setQuickCustomer(c)} className="border border-slate-200 rounded-lg p-3 hover:bg-orange-50/50 cursor-pointer transition-colors">
                       <div className="flex items-start justify-between">
                         <div>
                           <p className="font-semibold text-sm text-slate-900">{c.name}</p>
@@ -143,7 +156,7 @@ export default function OfficeSearch({ onNavigate }) {
                   const customer = state.customers.find(c => c.id === r.customer_id);
                   const device = state.devices.find(d => d.id === r.device_id);
                   return (
-                    <div key={r.id} className="border border-slate-200 rounded-lg p-3 hover:bg-slate-50">
+                    <div key={r.id} onClick={() => setDetailRepairId(r.id)} className="border border-slate-200 rounded-lg p-3 hover:bg-orange-50/50 cursor-pointer transition-colors">
                       <div className="flex justify-between items-start">
                         <div>
                           <div className="flex items-center gap-2 mb-1">
@@ -184,7 +197,7 @@ export default function OfficeSearch({ onNavigate }) {
                   const owner = state.customers.find(c => c.id === d.owner_customer_id);
                   const repairCount = state.repairs.filter(r => r.device_id === d.id).length;
                   return (
-                    <div key={d.id} className="border border-slate-200 rounded-lg p-3 hover:bg-slate-50">
+                    <div key={d.id} onClick={() => setQuickDevice({ device: d, customer: owner })} className="border border-slate-200 rounded-lg p-3 hover:bg-orange-50/50 cursor-pointer transition-colors">
                       <div className="flex justify-between">
                         <div>
                           <div className="flex items-center gap-2 mb-1">
@@ -227,8 +240,9 @@ export default function OfficeSearch({ onNavigate }) {
                     .filter(b => b.part_id === p.id)
                     .reduce((sum, b) => sum + b.quantity_remaining, 0);
                   return (
-                    <div key={p.id} className="border border-slate-200 rounded-lg p-3 hover:bg-slate-50">
+                    <div key={p.id} onClick={() => setQuickPart(p)} className="border border-slate-200 rounded-lg p-3 hover:bg-orange-50/50 cursor-pointer transition-colors">
                       <div className="flex items-center gap-3">
+                        <PartThumbnail part={p} size="sm" />
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
                             <p className="font-semibold text-sm">{p.name}</p>
@@ -248,6 +262,25 @@ export default function OfficeSearch({ onNavigate }) {
             </div>
           )}
         </div>
+      )}
+
+      {quickCustomer && (
+        <CustomerQuickModal customer={quickCustomer} repairs={state.repairs} devices={state.devices} onClose={() => setQuickCustomer(null)} />
+      )}
+      {quickDevice && (
+        <DeviceQuickModal device={quickDevice.device} customer={quickDevice.customer} repairs={state.repairs} onClose={() => setQuickDevice(null)} />
+      )}
+      {quickPart && (
+        <PartQuickModal part={quickPart} onClose={() => setQuickPart(null)} />
+      )}
+      {detailRepair && (
+        <RepairDetailModal
+          repair={detailRepair}
+          customer={detailCustomer}
+          device={detailDevice}
+          onClose={() => setDetailRepairId(null)}
+          onAction={() => { setDetailRepairId(null); onNavigate?.('repairs'); }}
+        />
       )}
     </div>
   );
