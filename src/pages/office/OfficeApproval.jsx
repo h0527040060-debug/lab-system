@@ -13,6 +13,8 @@ import ConfirmDialog from '../../components/ConfirmDialog';
 import CustomerQuickModal from '../../components/CustomerQuickModal';
 import DeviceQuickModal from '../../components/DeviceQuickModal';
 import WhatsAppButton from '../../components/WhatsAppButton';
+import PartThumbnail from '../../components/PartThumbnail';
+import SearchInput from '../../components/SearchInput';
 import { DollarSign, Wrench, FileText, Check, X, ShoppingCart } from 'lucide-react';
 
 export default function OfficeApproval() {
@@ -249,8 +251,20 @@ function EditQuoteModal({ repair, onClose }) {
   const [workCodes, setWorkCodes] = useState(repair.diagnosed_work_codes || []);
   const [parts, setParts] = useState(repair.diagnosed_parts || []);
   const [services, setServices] = useState(repair.diagnosed_services || []);
+  const [partSearch, setPartSearch] = useState('');
 
   const device = state.devices.find(d => d.id === repair.device_id);
+
+  const filteredParts = state.parts.filter(p => {
+    if (!partSearch) return true;
+    const s = partSearch.toLowerCase();
+    return (
+      p.name?.toLowerCase().includes(s) ||
+      p.manufacturer?.toLowerCase().includes(s) ||
+      p.manufacturer_sku?.toLowerCase().includes(s) ||
+      p.internal_barcode?.toLowerCase().includes(s)
+    );
+  });
 
   const handleSave = () => {
     dispatch({
@@ -328,19 +342,26 @@ function EditQuoteModal({ repair, onClose }) {
 
           <div>
             <h4 className="font-bold text-sm mb-2">📦 חלקים</h4>
+            <div className="mb-2">
+              <SearchInput value={partSearch} onChange={setPartSearch} placeholder="חיפוש חלק לפי שם, יצרן, מק״ט..." />
+            </div>
             <div className="border border-slate-200 rounded-lg max-h-40 overflow-y-auto">
-              {state.parts.map(p => {
+              {filteredParts.length === 0 && (
+                <p className="text-center text-slate-400 text-xs py-4">לא נמצאו חלקים</p>
+              )}
+              {filteredParts.map(p => {
                 const selected = parts.find(sp => sp.part_id === p.id);
                 return (
                   <div key={p.id} className={`p-2 border-b last:border-0 text-sm ${selected ? 'bg-orange-50' : ''}`}>
                     <div className="flex items-center justify-between gap-2">
                       <button
                         onClick={() => selected ? removePart(p.id) : addPart(p.id)}
-                        className="flex-1 text-right"
+                        className="flex-1 text-right flex items-center gap-2 min-w-0"
                       >
-                        <span>{p.images?.[0]} {p.name}</span>
+                        <PartThumbnail part={p} size="xs" />
+                        <span className="truncate">{p.name}</span>
                       </button>
-                      <span className="text-xs text-slate-500">{formatMoney(getPartSellingPrice(p))}</span>
+                      <span className="text-xs text-slate-500 flex-shrink-0">{formatMoney(getPartSellingPrice(p))}</span>
                       {selected && (
                         <input
                           type="number"

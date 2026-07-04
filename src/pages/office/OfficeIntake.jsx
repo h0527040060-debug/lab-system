@@ -12,6 +12,7 @@ import AutocompleteInput from '../../components/AutocompleteInput';
 import { User, Wrench, FileText, ShieldCheck, Camera, Check, Plus, Printer, LayoutDashboard } from 'lucide-react';
 import PrintStickerModal from '../../components/PrintStickerModal';
 import ConfirmDialog from '../../components/ConfirmDialog';
+import ImageGalleryModal from '../../components/ImageGalleryModal';
 
 const MAX_PHOTOS = 3;
 const PHOTO_MAX_PX = 800;
@@ -61,6 +62,7 @@ export default function OfficeIntake({ onNavigate }) {
   const [diagnosticFeeConfirmed, setDiagnosticFeeConfirmed] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [confirmDeletePhoto, setConfirmDeletePhoto] = useState(null);
+  const [lightboxIndex, setLightboxIndex] = useState(null);
 
   const [successRepair, setSuccessRepair] = useState(null);
   const [printRepair, setPrintRepair] = useState(null);
@@ -84,10 +86,6 @@ export default function OfficeIntake({ onNavigate }) {
   const handlePhotoUpload = (e) => {
     const files = Array.from(e.target.files);
     files.forEach(file => {
-      setIntakePhotos(prev => {
-        if (prev.length >= MAX_PHOTOS) return prev; // הגבלה
-        return prev; // מחכים לטעינה
-      });
       const reader = new FileReader();
       reader.onloadend = async () => {
         const compressed = await compressImage(reader.result);
@@ -655,7 +653,7 @@ export default function OfficeIntake({ onNavigate }) {
                 <div className="grid grid-cols-4 gap-2 mt-3">
                   {intakePhotos.map((photo, idx) => (
                     <div key={idx} className="relative">
-                      <img src={photo} alt={`תמונה ${idx + 1}`} className="w-full h-20 object-cover rounded-lg border" />
+                      <img src={photo} alt={`תמונה ${idx + 1}`} onClick={() => setLightboxIndex(idx)} className="w-full h-20 object-cover rounded-lg border cursor-zoom-in hover:opacity-90" />
                       <button
                         onClick={() => setConfirmDeletePhoto(idx)}
                         className="absolute top-1 left-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
@@ -739,6 +737,14 @@ export default function OfficeIntake({ onNavigate }) {
         onConfirm={() => { removePhoto(confirmDeletePhoto); setConfirmDeletePhoto(null); }}
         onCancel={() => setConfirmDeletePhoto(null)}
       />
+      {lightboxIndex !== null && (
+        <ImageGalleryModal
+          images={intakePhotos}
+          startIndex={lightboxIndex}
+          altText="תמונת מכשיר"
+          onClose={() => setLightboxIndex(null)}
+        />
+      )}
     </div>
   );
 }

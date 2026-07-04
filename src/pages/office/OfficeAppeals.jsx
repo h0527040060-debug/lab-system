@@ -10,6 +10,7 @@ import InfoCard from '../../components/InfoCard';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import CustomerQuickModal from '../../components/CustomerQuickModal';
 import DeviceQuickModal from '../../components/DeviceQuickModal';
+import ImageGalleryModal from '../../components/ImageGalleryModal';
 import { ShieldAlert, User, Wrench, Check, X } from 'lucide-react';
 
 export default function OfficeAppeals() {
@@ -18,6 +19,7 @@ export default function OfficeAppeals() {
   const [confirmAction, setConfirmAction] = useState(null);
   const [quickCustomer, setQuickCustomer] = useState(null);
   const [quickDevice, setQuickDevice] = useState(null);
+  const [gallery, setGallery] = useState(null);
 
   const appeals = state.repairs
     .filter(r => r.status === REPAIR_STATUSES.YELLOW_APPEAL)
@@ -114,7 +116,7 @@ export default function OfficeAppeals() {
                       </p>
                       <div className="grid grid-cols-4 gap-2">
                         {r.warranty_appeal.evidence_photos.slice(0, 4).map((p, idx) => (
-                          <img key={idx} src={p} alt={`ראיה ${idx + 1}`} className="w-full h-20 object-cover rounded border" />
+                          <img key={idx} src={p} alt={`ראיה ${idx + 1}`} onClick={() => setGallery({ images: r.warranty_appeal.evidence_photos, index: idx })} className="w-full h-20 object-cover rounded border cursor-zoom-in hover:opacity-90" />
                         ))}
                       </div>
                     </div>
@@ -156,6 +158,10 @@ export default function OfficeAppeals() {
         <DeviceQuickModal device={quickDevice.device} customer={quickDevice.customer} repairs={state.repairs} onClose={() => setQuickDevice(null)} />
       )}
 
+      {gallery && (
+        <ImageGalleryModal images={gallery.images} startIndex={gallery.index} altText="תמונת הוכחה" onClose={() => setGallery(null)} />
+      )}
+
       {viewingAppeal && (
         <AppealDetailsModal
           repair={viewingAppeal}
@@ -189,6 +195,7 @@ function AppealDetailsModal({ repair, onClose, onAccept, onReject }) {
   const { state } = useAppContext();
   const customer = state.customers.find(c => c.id === repair.customer_id);
   const device = state.devices.find(d => d.id === repair.device_id);
+  const [galleryIndex, setGalleryIndex] = useState(null);
 
   return (
     <Modal
@@ -246,12 +253,15 @@ function AppealDetailsModal({ repair, onClose, onAccept, onReject }) {
             <p className="text-sm font-bold mb-2">📷 תמונות הוכחה:</p>
             <div className="grid grid-cols-3 gap-2">
               {repair.warranty_appeal.evidence_photos.map((p, idx) => (
-                <img key={idx} src={p} alt={`ראיה ${idx + 1}`} className="w-full h-32 object-cover rounded border" />
+                <img key={idx} src={p} alt={`ראיה ${idx + 1}`} onClick={() => setGalleryIndex(idx)} className="w-full h-32 object-cover rounded border cursor-zoom-in hover:opacity-90" />
               ))}
             </div>
           </div>
         )}
       </div>
+      {galleryIndex !== null && (
+        <ImageGalleryModal images={repair.warranty_appeal.evidence_photos} startIndex={galleryIndex} altText="תמונת הוכחה" onClose={() => setGalleryIndex(null)} />
+      )}
     </Modal>
   );
 }
