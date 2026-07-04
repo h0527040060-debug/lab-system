@@ -212,6 +212,7 @@ function PaymentModal({ repair, onClose }) {
   const [signature, setSignature] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [confirmAction, setConfirmAction] = useState(null);
+  const [lightbox, setLightbox] = useState(null);
 
   const chargedAmount = isRefused
     ? (feeWaived ? 0 : diagnosticFee)
@@ -344,7 +345,7 @@ function PaymentModal({ repair, onClose }) {
                 {repair.release_media.map((m, idx) => (
                   <div key={idx} className="aspect-square bg-slate-100 rounded-lg overflow-hidden border">
                     {m.type === 'image' ? (
-                      <img src={m.data} alt="" className="w-full h-full object-cover" />
+                      <img src={m.data} alt="" onClick={() => setLightbox(m.data)} className="w-full h-full object-cover cursor-zoom-in hover:opacity-90" />
                     ) : (
                       <video src={m.data} controls className="w-full h-full object-cover" />
                     )}
@@ -415,6 +416,16 @@ function PaymentModal({ repair, onClose }) {
         onConfirm={handleComplete}
         onCancel={() => setConfirmAction(null)}
       />
+
+      {lightbox && (
+        <div className="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-4" onClick={() => setLightbox(null)}>
+          <img src={lightbox} alt="" className="max-w-full max-h-full object-contain" />
+          <button
+            onClick={() => setLightbox(null)}
+            className="absolute top-4 left-4 text-white bg-black/50 rounded-full w-9 h-9 flex items-center justify-center text-xl hover:bg-black/80"
+          >✕</button>
+        </div>
+      )}
     </Modal>
   );
 }

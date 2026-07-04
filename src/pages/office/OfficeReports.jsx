@@ -1,21 +1,64 @@
+import { useState } from 'react';
 import { useAppContext } from '../../store/AppContext';
 import { formatMoney, formatPercent } from '../../utils/formatters';
 import { calculateFinancialSummary } from '../../utils/reports';
 import PageHeader from '../../components/PageHeader';
 import { TrendingUp, Package, Calculator, FileText } from 'lucide-react';
 
+const PERIODS = [
+  { id: 'all', label: 'הכל' },
+  { id: 'month', label: 'החודש' },
+  { id: 'year', label: 'השנה' },
+];
+
+// תחילת התקופה שנבחרה (null = הכל)
+const periodStart = (period) => {
+  const now = new Date();
+  if (period === 'month') return new Date(now.getFullYear(), now.getMonth(), 1);
+  if (period === 'year') return new Date(now.getFullYear(), 0, 1);
+  return null;
+};
+
 export default function OfficeReports() {
   const { state } = useAppContext();
-  const summary = calculateFinancialSummary(state.repairs, state.generalExpenses, state.technicians);
+  const [period, setPeriod] = useState('all');
+
+  const start = periodStart(period);
+  const inPeriod = (dateStr) => !start || (dateStr && new Date(dateStr) >= start);
+
+  // סינון תיקונים לפי מועד הסגירה/תשלום והוצאות לפי תאריך
+  const filteredRepairs = start
+    ? state.repairs.filter(r => inPeriod(r.payment_at || r.released_at || r.date_intake))
+    : state.repairs;
+  const filteredExpenses = start
+    ? state.generalExpenses.filter(e => inPeriod(e.date))
+    : state.generalExpenses;
+
+  const summary = calculateFinancialSummary(filteredRepairs, filteredExpenses, state.technicians);
 
   const expensesByCategory = {};
-  state.generalExpenses.forEach(e => {
+  filteredExpenses.forEach(e => {
     expensesByCategory[e.category] = (expensesByCategory[e.category] || 0) + e.amount;
   });
 
   return (
     <div>
       <PageHeader title='דוחות פיננסיים' subtitle='דוח רווח/הפסד מלא (ללא מע"מ)' />
+
+      {/* בורר תקופה */}
+      <div className="bg-white rounded-xl shadow-sm p-2 mb-4 inline-flex gap-1">
+        {PERIODS.map(p => (
+          <button
+            key={p.id}
+            onClick={() => setPeriod(p.id)}
+            className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
+              period === p.id ? 'bg-orange-500 text-white' : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
 
       {/* דוח רווח/הפסד */}
       <div className="bg-white rounded-xl shadow-sm p-6 mb-4">

@@ -87,15 +87,16 @@ export default function OfficeDashboard() {
                   data={statusData}
                   cx="50%"
                   cy="50%"
-                  outerRadius={80}
+                  outerRadius={70}
                   dataKey="value"
-                  label={({ name, value }) => `${name}: ${value}`}
+                  label={({ value }) => value}
                 >
                   {statusData.map((_, idx) => (
                     <Cell key={idx} fill={COLORS[idx % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip />
+                <Tooltip formatter={(v, n) => [`${v} קריאות`, n]} />
+                <Legend wrapperStyle={{ fontSize: 12 }} />
               </PieChart>
             </ResponsiveContainer>
           ) : (
