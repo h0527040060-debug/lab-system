@@ -6,8 +6,8 @@ export default function PrintStickerModal({ repair, customer, device, onClose })
   if (!repair) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm">
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm" onClick={e => e.stopPropagation()}>
         {/* כותרת */}
         <div className="flex items-center justify-between p-4 border-b border-slate-200">
           <h2 className="font-bold text-slate-800">מדבקת QR לתיקון</h2>

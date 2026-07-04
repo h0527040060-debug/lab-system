@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export default function ImageGalleryModal({ images = [], startIndex = 0, altText = '', onClose }) {
@@ -8,80 +9,89 @@ export default function ImageGalleryModal({ images = [], startIndex = 0, altText
 
   if (realImages.length === 0) return null;
 
-  const prev = () => setCurrent(i => (i - 1 + realImages.length) % realImages.length);
-  const next = () => setCurrent(i => (i + 1) % realImages.length);
+  const prev = (e) => { e?.stopPropagation?.(); setCurrent(i => (i - 1 + realImages.length) % realImages.length); };
+  const next = (e) => { e?.stopPropagation?.(); setCurrent(i => (i + 1) % realImages.length); };
 
   const handleKey = (e) => {
-    if (e.key === 'ArrowLeft') next();
-    if (e.key === 'ArrowRight') prev();
+    if (e.key === 'ArrowLeft') next(e);
+    if (e.key === 'ArrowRight') prev(e);
     if (e.key === 'Escape') onClose();
   };
 
-  return (
+  const stop = (e) => e.stopPropagation();
+
+  // lightbox מסך-מלא — לחיצה בכל מקום פנוי סוגרת, X קבוע למעלה תמיד נגיש
+  // מרונדר דרך Portal ל-body כדי לברוח מאבות עם transform (שמשבשים position:fixed)
+  return createPortal(
     <div
-      className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 bg-black/90 z-[110] flex flex-col animate-fade-in"
       onClick={onClose}
       onKeyDown={handleKey}
       tabIndex={-1}
     >
-      <div
-        className="relative bg-white rounded-xl shadow-2xl max-w-2xl w-full overflow-hidden"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200">
-          <p className="font-semibold text-slate-800 text-sm">{altText}</p>
-          <div className="flex items-center gap-3">
-            {realImages.length > 1 && (
-              <span className="text-xs text-slate-500">{current + 1} מתוך {realImages.length}</span>
-            )}
-            <button onClick={onClose} className="p-1 hover:bg-slate-100 rounded-lg text-slate-500">
-              <X size={18} />
-            </button>
-          </div>
-        </div>
-
-        <div className="relative bg-slate-50 flex items-center justify-center" style={{ minHeight: '320px', maxHeight: '65vh' }}>
-          <img
-            src={realImages[current]}
-            alt={`${altText} ${current + 1}`}
-            className="max-w-full max-h-full object-contain"
-            style={{ maxHeight: '65vh' }}
-          />
-
+      {/* סרגל עליון — כותרת + מונה + כפתור סגירה */}
+      <div className="flex items-center justify-between px-4 py-3 shrink-0 text-white" onClick={stop}>
+        <span className="text-sm font-semibold truncate">{altText}</span>
+        <div className="flex items-center gap-3">
           {realImages.length > 1 && (
-            <>
-              <button
-                onClick={prev}
-                className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white shadow-md rounded-full p-2 text-slate-700"
-              >
-                <ChevronRight size={20} />
-              </button>
-              <button
-                onClick={next}
-                className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white shadow-md rounded-full p-2 text-slate-700"
-              >
-                <ChevronLeft size={20} />
-              </button>
-            </>
+            <span className="text-xs text-white/70">{current + 1} / {realImages.length}</span>
           )}
+          <button
+            onClick={onClose}
+            aria-label="סגור"
+            className="p-2 rounded-full bg-white/10 hover:bg-white/25 transition-colors"
+          >
+            <X size={22} />
+          </button>
         </div>
+      </div>
+
+      {/* אזור התמונה — ממורכז, תמיד נכנס למסך */}
+      <div className="flex-1 min-h-0 flex items-center justify-center px-3 relative">
+        <img
+          src={realImages[current]}
+          alt={`${altText} ${current + 1}`}
+          onClick={stop}
+          className="max-w-full max-h-full object-contain select-none"
+        />
 
         {realImages.length > 1 && (
-          <div className="flex gap-2 p-3 border-t border-slate-200 justify-center overflow-x-auto">
-            {realImages.map((img, idx) => (
-              <button
-                key={idx}
-                onClick={() => setCurrent(idx)}
-                className={`w-12 h-12 rounded border-2 overflow-hidden flex-shrink-0 transition-colors ${
-                  idx === current ? 'border-orange-500' : 'border-slate-200 hover:border-slate-400'
-                }`}
-              >
-                <img src={img} alt="" className="w-full h-full object-contain" />
-              </button>
-            ))}
-          </div>
+          <>
+            <button
+              onClick={prev}
+              aria-label="הקודם"
+              className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/15 hover:bg-white/30 text-white rounded-full p-2.5 transition-colors"
+            >
+              <ChevronRight size={24} />
+            </button>
+            <button
+              onClick={next}
+              aria-label="הבא"
+              className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/15 hover:bg-white/30 text-white rounded-full p-2.5 transition-colors"
+            >
+              <ChevronLeft size={24} />
+            </button>
+          </>
         )}
       </div>
-    </div>
+
+      {/* תמונות ממוזערות */}
+      {realImages.length > 1 && (
+        <div className="flex gap-2 px-4 py-3 justify-center overflow-x-auto shrink-0" onClick={stop}>
+          {realImages.map((img, idx) => (
+            <button
+              key={idx}
+              onClick={() => setCurrent(idx)}
+              className={`w-12 h-12 rounded border-2 overflow-hidden flex-shrink-0 transition-colors ${
+                idx === current ? 'border-orange-500' : 'border-white/30 hover:border-white/60'
+              }`}
+            >
+              <img src={img} alt="" className="w-full h-full object-contain bg-black/40" />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>,
+    document.body
   );
 }

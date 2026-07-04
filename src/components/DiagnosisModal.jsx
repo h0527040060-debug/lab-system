@@ -9,6 +9,7 @@ import { filterWorkCatalogForDevice, calculateAvgHoursForWork } from '../utils/w
 import { generateWorkCodeId, generateInternalBarcode } from '../utils/idGenerators';
 import Modal from './Modal';
 import InfoCard from './InfoCard';
+import ImageGalleryModal from './ImageGalleryModal';
 import { User, Wrench, FileText, History, ShieldAlert, Camera, Send, CheckSquare, Square, BookOpen, Search, Plus, HelpCircle, X } from 'lucide-react';
 import PartThumbnail from './PartThumbnail';
 import AssemblyInstructionsViewer from './AssemblyInstructionsViewer';
@@ -258,14 +259,7 @@ export default function DiagnosisModal({ repair, onClose }) {
       />
     )}
     {lightboxPhoto && (
-      <div
-        className="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center"
-        onClick={() => setLightboxPhoto(null)}
-      >
-        <img src={lightboxPhoto} alt="תצוגה מלאה" className="max-w-full max-h-full object-contain" />
-        <button onClick={() => setLightboxPhoto(null)}
-          className="absolute top-4 left-4 text-white bg-black/50 rounded-full w-9 h-9 flex items-center justify-center text-xl hover:bg-black/80">✕</button>
-      </div>
+      <ImageGalleryModal images={[lightboxPhoto]} altText="תצוגת תמונה" onClose={() => setLightboxPhoto(null)} />
     )}
     <Modal
       open={true}
