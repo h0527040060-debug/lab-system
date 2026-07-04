@@ -57,10 +57,17 @@ const OLD_DB_KEY_TO_STATE_KEY = {
 // מחזיר: { customers: [...], repairs: [...], settings: {...}, ... } (ממופה לפי stateKey)
 export async function loadAllFromDB() {
   if (!supabase) return null;
+  // שגיאת רשת/שרת → זורק כדי שהקורא ידע שזה מצב אופליין (ולא "פעם ראשונה")
+  let data, error;
   try {
-    const { data, error } = await supabase.from('lab_data').select('*');
-    if (error) { console.error('Supabase load error:', error); return null; }
-    if (!data || data.length === 0) return null;
+    ({ data, error } = await supabase.from('lab_data').select('*'));
+  } catch (e) {
+    console.error('Supabase connection error:', e);
+    throw new Error('supabase-offline');
+  }
+  if (error) { console.error('Supabase load error:', error); throw new Error('supabase-offline'); }
+  try {
+    if (!data || data.length === 0) return null; // באמת ריק — פעם ראשונה
 
     // אתחל מערכים לכל ישות גרנולרית
     const result = {};
@@ -106,8 +113,9 @@ export async function loadAllFromDB() {
 
     return result;
   } catch (e) {
-    console.error('Supabase connection error:', e);
-    return null;
+    // שגיאת עיבוד לא צפויה — עדיף לשמור על הנתונים המקומיים מאשר לדרוס
+    console.error('Supabase parse error:', e);
+    throw new Error('supabase-offline');
   }
 }
 
