@@ -289,24 +289,26 @@ function KanbanColumn({ statusId, repairs, customers, devices, collapsed, onTogg
   return (
     <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }}
       className="flex flex-col flex-shrink-0 w-72">
-      <div className={`rounded-xl border ${statusDisplay.border} ${statusDisplay.bg} p-2.5 mb-2 flex items-center justify-between select-none`}
-        {...attributes} {...listeners}>
-        <div className="flex items-center gap-1.5">
-          <GripVertical size={14} className={`${statusDisplay.text} opacity-50`} />
-          <span>{statusDisplay.emoji}</span>
-          <span className={`font-bold text-sm ${statusDisplay.text}`}>{statusDisplay.label}</span>
-          <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full bg-white bg-opacity-60 ${statusDisplay.text}`}>
-            {repairs.length}
-          </span>
-        </div>
-        <button onClick={(e) => { e.stopPropagation(); onToggleCollapse(); }}
-          className={`${statusDisplay.text} opacity-60 hover:opacity-100`} title="כווץ עמודה">
-          <ChevronLeft size={14} />
-        </button>
-      </div>
-
       <SortableContext items={cardIds} strategy={verticalListSortingStrategy}>
-        <div className="flex flex-col gap-2 overflow-y-auto flex-1 min-h-0 pb-2 pr-0.5">
+        {/* אזור גלילה פנימי לכל עמודה — הכותרת נשארת קפואה למעלה בזמן גלילת הכרטיסים */}
+        <div className="flex flex-col gap-2 overflow-y-auto pb-2 pr-0.5 max-h-[calc(100dvh_-_190px)]">
+          {/* כותרת סטטוס קפואה */}
+          <div className={`sticky top-0 z-20 rounded-xl border ${statusDisplay.border} ${statusDisplay.bg} p-2.5 flex items-center justify-between select-none shadow-sm`}
+            {...attributes} {...listeners}>
+            <div className="flex items-center gap-1.5">
+              <GripVertical size={14} className={`${statusDisplay.text} opacity-50`} />
+              <span>{statusDisplay.emoji}</span>
+              <span className={`font-bold text-sm ${statusDisplay.text}`}>{statusDisplay.label}</span>
+              <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full bg-white bg-opacity-60 ${statusDisplay.text}`}>
+                {repairs.length}
+              </span>
+            </div>
+            <button onClick={(e) => { e.stopPropagation(); onToggleCollapse(); }}
+              className={`${statusDisplay.text} opacity-60 hover:opacity-100`} title="כווץ עמודה">
+              <ChevronLeft size={14} />
+            </button>
+          </div>
+
           {repairs.map(r => {
             const customer = customers.find(c => c.id === r.customer_id);
             const device = devices.find(d => d.id === r.device_id);
