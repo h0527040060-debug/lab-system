@@ -7,6 +7,7 @@ import {
 } from '../data/seedData';
 import { DEFAULT_STATUS_CONFIG } from '../utils/statusConfig';
 import { useToast } from './ToastContext';
+import OfflineBanner from '../components/OfflineBanner';
 
 export const DEFAULT_ROLE_CONFIG = {
   office: {
@@ -481,8 +482,12 @@ const AppContext = createContext(null);
 export const AppProvider = ({ children }) => {
   const [state, dispatch] = useReducer(appReducer, null, buildInitialState);
   const [dbLoading, setDbLoading] = useState(isSupabaseConfigured());
+  const [isOffline, setIsOffline] = useState(false);
   const saveTimers = useRef({});
   const initializedRef = useRef(false);
+  // עוקב אחרי ה-state העדכני לצורך flush בחזרה לרשת
+  const stateRef = useRef(state);
+  stateRef.current = state;
   const pendingSavesRef = useRef(new Set());
   const pendingToastRef = useRef(null); // { storageKey, message, type, duration }
   // עוקב אחרי הערך הקודם של כל ישות גרנולרית — לחישוב ה-diff לפני שמירה
@@ -517,9 +522,35 @@ export const AppProvider = ({ children }) => {
       initializedRef.current = true;
       setDbLoading(false);
     }).catch(() => {
+      // אין חיבור לשרת בטעינה — נשארים עם הנתונים המקומיים (גיבוי localStorage) ומסמנים אופליין
+      setIsOffline(true);
       initializedRef.current = true;
       setDbLoading(false);
     });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ניטור חיבור — באנר אופליין + סנכרון חוזר כשהחיבור חוזר
+  useEffect(() => {
+    if (!isSupabaseConfigured()) return;
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) setIsOffline(true);
+    const handleOnline = () => {
+      setIsOffline(false);
+      // דחוף את המצב המקומי בחזרה לענן (כולל שינויים שנעשו באופליין)
+      try {
+        const snap = {};
+        Object.keys(GRANULAR_ENTITIES).forEach(k => { if (Array.isArray(stateRef.current[k])) snap[k] = stateRef.current[k]; });
+        Object.keys(STATE_TO_DB_KEY).forEach(k => { if (stateRef.current[k] !== undefined) snap[k] = stateRef.current[k]; });
+        if (Object.keys(snap).length > 0) saveAllToDB(snap);
+      } catch { /* ignore */ }
+    };
+    const handleOffline = () => setIsOffline(true);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -592,8 +623,10 @@ export const AppProvider = ({ children }) => {
         rows.forEach(r => pendingSavesRef.current.add(r.key));
         supabase.from('lab_data').upsert(rows, { onConflict: 'key' })
           .then(({ error }) => {
-            if (error) console.error(`Granular save error [${stateKey}]:`, error);
+            if (error) { console.error(`Granular save error [${stateKey}]:`, error); setIsOffline(true); }
+            else setIsOffline(false);
           })
+          .catch(() => setIsOffline(true))
           .finally(() => rows.forEach(r => pendingSavesRef.current.delete(r.key)));
       }
 
@@ -603,8 +636,10 @@ export const AppProvider = ({ children }) => {
           pendingSavesRef.current.add(key);
           supabase.from('lab_data').delete().eq('key', key)
             .then(({ error }) => {
-              if (error) console.error(`Granular delete error [${key}]:`, error);
+              if (error) { console.error(`Granular delete error [${key}]:`, error); setIsOffline(true); }
+              else setIsOffline(false);
             })
+            .catch(() => setIsOffline(true))
             .finally(() => pendingSavesRef.current.delete(key));
         });
       }
@@ -615,9 +650,9 @@ export const AppProvider = ({ children }) => {
   const scheduleSave = useCallback((storageKey, value, dbKey) => {
     const timerKey = storageKey;
     if (saveTimers.current[timerKey]) clearTimeout(saveTimers.current[timerKey]);
-    // כשSupabase מוגדר, אל תשמור מערכים גדולים ב-localStorage (הם כבר ב-Supabase)
-    const skipLocalStorage = Array.isArray(value) && isSupabaseConfigured() && initializedRef.current;
-    const saved = skipLocalStorage ? true : saveToStorage(storageKey, value);
+    // תמיד שומרים גם ב-localStorage כרשת ביטחון — כך נתונים שורדים גם אם השרת לא זמין.
+    // (התמונות נשמרות כ-URL ב-Supabase Storage, כך שהמערכים קטנים; אם המכסה נגמרת saveToStorage מחזיר false בשקט)
+    const saved = saveToStorage(storageKey, value);
 
     // הצג טוסט אם זו השמירה הרלוונטית לפעולה האחרונה
     const pending = pendingToastRef.current;
@@ -724,7 +759,8 @@ export const AppProvider = ({ children }) => {
   }
 
   return (
-    <AppContext.Provider value={{ state, dispatch: loggedDispatch }}>
+    <AppContext.Provider value={{ state, dispatch: loggedDispatch, isOffline }}>
+      {isOffline && <OfflineBanner />}
       {children}
     </AppContext.Provider>
   );
