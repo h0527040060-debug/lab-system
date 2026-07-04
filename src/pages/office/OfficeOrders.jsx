@@ -9,6 +9,7 @@ import Modal from '../../components/Modal';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import PartThumbnail from '../../components/PartThumbnail';
 import PartQuickModal from '../../components/PartQuickModal';
+import ImageGalleryModal from '../../components/ImageGalleryModal';
 import { ShoppingCart, AlertTriangle, Send, Package, CheckCircle2, HelpCircle } from 'lucide-react';
 
 const OPEN_STATUSES = new Set(['red_intake', 'yellow_diagnosis', 'yellow_appeal', 'yellow_waiting_approval', 'yellow_ready_to_work', 'in_work', 'pending_release_docs', 'pending_payment']);
@@ -310,16 +311,7 @@ export default function OfficeOrders() {
       />
 
       {lightbox && (
-        <div
-          className="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center"
-          onClick={() => setLightbox(null)}
-        >
-          <img src={lightbox} alt="" className="max-w-full max-h-full object-contain" />
-          <button
-            onClick={() => setLightbox(null)}
-            className="absolute top-4 left-4 text-white bg-black/50 rounded-full w-9 h-9 flex items-center justify-center text-xl hover:bg-black/80"
-          >✕</button>
-        </div>
+        <ImageGalleryModal images={[lightbox]} altText="תמונת חלק" onClose={() => setLightbox(null)} />
       )}
     </div>
   );

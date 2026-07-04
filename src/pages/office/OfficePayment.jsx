@@ -14,6 +14,7 @@ import PriceBreakdown from '../../components/PriceBreakdown';
 import EditInvoiceModal from '../../components/EditInvoiceModal';
 import CustomerQuickModal from '../../components/CustomerQuickModal';
 import DeviceQuickModal from '../../components/DeviceQuickModal';
+import ImageGalleryModal from '../../components/ImageGalleryModal';
 import { DollarSign, User, Wrench, Camera, Check, Receipt, FileText, Pencil } from 'lucide-react';
 import WhatsAppButton from '../../components/WhatsAppButton';
 
@@ -418,13 +419,7 @@ function PaymentModal({ repair, onClose }) {
       />
 
       {lightbox && (
-        <div className="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-4" onClick={() => setLightbox(null)}>
-          <img src={lightbox} alt="" className="max-w-full max-h-full object-contain" />
-          <button
-            onClick={() => setLightbox(null)}
-            className="absolute top-4 left-4 text-white bg-black/50 rounded-full w-9 h-9 flex items-center justify-center text-xl hover:bg-black/80"
-          >✕</button>
-        </div>
+        <ImageGalleryModal images={[lightbox]} altText="תיעוד תקינות" onClose={() => setLightbox(null)} />
       )}
     </Modal>
   );
