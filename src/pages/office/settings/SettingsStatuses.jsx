@@ -126,8 +126,8 @@ export function SettingsStatuses() {
 
   return (
     <div className="bg-white rounded-xl shadow-sm p-6">
-      <div className="border border-slate-200 rounded-lg overflow-hidden mb-3">
-        <table className="w-full text-sm">
+      <div className="border border-slate-200 rounded-lg overflow-x-auto mb-3">
+        <table className="w-full text-sm min-w-[520px]">
           <thead className="bg-slate-50 border-b border-slate-200">
             <tr>
               <th className="text-right p-3 font-semibold">אמוג'י</th>
