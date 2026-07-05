@@ -34,7 +34,7 @@ export function fillMessage(template, { repair, customer, device, settings } = {
   return template
     .replace(/\[שם\]/g, customer?.name || '')
     .replace(/\[קוד\]/g, repair?.id || '')
-    .replace(/\[מכשיר\]/g, device ? `${device.brand || ''} ${device.model || ''}`.trim() : '')
+    .replace(/\[מכשיר\]/g, device ? (device.type || `${device.brand || ''} ${device.model || ''}`.trim()) : '')
     .replace(/\[סכום\]/g, repair?.final_price != null ? `${repair.final_price}₪` : '')
     .replace(/\[כתובת\]/g, settings?.business_address || '')
     .replace(/\[טלפון_עסק\]/g, settings?.business_phone || '');

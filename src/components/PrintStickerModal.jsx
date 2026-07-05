@@ -41,8 +41,8 @@ export default function PrintStickerModal({ repair, customer, device, onClose })
                 <span className="font-semibold">{customer?.name}</span>
                 <span className="text-slate-500 text-xs">{customer?.phone}</span>
               </div>
-              <p className="text-slate-700">{device?.brand} {device?.model}</p>
-              {device?.type && <p className="text-slate-500 text-xs">{device.type}</p>}
+              <p className="text-slate-700">{device?.type || `${device?.brand} ${device?.model}`}</p>
+              {device?.type && <p className="text-slate-500 text-xs">{device.brand} {device.model}</p>}
               <p className="text-slate-400 text-xs">{formatDateTime(repair.date_intake)}</p>
             </div>
           </div>

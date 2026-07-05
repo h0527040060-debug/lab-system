@@ -195,7 +195,7 @@ export default function OfficeCustomers() {
                             <span className="text-xs text-slate-500">{formatDateTime(r.date_intake)}</span>
                           </div>
                           <p className="text-slate-700">{r.complaint}</p>
-                          {device && <p className="text-xs text-slate-500 mt-1">{device.brand} {device.model}</p>}
+                          {device && <p className="text-xs text-slate-500 mt-1">{device.type || `${device.brand} ${device.model}`}</p>}
                         </div>
                       );
                     })}

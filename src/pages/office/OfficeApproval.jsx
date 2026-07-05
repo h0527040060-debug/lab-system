@@ -126,8 +126,8 @@ export default function OfficeApproval() {
                   <div className="space-y-3">
                     <InfoCard title="מכשיר" icon={Wrench}>
                       <button onClick={() => setQuickDevice({ device, customer })} className="text-right hover:text-blue-600 group w-full">
-                        <p className="font-semibold group-hover:underline">{device?.brand} {device?.model}</p>
-                        <p className="text-xs text-slate-500">{device?.type}</p>
+                        <p className="font-semibold group-hover:underline">{device?.type || `${device?.brand} ${device?.model}`}</p>
+                        <p className="text-xs text-slate-500">{device?.brand} {device?.model}</p>
                       </button>
                     </InfoCard>
 

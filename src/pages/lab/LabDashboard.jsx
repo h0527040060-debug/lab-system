@@ -156,7 +156,7 @@ function KanbanColumn({ title, count, repairs, state, onSelect, color, disabled 
                   </div>
                 </div>
                 <p className="font-semibold text-sm">{r.repair_type === 'internal_used' ? '— פנימי —' : customer?.name}</p>
-                <p className="text-xs text-slate-600 mt-1">{device?.brand} {device?.model}</p>
+                <p className="text-xs text-slate-600 mt-1">{device?.type || `${device?.brand} ${device?.model}`}</p>
                 <p className="text-xs text-slate-500 mt-1 line-clamp-2">{r.complaint}</p>
                 <p className="text-xs text-slate-400 mt-1">{formatDateTime(r.date_intake)}</p>
               </button>

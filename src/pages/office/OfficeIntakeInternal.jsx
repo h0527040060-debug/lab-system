@@ -162,7 +162,7 @@ export default function OfficeIntakeInternal({ onNavigate }) {
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div><span className="text-slate-500">קוד תיקון:</span> <span className="font-bold text-purple-600">{successRepair.repair.id}</span></div>
               <div><span className="text-slate-500">קוד מכשיר:</span> <span className="font-bold">{device?.id}</span></div>
-              <div className="col-span-2"><span className="text-slate-500">מכשיר:</span> <span>{device?.brand} {device?.model}</span></div>
+              <div className="col-span-2"><span className="text-slate-500">מכשיר:</span> <span>{device?.type || `${device?.brand} ${device?.model}`}</span></div>
               <div className="col-span-2"><span className="text-slate-500">תיאור:</span> <span>{successRepair.repair.complaint}</span></div>
             </div>
             <div className="mt-3 inline-flex items-center gap-2 bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-xs font-bold">
@@ -256,7 +256,7 @@ export default function OfficeIntakeInternal({ onNavigate }) {
                 onChange={val => setNewDevice({ ...newDevice, type: val })}
                 onAddValue={val => dispatch({ type: 'ADD_FIELD_VALUE', payload: { field: 'deviceTypes', value: val } })}
                 suggestions={state.settings?.fieldLists?.deviceTypes || []}
-                placeholder="סוג מכשיר * (תנור קומבי, מקרר)"
+                placeholder="שם מכשיר * (תנור קומבי, מקרר)"
                 allowNew
                 className="col-span-2"
               />

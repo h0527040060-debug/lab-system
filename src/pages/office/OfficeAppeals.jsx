@@ -95,7 +95,7 @@ export default function OfficeAppeals() {
                         <p className="font-semibold group-hover:underline">{customer?.name} • <span dir="ltr">{customer?.phone}</span></p>
                       </button>
                       <button onClick={() => setQuickDevice({ device, customer })} className="text-right hover:text-blue-600 group block mt-1">
-                        <p className="text-sm text-slate-600 group-hover:underline">{device?.brand} {device?.model}</p>
+                        <p className="text-sm text-slate-600 group-hover:underline">{device?.type || `${device?.brand} ${device?.model}`}</p>
                       </button>
                     </div>
                     <div className="text-left text-xs">
@@ -202,7 +202,7 @@ function AppealDetailsModal({ repair, onClose, onAccept, onReject }) {
       open={true}
       onClose={onClose}
       title={`ערעור אחריות - ${repair.id}`}
-      subtitle={`${customer?.name} • ${device?.brand} ${device?.model}`}
+      subtitle={`${customer?.name} • ${device?.type || `${device?.brand} ${device?.model}`}`}
       maxWidth="max-w-4xl"
       footer={
         <div className="flex justify-end gap-2">
@@ -230,8 +230,8 @@ function AppealDetailsModal({ repair, onClose, onAccept, onReject }) {
             <p className="text-xs text-slate-500">{customer?.phone}</p>
           </InfoCard>
           <InfoCard title="מכשיר" icon={Wrench}>
-            <p className="font-semibold">{device?.brand} {device?.model}</p>
-            <p className="text-xs text-slate-500">{device?.type}</p>
+            <p className="font-semibold">{device?.type || `${device?.brand} ${device?.model}`}</p>
+            <p className="text-xs text-slate-500">{device?.brand} {device?.model}</p>
           </InfoCard>
         </div>
 

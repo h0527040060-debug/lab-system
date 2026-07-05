@@ -69,7 +69,7 @@ export default function ReleaseDocsModal({ repair, onClose }) {
       onClose={onClose}
       sheet
       title={`תיעוד תקינות - ${repair.id}`}
-      subtitle={`${customer?.name} • ${device?.brand} ${device?.model}`}
+      subtitle={`${customer?.name} • ${device?.type || `${device?.brand} ${device?.model}`}`}
       maxWidth="max-w-2xl"
       footer={
         <div className="flex justify-end gap-2">

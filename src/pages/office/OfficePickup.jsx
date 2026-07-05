@@ -99,7 +99,7 @@ export default function OfficePickup() {
                         disabled={!device}
                         className="text-right hover:text-blue-600 hover:underline disabled:hover:text-slate-600 disabled:hover:no-underline"
                       >
-                        {device ? `${device.brand} ${device.model}` : '—'}
+                        {device ? (device.type || `${device.brand} ${device.model}`) : '—'}
                       </button>
                       {device?.manufacturer_serial && (
                         <span className="text-slate-400 mr-2">• {device.manufacturer_serial}</span>

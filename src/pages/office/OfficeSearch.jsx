@@ -164,7 +164,7 @@ export default function OfficeSearch({ onNavigate }) {
                             <StatusBadge status={r.status} size="sm" />
                           </div>
                           <p className="font-semibold text-sm">{customer?.name}</p>
-                          <p className="text-xs text-slate-500">{device?.brand} {device?.model} • {customer?.phone}</p>
+                          <p className="text-xs text-slate-500">{device?.type || `${device?.brand} ${device?.model}`} • {customer?.phone}</p>
                           <p className="text-xs text-slate-500 mt-1 line-clamp-1">{r.complaint}</p>
                         </div>
                         <span className="text-xs text-slate-400 whitespace-nowrap">{formatDateTime(r.date_intake)}</span>

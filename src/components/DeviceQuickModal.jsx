@@ -21,7 +21,7 @@ export default function DeviceQuickModal({ device, customer, repairs = [], onClo
       >
         <div className="flex items-center justify-between p-4 border-b border-slate-200">
           <div>
-            <h2 className="font-bold text-lg text-slate-800">{device.brand} {device.model}</h2>
+            <h2 className="font-bold text-lg text-slate-800">{device.type || `${device.brand} ${device.model}`}</h2>
             <p className="font-mono text-xs text-slate-400">{device.id}</p>
           </div>
           <div className="flex items-center gap-1">
