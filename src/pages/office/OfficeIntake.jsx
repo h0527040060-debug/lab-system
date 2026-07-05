@@ -204,7 +204,7 @@ export default function OfficeIntake({ onNavigate }) {
               <div><span className="text-slate-500">קוד מכשיר:</span> <span className="font-bold">{device?.id}</span></div>
               <div><span className="text-slate-500">לקוח:</span> <span className="font-semibold">{customer?.name}</span></div>
               <div><span className="text-slate-500">טלפון:</span> <span>{customer?.phone}</span></div>
-              <div className="col-span-2"><span className="text-slate-500">מכשיר:</span> <span>{device?.brand} {device?.model}</span></div>
+              <div className="col-span-2"><span className="text-slate-500">מכשיר:</span> <span>{device?.type || `${device?.brand} ${device?.model}`}</span></div>
               <div className="col-span-2"><span className="text-slate-500">תלונה:</span> <span>{successRepair.complaint}</span></div>
             </div>
           </div>
@@ -431,7 +431,7 @@ export default function OfficeIntake({ onNavigate }) {
                 onChange={val => setNewDevice({ ...newDevice, type: val })}
                 onAddValue={val => dispatch({ type: 'ADD_FIELD_VALUE', payload: { field: 'deviceTypes', value: val } })}
                 suggestions={state.settings?.fieldLists?.deviceTypes || []}
-                placeholder="סוג מכשיר * (תנור קומבי, קוצץ ירקות)"
+                placeholder="שם מכשיר * (תנור קומבי, קוצץ ירקות)"
                 allowNew
                 className="col-span-2"
               />

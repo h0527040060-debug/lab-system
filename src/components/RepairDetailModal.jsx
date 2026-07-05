@@ -155,7 +155,7 @@ export default function RepairDetailModal({ repair, customer, device, onClose, o
                 <Smartphone size={16} className="text-purple-500 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-slate-500">מכשיר</p>
-                  <p className="font-semibold text-slate-800 truncate">{device?.brand} {device?.model}</p>
+                  <p className="font-semibold text-slate-800 truncate">{device?.type || `${device?.brand} ${device?.model}`}</p>
                   {device?.id && <p className="text-xs text-slate-400 font-mono">{device.id}</p>}
                 </div>
                 <span className="text-xs text-purple-500 font-semibold flex-shrink-0">פרטים ←</span>

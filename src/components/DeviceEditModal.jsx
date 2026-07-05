@@ -138,7 +138,7 @@ export function DeviceEditModal({ device, onClose }) {
           </div>
         </div>
         <div>
-          <label className="block text-sm font-semibold text-slate-700 mb-1">סוג מכשיר</label>
+          <label className="block text-sm font-semibold text-slate-700 mb-1">שם מכשיר</label>
           <AutocompleteInput
             value={form.type}
             onChange={val => set('type', val)}

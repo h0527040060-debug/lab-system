@@ -4,7 +4,7 @@ import { Pencil, Trash2, Check, X, Plus } from 'lucide-react';
 import ConfirmDialog from '../../../components/ConfirmDialog';
 
 const FIELD_SECTIONS = [
-  { key: 'deviceTypes', label: 'סוגי מכשיר' },
+  { key: 'deviceTypes', label: 'שמות מכשיר' },
 ];
 
 function FieldSection({ fieldKey, label }) {
@@ -38,7 +38,7 @@ function FieldSection({ fieldKey, label }) {
       ? state.devices.filter(d => d.type === val).length
       : 0;
     const msg = count > 0
-      ? `קיימים ${count} מכשירים עם הסוג "${val}". מחיקה תשאיר אותם ללא סוג מכשיר. האם להמשיך?`
+      ? `קיימים ${count} מכשירים עם השם "${val}". מחיקה תשאיר אותם ללא שם מכשיר. האם להמשיך?`
       : `האם אתה בטוח שאתה רוצה למחוק את "${val}"?`;
     setConfirmDelete({ val, msg });
   };

@@ -80,7 +80,7 @@ export default function OfficePayment() {
                         <p className="text-xs text-slate-500" dir="ltr">{customer?.phone}</p>
                       </button>
                       <button onClick={() => setQuickDevice({ device, customer })} className="text-right hover:text-blue-600 group block mt-1">
-                        <p className="text-xs text-slate-500 group-hover:underline">{device?.brand} {device?.model}</p>
+                        <p className="text-xs text-slate-500 group-hover:underline">{device?.type || `${device?.brand} ${device?.model}`}</p>
                       </button>
                     </div>
                     <div className="text-left">
@@ -245,7 +245,7 @@ function PaymentModal({ repair, onClose }) {
       open={true}
       onClose={onClose}
       title={`גביה ושחרור - ${repair.id}`}
-      subtitle={`${customer?.name} • ${device?.brand} ${device?.model}`}
+      subtitle={`${customer?.name} • ${device?.type || `${device?.brand} ${device?.model}`}`}
       maxWidth="max-w-4xl"
       footer={
         <div className="flex justify-between">
@@ -272,7 +272,7 @@ function PaymentModal({ repair, onClose }) {
               <p className="text-xs text-slate-500">{customer?.phone}</p>
             </InfoCard>
             <InfoCard title="מכשיר" icon={Wrench}>
-              <p className="font-semibold text-sm">{device?.brand} {device?.model}</p>
+              <p className="font-semibold text-sm">{device?.type || `${device?.brand} ${device?.model}`}</p>
             </InfoCard>
           </div>
 

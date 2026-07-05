@@ -273,7 +273,7 @@ export default function DiagnosisModal({ repair, onClose }) {
       onClose={onClose}
       sheet
       title={`אבחון: ${repair.id}`}
-      subtitle={`${customer?.name} • ${device?.brand} ${device?.model}`}
+      subtitle={`${customer?.name} • ${device?.type || `${device?.brand} ${device?.model}`}`}
       maxWidth="max-w-5xl"
       footer={
         !showAppealForm ? (
@@ -321,8 +321,8 @@ export default function DiagnosisModal({ repair, onClose }) {
               <p className="text-xs text-slate-500">{customer?.phone}</p>
             </InfoCard>
             <InfoCard title="מכשיר" icon={Wrench}>
-              <p className="font-semibold">{device?.brand} {device?.model}</p>
-              <p className="text-xs text-slate-500">{device?.type}</p>
+              <p className="font-semibold">{device?.type || `${device?.brand} ${device?.model}`}</p>
+              <p className="text-xs text-slate-500">{device?.brand} {device?.model}</p>
               <p className="text-xs font-mono text-slate-500">{device?.id}</p>
             </InfoCard>
             <InfoCard title="סוג אחריות" icon={ShieldAlert}>

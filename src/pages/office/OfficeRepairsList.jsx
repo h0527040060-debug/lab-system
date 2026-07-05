@@ -122,7 +122,7 @@ export default function OfficeRepairsList({ onNavigate }) {
         const customer = state.customers.find(c => c.id === r.customer_id);
         return (
           <button onClick={() => setQuickDevice({ device, customer })} className="text-right hover:text-blue-600 transition-colors group">
-            <p className="text-xs group-hover:underline">{device?.brand} {device?.model}</p>
+            <p className="text-xs group-hover:underline">{device?.type || `${device?.brand} ${device?.model}`}</p>
             <p className="text-xs text-slate-500 font-mono">{device?.id}</p>
           </button>
         );
@@ -222,7 +222,7 @@ export default function OfficeRepairsList({ onNavigate }) {
         <div className="flex items-start justify-between gap-2">
           <div>
             <p className="font-semibold text-sm text-slate-900">{customer?.name || '—'}</p>
-            <p className="text-xs text-slate-500">{device?.brand} {device?.model}</p>
+            <p className="text-xs text-slate-500">{device?.type || `${device?.brand} ${device?.model}`}</p>
           </div>
           <StatusBadge status={r.status} size="sm" />
         </div>

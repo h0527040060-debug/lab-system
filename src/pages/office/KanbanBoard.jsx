@@ -190,7 +190,7 @@ function KanbanCard({ repair, customer, device, isDragging, onAction, onOpenDeta
           </div>
         </div>
         <p className="font-semibold text-sm text-slate-800 truncate">{customer?.name || '—'}</p>
-        <p className="text-sm font-bold text-slate-800 truncate">{device?.brand} {device?.model}</p>
+        <p className="text-sm font-bold text-slate-800 truncate">{device?.type || `${device?.brand} ${device?.model}`}</p>
         <div className="flex gap-1 mt-2 flex-wrap" onClick={e => e.stopPropagation()}>
           <WhatsAppButton repair={repair} customer={customer} device={device} type="customer" />
           {action === 'diagnosis' && (

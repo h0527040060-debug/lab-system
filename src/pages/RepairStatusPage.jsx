@@ -60,8 +60,7 @@ export function RepairStatusPage({ repairId }) {
             <div className="p-4 space-y-3 text-sm">
               <Row label="לקוח" value={data.customer?.name} />
               <Row label="טלפון" value={data.customer?.phone} />
-              <Row label="מכשיר" value={data.device ? `${data.device.brand} ${data.device.model}` : null} />
-              {data.device?.type && <Row label="סוג" value={data.device.type} />}
+              <Row label="מכשיר" value={data.device ? (data.device.type || `${data.device.brand} ${data.device.model}`) : null} />
               {data.device?.serial_number && <Row label="סריאל" value={data.device.serial_number} />}
               <Row label="נקלט" value={formatDateTime(data.repair.date_intake)} />
               {data.repair.customer_note && (
