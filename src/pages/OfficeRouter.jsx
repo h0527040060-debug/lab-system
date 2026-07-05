@@ -24,7 +24,7 @@ import KanbanBoard from './office/KanbanBoard';
 import OfficePickup from './office/OfficePickup';
 
 const PAGE_COMPONENTS = {
-  kanban: (props) => <KanbanBoard role={props.role || 'office'} onNavigate={props.onNavigate} />,
+  kanban: (props) => <KanbanBoard role={props.role || 'office'} onNavigate={props.onNavigate} openRepairId={props.openRepairId} />,
   dashboard: OfficeDashboard,
   intake: OfficeIntake,
   'intake-internal': OfficeIntakeInternal,
@@ -48,14 +48,23 @@ const PAGE_COMPONENTS = {
 export default function OfficeRouter() {
   const { state } = useAppContext();
   const [currentTab, setCurrentTab] = useState('kanban');
+  const [openRepairId, setOpenRepairId] = useState(null);
   const PageComponent = PAGE_COMPONENTS[currentTab] || KanbanBoard;
 
   const isAdmin = state.currentUser?.role === 'admin';
   const visibleTabs = OFFICE_TABS.filter(t => !t.hidden && (!t.adminOnly || isAdmin));
 
+  const handleNavigate = (page, repairId = null) => {
+    setCurrentTab(page);
+    if (repairId) {
+      setOpenRepairId(repairId);
+      setTimeout(() => setOpenRepairId(null), 0);
+    }
+  };
+
   return (
-    <Layout currentTab={currentTab} onTabChange={setCurrentTab} tabs={visibleTabs}>
-      <PageComponent onNavigate={setCurrentTab} role={isAdmin ? 'admin' : 'office'} />
+    <Layout currentTab={currentTab} onTabChange={handleNavigate} tabs={visibleTabs}>
+      <PageComponent onNavigate={setCurrentTab} role={isAdmin ? 'admin' : 'office'} openRepairId={openRepairId} />
     </Layout>
   );
 }

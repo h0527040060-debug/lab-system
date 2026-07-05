@@ -340,7 +340,7 @@ function KanbanColumn({ statusId, repairs, customers, devices, collapsed, onTogg
 }
 
 // ─── לוח ראשי ─────────────────────────────────────────────────────────────────
-export default function KanbanBoard({ role = 'office', onNavigate }) {
+export default function KanbanBoard({ role = 'office', onNavigate, openRepairId }) {
   const { state, dispatch } = useAppContext();
   const effectiveRole = role === 'admin' ? 'office' : role;
   const storageKey = 'kanban_columns_' + effectiveRole;
@@ -372,6 +372,10 @@ export default function KanbanBoard({ role = 'office', onNavigate }) {
   const [pendingTransition, setPendingTransition] = useState(null);
   const [detailRepairId, setDetailRepairId] = useState(null);
   const columnsRef = useRef(null);
+
+  useEffect(() => {
+    if (openRepairId) setDetailRepairId(openRepairId);
+  }, [openRepairId]);
 
   const [cardOrders, setCardOrders] = useState(() => {
     const orders = {};

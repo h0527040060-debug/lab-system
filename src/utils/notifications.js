@@ -1,4 +1,4 @@
-import { REPAIR_STATUSES } from '../constants/statuses';
+import { REPAIR_STATUSES, STATUS_LABELS } from '../constants/statuses';
 import { isPartLowStock } from './inventory';
 import { isDeviceMissingPhoto } from './devicePhoto';
 
@@ -13,13 +13,17 @@ export const getNotifications = (state) => {
     if (completed) return;
     const daysSince = (now - new Date(r.date_intake)) / (1000 * 60 * 60 * 24);
     if (daysSince > stuckDays) {
+      const customer = state.customers.find(c => c.id === r.customer_id);
+      const device = state.devices.find(d => d.id === r.device_id);
+      const statusLabel = STATUS_LABELS[r.status] || r.status;
+      const deviceDesc = [device?.brand, device?.model].filter(Boolean).join(' ') || device?.type || '';
       notifications.push({
         id: `stuck-${r.id}`,
         type: 'stuck_repair',
         severity: 'high',
-        title: `תיקון תקוע ${Math.floor(daysSince)} ימים`,
-        message: `${r.id} - נתקע במצב "${r.status}"`,
-        link: 'repairs',
+        title: `תיקון תקוע ${Math.floor(daysSince)} ימים — ${statusLabel}`,
+        message: `${customer?.name || r.id}${deviceDesc ? ' · ' + deviceDesc : ''} (${r.id})`,
+        link: { page: 'kanban', repairId: r.id },
         icon: '🚨',
       });
     }
@@ -99,7 +103,7 @@ export const getNotifications = (state) => {
         severity: 'high',
         title: 'נדרשת תמונת מכשיר',
         message: `${device?.brand || ''} ${device?.model || ''} — ${customer?.name || ''} (${r.id})`,
-        link: 'kanban',
+        link: { page: 'kanban', repairId: r.id },
         icon: '📷',
       });
     });

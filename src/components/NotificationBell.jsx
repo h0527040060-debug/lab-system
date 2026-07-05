@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useAppContext } from '../store/AppContext';
 import { getNotifications } from '../utils/notifications';
 import { Bell } from 'lucide-react';
@@ -6,8 +7,29 @@ import { Bell } from 'lucide-react';
 export default function NotificationBell({ onNavigate }) {
   const { state } = useAppContext();
   const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState({ top: 0, right: 0 });
+  const buttonRef = useRef(null);
   const notifications = getNotifications(state);
   const highCount = notifications.filter(n => n.severity === 'high').length;
+
+  const handleToggle = () => {
+    if (!open && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setPos({ top: rect.bottom + 6, right: window.innerWidth - rect.right });
+    }
+    setOpen(o => !o);
+  };
+
+  const handleClick = (n) => {
+    if (onNavigate && n.link) {
+      if (typeof n.link === 'object') {
+        onNavigate(n.link.page, n.link.repairId);
+      } else {
+        onNavigate(n.link);
+      }
+    }
+    setOpen(false);
+  };
 
   if (notifications.length === 0) {
     return (
@@ -20,7 +42,8 @@ export default function NotificationBell({ onNavigate }) {
   return (
     <div className="relative">
       <button
-        onClick={() => setOpen(!open)}
+        ref={buttonRef}
+        onClick={handleToggle}
         aria-label={`התראות (${notifications.length})`}
         aria-expanded={open}
         className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg relative"
@@ -31,35 +54,39 @@ export default function NotificationBell({ onNavigate }) {
         </span>
       </button>
 
-      {open && (
+      {open && createPortal(
         <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute left-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border border-slate-200 z-50 max-h-96 overflow-y-auto">
-            <div className="p-3 border-b border-slate-200">
+          <div className="fixed inset-0" style={{ zIndex: 9998 }} onClick={() => setOpen(false)} />
+          <div
+            className="fixed w-80 bg-white rounded-xl shadow-2xl border border-slate-200 max-h-[420px] overflow-y-auto"
+            style={{ top: pos.top, right: pos.right, zIndex: 9999 }}
+          >
+            <div className="p-3 border-b border-slate-200 sticky top-0 bg-white">
               <h3 className="font-bold text-slate-900">התראות ({notifications.length})</h3>
             </div>
             <div className="divide-y divide-slate-100">
               {notifications.map(n => (
                 <button
                   key={n.id}
-                  onClick={() => {
-                    if (n.link && onNavigate) onNavigate(n.link);
-                    setOpen(false);
-                  }}
-                  className="w-full text-right p-3 hover:bg-slate-50 flex gap-3 items-start"
+                  onClick={() => handleClick(n)}
+                  className="w-full text-right p-3 hover:bg-slate-50 flex gap-3 items-start transition-colors"
                 >
-                  <span className="text-2xl">{n.icon}</span>
-                  <div className="flex-1">
-                    <p className={`font-semibold text-sm ${n.severity === 'high' ? 'text-red-700' : n.severity === 'medium' ? 'text-orange-700' : 'text-slate-700'}`}>
+                  <span className="text-2xl leading-none mt-0.5">{n.icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className={`font-semibold text-sm leading-snug ${n.severity === 'high' ? 'text-red-700' : n.severity === 'medium' ? 'text-orange-700' : 'text-slate-700'}`}>
                       {n.title}
                     </p>
-                    <p className="text-xs text-slate-500 mt-0.5">{n.message}</p>
+                    <p className="text-xs text-slate-500 mt-0.5 truncate">{n.message}</p>
+                    {typeof n.link === 'object' && (
+                      <span className="text-xs text-blue-600 mt-0.5 inline-block">לחץ לפתיחת כרטיס ←</span>
+                    )}
                   </div>
                 </button>
               ))}
             </div>
           </div>
-        </>
+        </>,
+        document.body
       )}
     </div>
   );

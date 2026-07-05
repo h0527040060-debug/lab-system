@@ -8,7 +8,7 @@ import LabHistory from './lab/LabHistory';
 import KanbanBoard from './office/KanbanBoard';
 
 const PAGE_COMPONENTS = {
-  kanban: () => <KanbanBoard role="lab" />,
+  kanban: (props) => <KanbanBoard role="lab" openRepairId={props.openRepairId} />,
   dashboard: LabDashboard,
   search: LabSearch,
   history: LabHistory,
@@ -16,11 +16,20 @@ const PAGE_COMPONENTS = {
 
 export default function LabRouter() {
   const [currentTab, setCurrentTab] = useState('kanban');
+  const [openRepairId, setOpenRepairId] = useState(null);
   const PageComponent = PAGE_COMPONENTS[currentTab] || KanbanBoard;
 
+  const handleNavigate = (page, repairId = null) => {
+    setCurrentTab(page);
+    if (repairId) {
+      setOpenRepairId(repairId);
+      setTimeout(() => setOpenRepairId(null), 0);
+    }
+  };
+
   return (
-    <Layout currentTab={currentTab} onTabChange={setCurrentTab} tabs={LAB_TABS}>
-      <PageComponent onNavigate={setCurrentTab} />
+    <Layout currentTab={currentTab} onTabChange={handleNavigate} tabs={LAB_TABS}>
+      <PageComponent onNavigate={setCurrentTab} openRepairId={openRepairId} />
     </Layout>
   );
 }
