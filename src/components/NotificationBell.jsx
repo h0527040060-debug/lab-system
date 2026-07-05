@@ -15,7 +15,14 @@ export default function NotificationBell({ onNavigate }) {
   const handleToggle = () => {
     if (!open && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
-      setPos({ top: rect.bottom + 6, right: window.innerWidth - rect.right });
+      const panelWidth = 320;
+      const margin = 4;
+      // מיקום: קצה ימין של הפאנל מיושר לקצה ימין של הפעמון, עם clamp שלא יצא מהמסך
+      const left = Math.min(
+        Math.max(margin, rect.right - panelWidth),
+        window.innerWidth - panelWidth - margin
+      );
+      setPos({ top: rect.bottom + 6, left });
     }
     setOpen(o => !o);
   };
@@ -59,7 +66,7 @@ export default function NotificationBell({ onNavigate }) {
           <div className="fixed inset-0" style={{ zIndex: 9998 }} onClick={() => setOpen(false)} />
           <div
             className="fixed w-80 bg-white rounded-xl shadow-2xl border border-slate-200 max-h-[420px] overflow-y-auto"
-            style={{ top: pos.top, right: pos.right, zIndex: 9999 }}
+            style={{ top: pos.top, left: pos.left, zIndex: 9999 }}
           >
             <div className="p-3 border-b border-slate-200 sticky top-0 bg-white">
               <h3 className="font-bold text-slate-900">התראות ({notifications.length})</h3>
