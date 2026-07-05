@@ -184,7 +184,7 @@ export default function OfficeIntake({ onNavigate }) {
     : !!(newDevice.type && newDevice.brand);
 
   const requiresFeeConfirm = warrantyType !== WARRANTY_TYPES.FULL_WARRANTY;
-  const canSave = !!complaint && intakePhotos.length >= 1 && (!requiresFeeConfirm || diagnosticFeeConfirmed);
+  const canSave = !!complaint && (!requiresFeeConfirm || diagnosticFeeConfirmed);
 
   // מסך הצלחה
   if (successRepair) {
