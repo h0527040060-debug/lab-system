@@ -1,6 +1,6 @@
 import { createContext, useContext, useReducer, useEffect, useCallback, useRef, useState } from 'react';
 import { storageKeys, loadFromStorage, saveToStorage, appendLog } from './storage';
-import { supabase, isSupabaseConfigured, loadAllFromDB, saveKeyToDB, saveAllToDB, STATE_TO_DB_KEY, DB_TO_STATE_KEY, GRANULAR_ENTITIES, PREFIX_TO_STATE_KEY } from './supabase';
+import { supabase, isSupabaseConfigured, loadAllFromDB, saveAllToDB, STATE_TO_DB_KEY, DB_TO_STATE_KEY, GRANULAR_ENTITIES, PREFIX_TO_STATE_KEY } from './supabase';
 import {
   SEED_TECHNICIANS, SEED_SUPPLIERS, SEED_WORK_CATALOG,
   SEED_SERVICES, SEED_PARTS, SEED_STOCK_BATCHES, SEED_SETTINGS, DEFAULT_FIELD_LISTS,
@@ -8,6 +8,7 @@ import {
 import { DEFAULT_STATUS_CONFIG } from '../utils/statusConfig';
 import { useToast } from './ToastContext';
 import OfflineBanner from '../components/OfflineBanner';
+import { enqueueSync, dequeueSync, getSyncQueue, hasPendingSync, syncQueueSize } from './syncQueue';
 
 export const DEFAULT_ROLE_CONFIG = {
   office: {
@@ -483,27 +484,98 @@ export const AppProvider = ({ children }) => {
   const [state, dispatch] = useReducer(appReducer, null, buildInitialState);
   const [dbLoading, setDbLoading] = useState(isSupabaseConfigured());
   const [isOffline, setIsOffline] = useState(false);
-  const saveTimers = useRef({});
   const initializedRef = useRef(false);
-  // עוקב אחרי ה-state העדכני לצורך flush בחזרה לרשת
-  const stateRef = useRef(state);
-  stateRef.current = state;
   const pendingSavesRef = useRef(new Set());
   const pendingToastRef = useRef(null); // { storageKey, message, type, duration }
   // עוקב אחרי הערך הקודם של כל ישות גרנולרית — לחישוב ה-diff לפני שמירה
   const prevGranularRef = useRef({});
+  const flushTimerRef = useRef(null);
+  const flushingRef = useRef(false);
   const { showToast } = useToast();
+
+  // כתיבה בודדת לענן (upsert/delete). מחזיר true אם הצליחה.
+  const attemptWrite = useCallback(async (dbKey, entry) => {
+    if (!supabase) return false;
+    pendingSavesRef.current.add(dbKey);
+    try {
+      let error;
+      if (entry.op === 'delete') {
+        ({ error } = await supabase.from('lab_data').delete().eq('key', dbKey));
+      } else {
+        ({ error } = await supabase.from('lab_data').upsert(
+          { key: dbKey, data: entry.data, updated_at: new Date().toISOString() },
+          { onConflict: 'key' }
+        ));
+      }
+      if (error) { console.error(`Sync write error [${dbKey}]:`, error); setIsOffline(true); return false; }
+      return true;
+    } catch (e) {
+      console.error(`Sync write exception [${dbKey}]:`, e);
+      setIsOffline(true);
+      return false;
+    } finally {
+      // השאר את המפתח ב-pendingSaves עוד רגע כדי להתעלם מה-echo של הכתיבה שלנו עצמנו
+      setTimeout(() => pendingSavesRef.current.delete(dbKey), 1200);
+    }
+  }, []);
+
+  // מרוקן את התור — מנסה לכתוב כל פריט ממתין; מסיר רק מה שהצליח
+  const flushQueue = useCallback(async () => {
+    if (!supabase || flushingRef.current) return;
+    const q = getSyncQueue();
+    const keys = Object.keys(q);
+    if (keys.length === 0) return;
+    flushingRef.current = true;
+    let allOk = true;
+    try {
+      for (const dbKey of keys) {
+        const entry = q[dbKey];
+        const ok = await attemptWrite(dbKey, entry);
+        if (ok) dequeueSync(dbKey, entry.ts);
+        else allOk = false;
+      }
+    } finally {
+      flushingRef.current = false;
+    }
+    if (allOk && syncQueueSize() === 0) setIsOffline(false);
+  }, [attemptWrite]);
+
+  // רישום שינוי לתור (סינכרוני, עמיד) + תזמון flush עם debounce
+  const scheduleFlush = useCallback(() => {
+    if (flushTimerRef.current) clearTimeout(flushTimerRef.current);
+    flushTimerRef.current = setTimeout(() => { flushQueue(); }, 500);
+  }, [flushQueue]);
 
   // טעינה ראשונית מ-Supabase
   useEffect(() => {
     if (!isSupabaseConfigured()) return;
     loadAllFromDB().then(dbData => {
       if (dbData && Object.keys(dbData).length > 0) {
+        // שלב את התור המקומי מעל נתוני הענן — שינוי שממתין לסנכרון לא יידרס ע"י גרסה ישנה מהענן
+        const queue = getSyncQueue();
+        const queuedKeys = Object.keys(queue);
+        if (queuedKeys.length > 0) {
+          Object.entries(GRANULAR_ENTITIES).forEach(([stateKey, prefix]) => {
+            let arr = Array.isArray(dbData[stateKey]) ? [...dbData[stateKey]] : [];
+            queuedKeys.filter(k => k.startsWith(prefix)).forEach(k => {
+              const { op, data } = queue[k];
+              const id = k.slice(prefix.length);
+              arr = arr.filter(item => String(item?.id) !== id);
+              if (op !== 'delete' && data) arr.push(data);
+            });
+            dbData[stateKey] = arr;
+          });
+          Object.entries(STATE_TO_DB_KEY).forEach(([stateKey, dbKey]) => {
+            if (queue[dbKey] && queue[dbKey].op !== 'delete') dbData[stateKey] = queue[dbKey].data;
+          });
+        }
         // Supabase מכיל נתונים — טען אותם ואתחל את prevGranularRef
         Object.keys(GRANULAR_ENTITIES).forEach(stateKey => {
           if (dbData[stateKey]) prevGranularRef.current[stateKey] = dbData[stateKey];
         });
         dispatch({ type: 'LOAD_ALL', payload: dbData });
+        // דחוף את מה שנשאר בתור (שינויים שלא סונכרנו) לענן
+        if (queuedKeys.length > 0) setTimeout(() => flushQueue(), 100);
       } else {
         // ראשון פעם — מגרר נתונים קיימים מ-localStorage ל-Supabase
         const snapshot = {};
@@ -530,26 +602,26 @@ export const AppProvider = ({ children }) => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ניטור חיבור — באנר אופליין + סנכרון חוזר כשהחיבור חוזר
+  // ניטור חיבור + ניסיונות חוזרים — כל עוד יש פריטים בתור, נסה לדחוף אותם לענן
   useEffect(() => {
     if (!isSupabaseConfigured()) return;
-    if (typeof navigator !== 'undefined' && navigator.onLine === false) setIsOffline(true);
-    const handleOnline = () => {
-      setIsOffline(false);
-      // דחוף את המצב המקומי בחזרה לענן (כולל שינויים שנעשו באופליין)
-      try {
-        const snap = {};
-        Object.keys(GRANULAR_ENTITIES).forEach(k => { if (Array.isArray(stateRef.current[k])) snap[k] = stateRef.current[k]; });
-        Object.keys(STATE_TO_DB_KEY).forEach(k => { if (stateRef.current[k] !== undefined) snap[k] = stateRef.current[k]; });
-        if (Object.keys(snap).length > 0) saveAllToDB(snap);
-      } catch { /* ignore */ }
-    };
-    const handleOffline = () => setIsOffline(true);
+    if (typeof navigator !== 'undefined' && navigator.onLine === false && syncQueueSize() > 0) setIsOffline(true);
+    const handleOnline = () => { flushQueue(); };
+    const handleOffline = () => { if (syncQueueSize() > 0) setIsOffline(true); };
+    // בהסתרת/סגירת הטאב (נעילת מסך, מעבר אפליקציה) — נסה לדחוף מיד את מה שבתור
+    const handleHide = () => { if (document.visibilityState === 'hidden') flushQueue(); };
+    // ניסיון חוזר תקופתי כל עוד יש פריטים בתור
+    const retry = setInterval(() => { if (syncQueueSize() > 0) flushQueue(); }, 15000);
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
+    document.addEventListener('visibilitychange', handleHide);
+    window.addEventListener('pagehide', handleHide);
     return () => {
+      clearInterval(retry);
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      document.removeEventListener('visibilitychange', handleHide);
+      window.removeEventListener('pagehide', handleHide);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -564,13 +636,14 @@ export const AppProvider = ({ children }) => {
         (payload) => {
           if (payload.eventType === 'DELETE') {
             const key = payload.old?.key;
-            if (key && !pendingSavesRef.current.has(key)) {
+            // התעלם אם זו הכתיבה שלנו, או אם יש לנו שינוי מקומי שממתין לסנכרון עבור מפתח זה
+            if (key && !pendingSavesRef.current.has(key) && !hasPendingSync(key)) {
               dispatch({ type: 'LOAD_ONE_DELETED', payload: { key } });
             }
             return;
           }
           if (payload.new?.key && payload.new?.data !== undefined) {
-            if (!pendingSavesRef.current.has(payload.new.key)) {
+            if (!pendingSavesRef.current.has(payload.new.key) && !hasPendingSync(payload.new.key)) {
               dispatch({ type: 'LOAD_ONE', payload: { key: payload.new.key, data: payload.new.data } });
             }
           }
@@ -581,7 +654,8 @@ export const AppProvider = ({ children }) => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // שמירה גרנולרית לSupabase — מחשב diff ושומר רק מה שהשתנה
+  // שמירה גרנולרית — מחשב diff ורושם כל שינוי לתור העמיד *מיד* (סינכרוני),
+  // כך שגם אם הטאב יושהה/הרשת תיפול — הנתון כבר שמור וייכתב לענן בניסיון הבא.
   const scheduleGranularSave = useCallback((stateKey, newItems) => {
     if (!isSupabaseConfigured() || !initializedRef.current) return;
     const prefix = GRANULAR_ENTITIES[stateKey];
@@ -590,68 +664,31 @@ export const AppProvider = ({ children }) => {
     const prevItems = prevGranularRef.current[stateKey] || [];
     prevGranularRef.current[stateKey] = newItems; // עדכן מיד לdiff הבא
 
-    const timerKey = `g_${stateKey}`;
-    if (saveTimers.current[timerKey]) clearTimeout(saveTimers.current[timerKey]);
+    const prevMap = new Map((prevItems || []).filter(i => i?.id != null).map(i => [String(i.id), i]));
+    const newMap = new Map((newItems || []).filter(i => i?.id != null).map(i => [String(i.id), i]));
 
-    saveTimers.current[timerKey] = setTimeout(() => {
-      if (!supabase) return;
-      const now = new Date().toISOString();
-      const prevMap = new Map((prevItems || []).filter(i => i?.id).map(i => [i.id, i]));
-      const newMap = new Map((newItems || []).filter(i => i?.id).map(i => [i.id, i]));
-
-      // פריטים שנוספו או שונו
-      const toUpsert = [];
-      for (const [id, item] of newMap) {
-        const prev = prevMap.get(id);
-        if (!prev || JSON.stringify(prev) !== JSON.stringify(item)) {
-          toUpsert.push(item);
-        }
+    let changed = false;
+    // פריטים שנוספו או שונו → רישום upsert לתור
+    for (const [id, item] of newMap) {
+      const prev = prevMap.get(id);
+      if (!prev || JSON.stringify(prev) !== JSON.stringify(item)) {
+        enqueueSync(`${prefix}${id}`, item, 'upsert');
+        changed = true;
       }
-
-      // פריטים שנמחקו
-      const toDeleteIds = [];
-      for (const [id] of prevMap) {
-        if (!newMap.has(id)) toDeleteIds.push(id);
+    }
+    // פריטים שנמחקו → רישום delete לתור
+    for (const [id] of prevMap) {
+      if (!newMap.has(id)) {
+        enqueueSync(`${prefix}${id}`, null, 'delete');
+        changed = true;
       }
+    }
+    if (changed) scheduleFlush();
+  }, [scheduleFlush]);
 
-      if (toUpsert.length > 0) {
-        const rows = toUpsert.map(item => ({
-          key: `${prefix}${item.id}`,
-          data: item,
-          updated_at: now,
-        }));
-        rows.forEach(r => pendingSavesRef.current.add(r.key));
-        supabase.from('lab_data').upsert(rows, { onConflict: 'key' })
-          .then(({ error }) => {
-            if (error) { console.error(`Granular save error [${stateKey}]:`, error); setIsOffline(true); }
-            else setIsOffline(false);
-          })
-          .catch(() => setIsOffline(true))
-          .finally(() => rows.forEach(r => pendingSavesRef.current.delete(r.key)));
-      }
-
-      if (toDeleteIds.length > 0) {
-        toDeleteIds.forEach(id => {
-          const key = `${prefix}${id}`;
-          pendingSavesRef.current.add(key);
-          supabase.from('lab_data').delete().eq('key', key)
-            .then(({ error }) => {
-              if (error) { console.error(`Granular delete error [${key}]:`, error); setIsOffline(true); }
-              else setIsOffline(false);
-            })
-            .catch(() => setIsOffline(true))
-            .finally(() => pendingSavesRef.current.delete(key));
-        });
-      }
-    }, 500);
-  }, []);
-
-  // שמירה אוטומטית עם debounce של 500ms לכל מפתח (localStorage + Supabase scalar)
+  // שמירה: localStorage מיידי (רשת ביטחון) + רישום scalar לתור העמיד לענן
   const scheduleSave = useCallback((storageKey, value, dbKey) => {
-    const timerKey = storageKey;
-    if (saveTimers.current[timerKey]) clearTimeout(saveTimers.current[timerKey]);
-    // תמיד שומרים גם ב-localStorage כרשת ביטחון — כך נתונים שורדים גם אם השרת לא זמין.
-    // (התמונות נשמרות כ-URL ב-Supabase Storage, כך שהמערכים קטנים; אם המכסה נגמרת saveToStorage מחזיר false בשקט)
+    // תמיד שומרים ב-localStorage — כך נתונים שורדים גם אם השרת לא זמין.
     const saved = saveToStorage(storageKey, value);
 
     // הצג טוסט אם זו השמירה הרלוונטית לפעולה האחרונה
@@ -666,16 +703,10 @@ export const AppProvider = ({ children }) => {
     }
 
     if (dbKey && isSupabaseConfigured() && initializedRef.current) {
-      pendingSavesRef.current.add(dbKey);
-      saveTimers.current[timerKey] = setTimeout(() => {
-        saveKeyToDB(dbKey, value).finally(() => {
-          pendingSavesRef.current.delete(dbKey);
-        });
-      }, 500);
-    } else {
-      saveTimers.current[timerKey] = setTimeout(() => {}, 0);
+      enqueueSync(dbKey, value, 'upsert');
+      scheduleFlush();
     }
-  }, [showToast]);
+  }, [showToast, scheduleFlush]);
 
   // ישויות גרנולריות — localStorage + שמירה גרנולרית לSupabase
   useEffect(() => { scheduleSave(storageKeys.CUSTOMERS, state.customers, null); scheduleGranularSave('customers', state.customers); }, [state.customers, scheduleSave, scheduleGranularSave]);
