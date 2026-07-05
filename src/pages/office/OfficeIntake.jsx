@@ -148,6 +148,8 @@ export default function OfficeIntake({ onNavigate }) {
       date_intake: new Date().toISOString(),
       intake_by_user_id: state.currentUser?.id,
       intake_by_name: state.currentUser?.name,
+      // הלקוח אישר מראש דמי בדיקה — תקף גם אם אחריות תיתגלה כלא תקפה
+      fee_preauthorized: diagnosticFeeConfirmed,
     };
     dispatch({ type: 'ADD_REPAIR', payload: repair });
     setSuccessRepair(repair);
@@ -183,8 +185,10 @@ export default function OfficeIntake({ onNavigate }) {
     ? !!selectedDeviceId
     : !!(newDevice.type && newDevice.brand);
 
-  const requiresFeeConfirm = warrantyType !== WARRANTY_TYPES.FULL_WARRANTY;
-  const canSave = !!complaint && (!requiresFeeConfirm || diagnosticFeeConfirmed);
+  // תיבת האישור מופיעה תמיד — גם באחריות מלאה, כי אם יתגלה נזק בשימוש
+  // הלקוח כבר אישר מראש את דמי הבדיקה
+  const requiresFeeConfirm = true;
+  const canSave = !!complaint && diagnosticFeeConfirmed;
 
   // מסך הצלחה
   if (successRepair) {
@@ -588,19 +592,20 @@ export default function OfficeIntake({ onNavigate }) {
                 {warrantyType === WARRANTY_TYPES.FULL_WARRANTY && 'אחריות מלאה — הלקוח לא משלם (כשל טכני)'}
                 {warrantyType === WARRANTY_TYPES.PAID_WARRANTY && 'באחריות, אך בתשלום (נזק/שבר/שימוש לא נכון)'}
               </p>
-              {requiresFeeConfirm && (
-                <label className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-lg p-3 cursor-pointer mt-2">
-                  <input
-                    type="checkbox"
-                    checked={diagnosticFeeConfirmed}
-                    onChange={e => setDiagnosticFeeConfirmed(e.target.checked)}
-                    className="w-5 h-5 accent-orange-500 flex-shrink-0"
-                  />
-                  <span className="text-sm font-semibold text-amber-900">
-                    הלקוח אישר דמי בדיקה {formatMoney(state.settings.diagnostic_fee || 180)} + מע"מ *
-                  </span>
-                </label>
-              )}
+              <label className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-lg p-3 cursor-pointer mt-2">
+                <input
+                  type="checkbox"
+                  checked={diagnosticFeeConfirmed}
+                  onChange={e => setDiagnosticFeeConfirmed(e.target.checked)}
+                  className="w-5 h-5 accent-orange-500 flex-shrink-0"
+                />
+                <span className="text-sm font-semibold text-amber-900">
+                  {warrantyType === WARRANTY_TYPES.FULL_WARRANTY
+                    ? `הלקוח מאשר: אם יתברר שהתקלה נגרמה מנזק / שימוש חורג — ישולמו דמי בדיקה ${formatMoney(state.settings.diagnostic_fee || 180)} + מע"מ *`
+                    : `הלקוח אישר דמי בדיקה ${formatMoney(state.settings.diagnostic_fee || 180)} + מע"מ *`
+                  }
+                </span>
+              </label>
             </div>
 
             {/* סטטוס אחריות מהמכשיר */}

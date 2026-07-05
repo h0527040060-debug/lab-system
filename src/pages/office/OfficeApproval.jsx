@@ -15,7 +15,8 @@ import DeviceQuickModal from '../../components/DeviceQuickModal';
 import WhatsAppButton from '../../components/WhatsAppButton';
 import PartThumbnail from '../../components/PartThumbnail';
 import SearchInput from '../../components/SearchInput';
-import { DollarSign, Wrench, FileText, Check, X, ShoppingCart } from 'lucide-react';
+import { DollarSign, Wrench, FileText, Check, X, ShoppingCart, AlertTriangle } from 'lucide-react';
+import { buildMisuseConversionPayload } from '../../utils/warrantyHelpers';
 
 export default function OfficeApproval() {
   const { state, dispatch } = useAppContext();
@@ -25,13 +26,14 @@ export default function OfficeApproval() {
   const [quickDevice, setQuickDevice] = useState(null);
 
   const pendingRepairs = state.repairs
-    .filter(r => r.status === REPAIR_STATUSES.YELLOW_DIAGNOSIS)
+    .filter(r => r.status === REPAIR_STATUSES.YELLOW_DIAGNOSIS || r.status === REPAIR_STATUSES.YELLOW_WAITING_APPROVAL)
     .sort((a, b) => new Date(b.diagnosed_at || b.date_intake) - new Date(a.diagnosed_at || a.date_intake));
 
   const diagnosticFee = state.settings.diagnostic_fee || 180;
 
   const handleApprove = (repair) => {
     const isPaid = repair.warranty_type === WARRANTY_TYPES.PAID;
+    const isFullWarranty = repair.warranty_type === WARRANTY_TYPES.FULL_WARRANTY;
     dispatch({
       type: 'UPDATE_REPAIR',
       payload: {
@@ -40,7 +42,17 @@ export default function OfficeApproval() {
         approved_at: new Date().toISOString(),
         quoted_breakdown: calculateQuoteBreakdown(repair, state),
         ...(isPaid && { diagnostic_fee: diagnosticFee, diagnostic_fee_credited: true }),
+        // כשל טכני — מסלול אחריות מאושר
+        ...(isFullWarranty && { warranty_verdict: 'technical_fault' }),
       },
+    });
+    setConfirmAction(null);
+  };
+
+  const handleMisuseConversion = (repair) => {
+    dispatch({
+      type: 'UPDATE_REPAIR',
+      payload: buildMisuseConversionPayload(repair, diagnosticFee),
     });
     setConfirmAction(null);
   };
@@ -167,31 +179,53 @@ export default function OfficeApproval() {
                   </div>
 
                   <div className="flex gap-2 flex-wrap">
-                    {r.warranty_type === WARRANTY_TYPES.PAID && (
+                    {/* אחריות מלאה — שני מסלולים */}
+                    {isWarrantyFree ? (
                       <>
                         <button
-                          onClick={() => setConfirmAction({ repair: r, action: 'refused' })}
-                          className="px-3 py-2 bg-red-100 hover:bg-red-200 text-red-800 rounded-lg font-semibold text-sm flex items-center gap-1"
+                          onClick={() => setConfirmAction({ repair: r, action: 'misuse' })}
+                          className="px-3 py-2 bg-orange-100 hover:bg-orange-200 text-orange-800 rounded-lg font-semibold text-sm flex items-center gap-1"
                         >
-                          <X size={16} />
-                          לקוח מסרב
+                          <AlertTriangle size={16} />
+                          נזק בשימוש — לתשלום
                         </button>
                         <button
-                          onClick={() => setConfirmAction({ repair: r, action: 'bought_new' })}
-                          className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold text-sm flex items-center gap-1"
+                          onClick={() => setConfirmAction({ repair: r, action: 'approve' })}
+                          className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold text-sm flex items-center gap-1"
                         >
-                          <ShoppingCart size={16} />
-                          קנה חדש
+                          <Check size={16} />
+                          כשל טכני — שחרר לעבודה
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        {r.warranty_type === WARRANTY_TYPES.PAID && (
+                          <>
+                            <button
+                              onClick={() => setConfirmAction({ repair: r, action: 'refused' })}
+                              className="px-3 py-2 bg-red-100 hover:bg-red-200 text-red-800 rounded-lg font-semibold text-sm flex items-center gap-1"
+                            >
+                              <X size={16} />
+                              לקוח מסרב
+                            </button>
+                            <button
+                              onClick={() => setConfirmAction({ repair: r, action: 'bought_new' })}
+                              className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold text-sm flex items-center gap-1"
+                            >
+                              <ShoppingCart size={16} />
+                              קנה חדש
+                            </button>
+                          </>
+                        )}
+                        <button
+                          onClick={() => setConfirmAction({ repair: r, action: 'approve' })}
+                          className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold text-sm flex items-center gap-1"
+                        >
+                          <Check size={16} />
+                          הלקוח אישר
                         </button>
                       </>
                     )}
-                    <button
-                      onClick={() => setConfirmAction({ repair: r, action: 'approve' })}
-                      className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold text-sm flex items-center gap-1"
-                    >
-                      <Check size={16} />
-                      {isWarrantyFree ? 'שחרר לעבודה' : 'הלקוח אישר'}
-                    </button>
                   </div>
                 </div>
               </div>
@@ -219,24 +253,31 @@ export default function OfficeApproval() {
         title={
           confirmAction?.action === 'approve' ? 'אישור הצעה' :
           confirmAction?.action === 'refused' ? 'לקוח מסרב' :
+          confirmAction?.action === 'misuse' ? 'המרה לתשלום — נזק בשימוש' :
           'לקוח קנה חדש'
         }
         message={
           confirmAction?.action === 'approve'
-            ? 'האם הלקוח אישר את ההצעה? הקריאה תועבר למעבדה לביצוע. דמי הבדיקה יזוכו מהחשבון.'
+            ? (confirmAction?.repair?.warranty_type === WARRANTY_TYPES.FULL_WARRANTY
+                ? 'כשל טכני אושר — הקריאה תועבר למעבדה לביצוע ללא חיוב ללקוח.'
+                : 'האם הלקוח אישר את ההצעה? הקריאה תועבר למעבדה לביצוע. דמי הבדיקה יזוכו מהחשבון.')
             : confirmAction?.action === 'refused'
             ? `הלקוח מסרב לתיקון. הקריאה תועבר לגביה של ${formatMoney(diagnosticFee)} דמי בדיקה.`
+            : confirmAction?.action === 'misuse'
+            ? `נמצא נזק/שימוש חורג — התיקון יומר למסלול תשלום מלא. כל הנתונים (חלקים, אבחון, הערות) נשמרים. דמי בדיקה ${formatMoney(diagnosticFee)} ייזוכו מהחשבון הסופי.`
             : 'הלקוח קנה מכשיר חדש. הקריאה תיסגר ללא חיוב — דמי הבדיקה מזוכים.'
         }
         confirmLabel={
           confirmAction?.action === 'approve' ? 'כן, אושר' :
           confirmAction?.action === 'refused' ? 'העבר לגביה' :
+          confirmAction?.action === 'misuse' ? 'המר לתשלום' :
           'סגור קריאה'
         }
-        variant={confirmAction?.action === 'refused' ? 'danger' : 'default'}
+        variant={confirmAction?.action === 'refused' ? 'danger' : confirmAction?.action === 'misuse' ? 'danger' : 'default'}
         onConfirm={() => {
           if (confirmAction.action === 'approve') handleApprove(confirmAction.repair);
           else if (confirmAction.action === 'refused') handleCustomerRefused(confirmAction.repair);
+          else if (confirmAction.action === 'misuse') handleMisuseConversion(confirmAction.repair);
           else handleBoughtNew(confirmAction.repair);
         }}
         onCancel={() => setConfirmAction(null)}

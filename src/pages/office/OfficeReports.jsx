@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useAppContext } from '../../store/AppContext';
 import { formatMoney, formatPercent } from '../../utils/formatters';
-import { calculateFinancialSummary } from '../../utils/reports';
+import { calculateFinancialSummary, calculateWarrantyInvestment } from '../../utils/reports';
 import PageHeader from '../../components/PageHeader';
-import { TrendingUp, Package, Calculator, FileText } from 'lucide-react';
+import { TrendingUp, Package, Calculator, FileText, Shield } from 'lucide-react';
 
 const PERIODS = [
   { id: 'all', label: 'הכל' },
@@ -35,6 +35,7 @@ export default function OfficeReports() {
     : state.generalExpenses;
 
   const summary = calculateFinancialSummary(filteredRepairs, filteredExpenses, state.technicians);
+  const warrantyInvestment = calculateWarrantyInvestment(filteredRepairs, state.technicians);
 
   const expensesByCategory = {};
   filteredExpenses.forEach(e => {
@@ -161,6 +162,37 @@ export default function OfficeReports() {
             * רכש מלאי לא נחשב הוצאה - זה נכס (נספג ב-FIFO כשמשתמשים בחלק)
           </p>
         </div>
+      </div>
+
+      {/* עלות תיקוני אחריות */}
+      <div className="bg-white rounded-xl shadow-sm p-6 mb-4">
+        <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+          <Shield size={20} className="text-blue-600" />
+          השקעה בתיקוני אחריות
+        </h2>
+        <p className="text-xs text-slate-500 mb-3">תיקוני אחריות מלאה שהושלמו — עלות פנימית ללא הכנסה נגדית</p>
+        {warrantyInvestment.count === 0 ? (
+          <p className="text-sm text-slate-400 text-center py-4">אין תיקוני אחריות בתקופה זו</p>
+        ) : (
+          <div className="bg-blue-50 rounded-lg p-3 space-y-1">
+            <div className="flex justify-between text-sm">
+              <span>תיקוני אחריות שהושלמו</span>
+              <span className="font-bold text-blue-700">{warrantyInvestment.count} תיקונים</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span>עלות חלקים (FIFO)</span>
+              <span className="font-bold">{formatMoney(warrantyInvestment.partsCost)}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span>עלות עבודה (שעות × מחיר שעה)</span>
+              <span className="font-bold">{formatMoney(warrantyInvestment.laborCost)}</span>
+            </div>
+            <div className="border-t border-blue-200 pt-2 flex justify-between font-bold text-blue-900">
+              <span>סה"כ השקעה בתיקוני אחריות:</span>
+              <span>{formatMoney(warrantyInvestment.total)}</span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* סטטיסטיקה */}

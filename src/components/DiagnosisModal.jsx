@@ -250,21 +250,6 @@ export default function DiagnosisModal({ repair, onClose }) {
 
   return (
     <>
-    {assemblyPart && <AssemblyInstructionsViewer part={assemblyPart} onClose={() => setAssemblyPart(null)} />}
-    {addingWork && (
-      <WorkCatalogEditModal
-        item={null}
-        onSave={handleAddWork}
-        onClose={() => setAddingWork(false)}
-      />
-    )}
-    {addingPart && (
-      <PartEditModal
-        part={null}
-        onSave={handleAddPart}
-        onClose={() => setAddingPart(false)}
-      />
-    )}
     {lightboxPhoto && (
       <ImageGalleryModal images={[lightboxPhoto]} altText="תצוגת תמונה" onClose={() => setLightboxPhoto(null)} />
     )}
@@ -676,6 +661,21 @@ export default function DiagnosisModal({ repair, onClose }) {
         </div>
       )}
     </Modal>
+    {assemblyPart && <AssemblyInstructionsViewer part={assemblyPart} onClose={() => setAssemblyPart(null)} />}
+    {addingWork && (
+      <WorkCatalogEditModal
+        item={null}
+        onSave={handleAddWork}
+        onClose={() => setAddingWork(false)}
+      />
+    )}
+    {addingPart && (
+      <PartEditModal
+        part={null}
+        onSave={handleAddPart}
+        onClose={() => setAddingPart(false)}
+      />
+    )}
     </>
   );
 }

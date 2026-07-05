@@ -139,7 +139,6 @@ export default function WorkSessionModal({ repair, onClose }) {
 
   return (
     <>
-    {assemblyPart && <AssemblyInstructionsViewer part={assemblyPart} onClose={() => setAssemblyPart(null)} />}
     <Modal
       open={true}
       onClose={onClose}
@@ -392,6 +391,7 @@ export default function WorkSessionModal({ repair, onClose }) {
         onCancel={() => setConfirmDelete(null)}
       />
     </Modal>
+    {assemblyPart && <AssemblyInstructionsViewer part={assemblyPart} onClose={() => setAssemblyPart(null)} />}
     </>
   );
 }

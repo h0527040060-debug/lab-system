@@ -1,4 +1,5 @@
 import { REPAIR_STATUSES } from '../constants/statuses';
+import { WARRANTY_TYPES } from '../constants/warranty';
 
 // הכנסות לפי חודש (6 חודשים אחרונים)
 export const getMonthlyRevenue = (repairs) => {
@@ -126,5 +127,28 @@ export const calculateFinancialSummary = (repairs, generalExpenses, technicians)
     grossMargin,
     netMargin,
     completedCount: completed.length,
+  };
+};
+
+// חישוב עלות תיקוני אחריות מלאה (כשל טכני) שהושלמו — השקעה פנימית של העסק
+export const calculateWarrantyInvestment = (repairs, technicians) => {
+  const warrantyRepairs = repairs.filter(r =>
+    r.status === REPAIR_STATUSES.GREEN_COMPLETE &&
+    r.warranty_type === WARRANTY_TYPES.FULL_WARRANTY
+  );
+
+  const partsCost = warrantyRepairs.reduce((s, r) => s + (r.internal_parts_cost || 0), 0);
+
+  const laborCost = warrantyRepairs.reduce((s, r) => {
+    const tech = technicians.find(t => t.id === r.technician_id);
+    const hourlyRate = tech?.hourly_cost || 100;
+    return s + ((r.actual_hours || 0) * hourlyRate);
+  }, 0);
+
+  return {
+    count: warrantyRepairs.length,
+    partsCost,
+    laborCost,
+    total: partsCost + laborCost,
   };
 };

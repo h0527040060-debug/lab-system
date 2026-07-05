@@ -1,12 +1,13 @@
 export const getPartSellingPrice = (part) => {
-  if (!part || !part.suppliers || part.suppliers.length === 0) return 0;
-  const defaultSupplier = part.suppliers.find(s => s.is_default) || part.suppliers[0];
-  const cost = defaultSupplier?.price || 0;
-  return cost * (1 + (part.selling_markup_percent || 0) / 100);
+  if (!part) return 0;
+  return part.selling_price || 0;
 };
 
 export const getPartCost = (part) => {
-  if (!part || !part.suppliers || part.suppliers.length === 0) return 0;
+  if (!part) return 0;
+  // עלות ידנית (מעמוד תמחור חלקים) — עדיפות ראשונה
+  if (part.cost_price > 0) return part.cost_price;
+  if (!part.suppliers || part.suppliers.length === 0) return 0;
   const defaultSupplier = part.suppliers.find(s => s.is_default) || part.suppliers[0];
   return defaultSupplier?.price || 0;
 };

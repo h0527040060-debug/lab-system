@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { X, User, Smartphone, FileText, Wrench, Camera, Stethoscope, Clock, Package, Edit2, Plus, Trash2 } from 'lucide-react';
+import { X, User, Smartphone, FileText, Wrench, Camera, Stethoscope, Clock, Package, Edit2, Plus, Trash2, AlertTriangle } from 'lucide-react';
 import { uploadToStorage } from '../store/supabaseStorage';
 import ConfirmDialog from './ConfirmDialog';
 import { useAppContext } from '../store/AppContext';
@@ -12,6 +12,8 @@ import { DeviceEditModal } from './DeviceEditModal';
 import ImageGalleryModal from './ImageGalleryModal';
 import PartQuickModal from './PartQuickModal';
 import { isDeviceMissingPhoto } from '../utils/devicePhoto';
+import { buildMisuseConversionPayload } from '../utils/warrantyHelpers';
+import { TERMINAL_STATUSES } from '../constants/statuses';
 
 const WARRANTY_LABELS = {
   paid: 'תשלום רגיל',
@@ -65,6 +67,7 @@ export default function RepairDetailModal({ repair, customer, device, onClose, o
   const [galleryIndex, setGalleryIndex] = useState(null);
   const [confirmDeletePhoto, setConfirmDeletePhoto] = useState(null);
   const [showDeleteRepair, setShowDeleteRepair] = useState(false);
+  const [showMisuseConvert, setShowMisuseConvert] = useState(false);
   const [viewingPart, setViewingPart] = useState(null);
   const statusDisplay = getStatusDisplay(repair.status, state.statusConfig);
   const isLabUser = state.currentUser?.role === 'lab';
@@ -386,6 +389,15 @@ export default function RepairDetailModal({ repair, customer, device, onClose, o
 
             {/* פעולות */}
             <div className="flex flex-wrap gap-2 pt-1 border-t border-slate-100">
+              {/* כפתור המרה לתשלום — זמין בכל שלב כל עוד התיקון לא נסגר */}
+              {repair.warranty_type === 'full_warranty' && !TERMINAL_STATUSES.has(repair.status) && (
+                <button
+                  onClick={() => setShowMisuseConvert(true)}
+                  className="flex items-center gap-1.5 text-xs bg-orange-50 hover:bg-orange-100 text-orange-700 px-3 py-1.5 rounded-lg font-semibold border border-orange-200 w-full justify-center"
+                >
+                  <AlertTriangle size={12} /> נזק בשימוש — המר לתשלום
+                </button>
+              )}
               <button
                 onClick={() => setShowDeleteRepair(true)}
                 className="flex items-center gap-1.5 text-xs bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1.5 rounded-lg font-semibold border border-red-200"
@@ -473,6 +485,20 @@ export default function RepairDetailModal({ repair, customer, device, onClose, o
         variant="danger"
         onConfirm={() => { dispatch({ type: 'DELETE_REPAIR', payload: repair.id }); setShowDeleteRepair(false); onClose(); }}
         onCancel={() => setShowDeleteRepair(false)}
+      />
+      <ConfirmDialog
+        open={showMisuseConvert}
+        title="המרה לתשלום — נזק בשימוש"
+        message={`נמצא נזק / שימוש חורג — התיקון יומר למסלול תשלום מלא. כל הנתונים (חלקים, אבחון, הערות) נשמרים. דמי הבדיקה ייזוכו מהחשבון הסופי.`}
+        confirmLabel="המר לתשלום"
+        variant="danger"
+        onConfirm={() => {
+          const diagnosticFee = state.settings?.diagnostic_fee || 180;
+          dispatch({ type: 'UPDATE_REPAIR', payload: buildMisuseConversionPayload(repair, diagnosticFee) });
+          setShowMisuseConvert(false);
+          onClose();
+        }}
+        onCancel={() => setShowMisuseConvert(false)}
       />
     </>
   );

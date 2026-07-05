@@ -230,7 +230,8 @@ function PaymentModal({ repair, onClose }) {
         status: REPAIR_STATUSES.PAID_WAITING_PICKUP,
         customer_signature: signature,
         payment_method: noCharge ? 'waived' : paymentMethod,
-        final_price: chargedAmount,
+        // אחריות מלאה → final_price = 0 (לא מנפחים הכנסות)
+        final_price: noCharge ? 0 : chargedAmount,
         payment_at: new Date().toISOString(),
         released_at: new Date().toISOString(),
         ...(isRefused && feeWaived && { diagnostic_fee_waived: true, diagnostic_fee_waiver_note: waiverNote }),

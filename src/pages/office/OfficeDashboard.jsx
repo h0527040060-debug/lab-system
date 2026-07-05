@@ -4,6 +4,7 @@ import { formatMoney, formatPercent } from '../../utils/formatters';
 import {
   getMonthlyRevenue, getRepairsByStatus, getTopCustomers,
   getTopWorkCodes, calculateFinancialSummary, getRepairsByDeviceType,
+  calculateWarrantyInvestment,
 } from '../../utils/reports';
 import PageHeader from '../../components/PageHeader';
 import {
@@ -36,6 +37,8 @@ export default function OfficeDashboard() {
     const intakeDate = new Date(r.date_intake);
     return intakeDate.toDateString() === new Date().toDateString();
   }).length;
+
+  const warrantyInvestment = calculateWarrantyInvestment(state.repairs, state.technicians);
 
   const internalRepairs = state.repairs.filter(r => r.repair_type === 'internal_used');
   const internalCompleted = internalRepairs.filter(r => r.status === REPAIR_STATUSES.GREEN_COMPLETE);
@@ -157,6 +160,31 @@ export default function OfficeDashboard() {
           )}
         </ChartCard>
       </div>
+
+      {/* סיכום תיקוני אחריות */}
+      {warrantyInvestment.count > 0 && (
+        <div className="mt-6 bg-blue-50 border border-blue-200 rounded-xl p-5">
+          <h3 className="font-bold text-blue-900 text-base mb-4">🛡️ תיקוני אחריות — השקעה פנימית</h3>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-white rounded-lg border border-blue-200 p-3 text-center">
+              <p className="text-2xl font-bold text-blue-700">{warrantyInvestment.count}</p>
+              <p className="text-xs text-slate-500 mt-1">תיקוני אחריות שהושלמו</p>
+            </div>
+            <div className="bg-white rounded-lg border border-blue-200 p-3 text-center">
+              <p className="text-2xl font-bold text-orange-700">{formatMoney(warrantyInvestment.partsCost)}</p>
+              <p className="text-xs text-slate-500 mt-1">עלות חלקים</p>
+            </div>
+            <div className="bg-white rounded-lg border border-blue-200 p-3 text-center">
+              <p className="text-2xl font-bold text-purple-700">{formatMoney(warrantyInvestment.laborCost)}</p>
+              <p className="text-xs text-slate-500 mt-1">עלות עבודה</p>
+            </div>
+            <div className="bg-white rounded-lg border border-blue-200 p-3 text-center">
+              <p className="text-2xl font-bold text-red-700">{formatMoney(warrantyInvestment.total)}</p>
+              <p className="text-xs text-slate-500 mt-1">סה"כ השקעה</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* סטטיסטיקת יד שנייה */}
       {internalRepairs.length > 0 && (
