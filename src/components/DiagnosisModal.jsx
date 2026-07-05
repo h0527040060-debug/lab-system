@@ -218,9 +218,16 @@ export default function DiagnosisModal({ repair, onClose }) {
     });
   };
 
+  const isLabUser = state.currentUser?.role === 'lab';
+
   const handleSubmitAppeal = () => {
-    if (!appealReason || appealEvidence.length === 0) {
-      showToast('יש למלא סיבה לערעור ולהעלות לפחות תמונה אחת', 'error');
+    if (!appealReason || (isLabUser && appealEvidence.length === 0)) {
+      showToast(
+        isLabUser
+          ? 'יש למלא סיבה לערעור ולהעלות לפחות תמונה אחת'
+          : 'יש למלא סיבה לערעור',
+        'error'
+      );
       return;
     }
     dispatch({
@@ -638,7 +645,9 @@ export default function DiagnosisModal({ repair, onClose }) {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1">תמונות הוכחה * (לפחות תמונה אחת)</label>
+            <label className="block text-sm font-semibold text-slate-700 mb-1">
+              {isLabUser ? 'תמונות הוכחה * (לפחות תמונה אחת)' : 'תמונות הוכחה (אופציונלי)'}
+            </label>
             <div className="flex flex-wrap gap-2">
               <label className="cursor-pointer bg-red-50 hover:bg-red-100 text-red-700 font-semibold text-sm px-4 py-2 rounded-lg border border-red-200">
                 📁 בחר קבצים

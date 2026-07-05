@@ -12,6 +12,7 @@ export default function ReleaseDocsModal({ repair, onClose }) {
   const { showToast } = useToast();
   const customer = state.customers.find(c => c.id === repair.customer_id);
   const device = state.devices.find(d => d.id === repair.device_id);
+  const isLabUser = state.currentUser?.role === 'lab';
 
   const [media, setMedia] = useState([]);
   const [notes, setNotes] = useState('');
@@ -77,7 +78,7 @@ export default function ReleaseDocsModal({ repair, onClose }) {
           </button>
           <button
             onClick={handleSubmit}
-            disabled={media.length === 0}
+            disabled={isLabUser && media.length === 0}
             className="bg-green-600 hover:bg-green-700 disabled:bg-slate-300 text-white px-6 py-2 rounded-lg font-bold flex items-center gap-2"
           >
             <Check size={18} />
@@ -90,8 +91,17 @@ export default function ReleaseDocsModal({ repair, onClose }) {
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-start gap-2">
           <AlertTriangle className="text-blue-600 mt-0.5 shrink-0" size={18} />
           <div className="text-sm text-blue-900">
-            <p className="font-bold">תיעוד תקינות חובה!</p>
-            <p>העלה לפחות תמונה אחת או וידאו של המכשיר עובד תקין. זה הוכחה לפני שחרור ללקוח.</p>
+            {isLabUser ? (
+              <>
+                <p className="font-bold">תיעוד תקינות חובה!</p>
+                <p>העלה לפחות תמונה אחת או וידאו של המכשיר עובד תקין. זה הוכחה לפני שחרור ללקוח.</p>
+              </>
+            ) : (
+              <>
+                <p className="font-bold">תיעוד תקינות</p>
+                <p>מומלץ לצרף תמונה או וידאו של המכשיר עובד תקין, אך לא חובה.</p>
+              </>
+            )}
           </div>
         </div>
 
