@@ -22,6 +22,7 @@ import { loadFromStorage, saveToStorage } from '../../store/storage';
 import { REPAIR_STATUSES, STATUS_LABELS, TRANSITION_REQUIREMENTS, TERMINAL_STATUSES } from '../../constants/statuses';
 import { getStatusDisplay } from '../../utils/statusConfig';
 import { formatDateTime } from '../../utils/formatters';
+import { isDeviceMissingPhoto } from '../../utils/devicePhoto';
 import WhatsAppButton from '../../components/WhatsAppButton';
 import DiagnosisModal from '../../components/DiagnosisModal';
 import WorkSessionModal from '../../components/WorkSessionModal';
@@ -87,9 +88,12 @@ function getRepairAge(dateIntake) {
 
 // ─── תפריט 3 נקודות ───────────────────────────────────────────────────────────
 function CardMenu({ repair, customer, device, onAction, onOpenDetail }) {
+  const { state } = useAppContext();
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   const action = getActionForStatus(repair.status);
+  const isLabUser = state.currentUser?.role === 'lab';
+  const needsPhoto = isLabUser && isDeviceMissingPhoto(device);
 
   useEffect(() => {
     if (!open) return;
@@ -117,7 +121,7 @@ function CardMenu({ repair, customer, device, onAction, onOpenDetail }) {
           >
             <span>📋</span> פרטים מלאים
           </button>
-          {action === 'diagnosis' && (
+          {!needsPhoto && action === 'diagnosis' && (
             <button
               className="w-full px-3 py-2 text-xs text-yellow-800 hover:bg-yellow-50 text-right flex items-center gap-2"
               onClick={() => { setOpen(false); onAction(repair.id, 'diagnosis'); }}
@@ -125,7 +129,7 @@ function CardMenu({ repair, customer, device, onAction, onOpenDetail }) {
               <Stethoscope size={11} /> אבחון
             </button>
           )}
-          {action === 'work' && (
+          {!needsPhoto && action === 'work' && (
             <button
               className="w-full px-3 py-2 text-xs text-blue-800 hover:bg-blue-50 text-right flex items-center gap-2"
               onClick={() => { setOpen(false); onAction(repair.id, 'work'); }}
@@ -133,7 +137,7 @@ function CardMenu({ repair, customer, device, onAction, onOpenDetail }) {
               <Wrench size={11} /> ביצוע
             </button>
           )}
-          {action === 'docs' && (
+          {!needsPhoto && action === 'docs' && (
             <button
               className="w-full px-3 py-2 text-xs text-purple-800 hover:bg-purple-50 text-right flex items-center gap-2"
               onClick={() => { setOpen(false); onAction(repair.id, 'docs'); }}
@@ -141,7 +145,7 @@ function CardMenu({ repair, customer, device, onAction, onOpenDetail }) {
               <Camera size={11} /> תיעוד
             </button>
           )}
-          {action === 'pickup' && (
+          {!needsPhoto && action === 'pickup' && (
             <button
               className="w-full px-3 py-2 text-xs text-green-800 hover:bg-green-50 text-right flex items-center gap-2"
               onClick={() => { setOpen(false); onAction(repair.id, 'pickup'); }}
@@ -163,6 +167,8 @@ function KanbanCard({ repair, customer, device, isDragging, onAction, onOpenDeta
   const { state } = useAppContext();
   const statusDisplay = getStatusDisplay(repair.status, state.statusConfig);
   const action = getActionForStatus(repair.status);
+  const isLabUser = state.currentUser?.role === 'lab';
+  const needsPhoto = isLabUser && isDeviceMissingPhoto(device);
   const age = getRepairAge(repair.date_intake);
   const dimmed = search && !(
     repair.id.toLowerCase().includes(search.toLowerCase()) ||
@@ -192,30 +198,38 @@ function KanbanCard({ repair, customer, device, isDragging, onAction, onOpenDeta
         <p className="font-semibold text-sm text-slate-800 truncate">{customer?.name || '—'}</p>
         <p className="text-sm font-bold text-slate-800 truncate">{device?.type || `${device?.brand} ${device?.model}`}</p>
         <div className="flex gap-1 mt-2 flex-wrap" onClick={e => e.stopPropagation()}>
-          <WhatsAppButton repair={repair} customer={customer} device={device} type="customer" />
-          {action === 'diagnosis' && (
-            <button
-              onClick={() => onAction(repair.id, 'diagnosis')}
-              className="flex items-center gap-1 text-xs bg-yellow-100 hover:bg-yellow-200 text-yellow-800 px-2 py-1 rounded-lg font-semibold"
-            >
-              <Stethoscope size={11} /> אבחון
-            </button>
-          )}
-          {action === 'work' && (
-            <button
-              onClick={() => onAction(repair.id, 'work')}
-              className="flex items-center gap-1 text-xs bg-blue-100 hover:bg-blue-200 text-blue-800 px-2 py-1 rounded-lg font-semibold"
-            >
-              <Wrench size={11} /> ביצוע
-            </button>
-          )}
-          {action === 'docs' && (
-            <button
-              onClick={() => onAction(repair.id, 'docs')}
-              className="flex items-center gap-1 text-xs bg-purple-100 hover:bg-purple-200 text-purple-800 px-2 py-1 rounded-lg font-semibold"
-            >
-              <Camera size={11} /> תיעוד
-            </button>
+          {needsPhoto ? (
+            <span className="flex items-center gap-1 text-xs bg-red-100 text-red-700 px-2 py-1 rounded-lg font-semibold">
+              📷 נדרשת תמונה
+            </span>
+          ) : (
+            <>
+              <WhatsAppButton repair={repair} customer={customer} device={device} type="customer" />
+              {action === 'diagnosis' && (
+                <button
+                  onClick={() => onAction(repair.id, 'diagnosis')}
+                  className="flex items-center gap-1 text-xs bg-yellow-100 hover:bg-yellow-200 text-yellow-800 px-2 py-1 rounded-lg font-semibold"
+                >
+                  <Stethoscope size={11} /> אבחון
+                </button>
+              )}
+              {action === 'work' && (
+                <button
+                  onClick={() => onAction(repair.id, 'work')}
+                  className="flex items-center gap-1 text-xs bg-blue-100 hover:bg-blue-200 text-blue-800 px-2 py-1 rounded-lg font-semibold"
+                >
+                  <Wrench size={11} /> ביצוע
+                </button>
+              )}
+              {action === 'docs' && (
+                <button
+                  onClick={() => onAction(repair.id, 'docs')}
+                  className="flex items-center gap-1 text-xs bg-purple-100 hover:bg-purple-200 text-purple-800 px-2 py-1 rounded-lg font-semibold"
+                >
+                  <Camera size={11} /> תיעוד
+                </button>
+              )}
+            </>
           )}
         </div>
         {age && (
@@ -482,7 +496,8 @@ export default function KanbanBoard({ role = 'office', onNavigate }) {
         const missingFields = requirements.filter(r => !repair?.[r.field]);
         const isFromTerminal = TERMINAL_STATUSES.has(fromStatus);
 
-        if (missingFields.length > 0 || isFromTerminal) {
+        // למשרד/אדמין — גמישות מלאה: מעבר מיידי בלי אזהרה גם כששדות חובה חסרים
+        if (effectiveRole !== 'office' && (missingFields.length > 0 || isFromTerminal)) {
           setPendingTransition({ active, over, fromStatus, toStatus, missingFields, isFromTerminal });
           return;
         }

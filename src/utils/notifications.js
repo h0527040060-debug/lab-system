@@ -1,5 +1,6 @@
 import { REPAIR_STATUSES } from '../constants/statuses';
 import { isPartLowStock } from './inventory';
+import { isDeviceMissingPhoto } from './devicePhoto';
 
 export const getNotifications = (state) => {
   const notifications = [];
@@ -81,6 +82,26 @@ export const getNotifications = (state) => {
       message: 'קריאות שאובחנו במעבדה',
       link: 'approval',
       icon: '💰',
+    });
+  }
+
+  // 6. למעבדה בלבד — כרטיסים שהגיעו בלי תמונת מכשיר, וטרם הושלמו
+  if (state.currentUser?.role === 'lab') {
+    state.repairs.forEach(r => {
+      const completed = [REPAIR_STATUSES.GREEN_COMPLETE, REPAIR_STATUSES.RED_CANCELLED].includes(r.status);
+      if (completed) return;
+      const device = state.devices.find(d => d.id === r.device_id);
+      if (!isDeviceMissingPhoto(device)) return;
+      const customer = state.customers.find(c => c.id === r.customer_id);
+      notifications.push({
+        id: `missing-photo-${r.id}`,
+        type: 'missing_photo',
+        severity: 'high',
+        title: 'נדרשת תמונת מכשיר',
+        message: `${device?.brand || ''} ${device?.model || ''} — ${customer?.name || ''} (${r.id})`,
+        link: 'kanban',
+        icon: '📷',
+      });
     });
   }
 

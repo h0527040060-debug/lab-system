@@ -11,6 +11,7 @@ import { CustomerEditModal } from './CustomerEditModal';
 import { DeviceEditModal } from './DeviceEditModal';
 import ImageGalleryModal from './ImageGalleryModal';
 import PartQuickModal from './PartQuickModal';
+import { isDeviceMissingPhoto } from '../utils/devicePhoto';
 
 const WARRANTY_LABELS = {
   paid: 'תשלום רגיל',
@@ -66,6 +67,8 @@ export default function RepairDetailModal({ repair, customer, device, onClose, o
   const [showDeleteRepair, setShowDeleteRepair] = useState(false);
   const [viewingPart, setViewingPart] = useState(null);
   const statusDisplay = getStatusDisplay(repair.status, state.statusConfig);
+  const isLabUser = state.currentUser?.role === 'lab';
+  const needsPhoto = isLabUser && isDeviceMissingPhoto(device);
 
   const diagnosedParts = repair.diagnosed_parts || [];
   const partsDetails = diagnosedParts.map(dp => {
@@ -110,6 +113,83 @@ export default function RepairDetailModal({ repair, customer, device, onClose, o
     const updated = (currentDevice?.images || []).filter((_, i) => i !== idx);
     dispatch({ type: 'UPDATE_DEVICE', payload: { ...currentDevice, images: updated } });
   };
+
+  // מעבדה בלבד: כרטיס שהגיע ללא תמונת מכשיר חסום עד להשלמת תמונה — אין מחיקה/עריכה/פעולות.
+  // ברגע שתמונה תעלה, ה-device prop יתעדכן מה-state וה"נעילה" תשוחרר אוטומטית.
+  if (needsPhoto) {
+    return (
+      <>
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 pb-20 sm:pb-4" onClick={onClose}>
+          <div
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[88vh] overflow-y-auto"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-4 border-b border-slate-200 bg-red-50">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">📷</span>
+                <div>
+                  <p className="font-mono font-bold text-orange-600 text-sm">{repair.id}</p>
+                  <p className="text-xs font-semibold text-red-700">נדרשת תמונת מכשיר</p>
+                </div>
+              </div>
+              <button onClick={onClose} className="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-white/60">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-4 space-y-4">
+              <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-800 font-semibold text-center">
+                יש להעלות תמונת מכשיר לפני שניתן להמשיך בטיפול בקריאה זו
+              </div>
+
+              <div className="bg-slate-50 rounded-xl p-3">
+                <p className="text-xs text-slate-500 mb-0.5">מכשיר</p>
+                <p className="font-semibold text-slate-800">{device?.brand} {device?.model}</p>
+                {device?.id && <p className="text-xs text-slate-400 font-mono">{device.id}</p>}
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <p className="text-xs font-bold text-slate-500">תמונות מכשיר</p>
+                  {device && (device.images || []).length < MAX_DEVICE_PHOTOS && (
+                    <button
+                      onClick={() => addPhotoRef.current?.click()}
+                      className="flex items-center gap-1 text-xs text-orange-600 font-semibold"
+                    >
+                      <Plus size={12} /> הוסף
+                    </button>
+                  )}
+                </div>
+                <input ref={addPhotoRef} type="file" accept="image/*" multiple className="hidden" onChange={handleAddDevicePhoto} />
+                {deviceImages.length > 0 ? (
+                  <div className="flex gap-2 flex-wrap">
+                    {deviceImages.map((src, i) => (
+                      <img
+                        key={i}
+                        src={src}
+                        onClick={() => setGalleryIndex(i)}
+                        className="w-16 h-16 object-cover rounded-lg cursor-pointer border border-slate-200"
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-400">אין תמונות עדיין</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {galleryIndex !== null && (
+          <ImageGalleryModal
+            images={deviceImages}
+            startIndex={galleryIndex}
+            onClose={() => setGalleryIndex(null)}
+          />
+        )}
+      </>
+    );
+  }
 
   return (
     <>
