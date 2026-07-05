@@ -203,7 +203,14 @@ export default function Layout({ children, currentTab, onTabChange, tabs }) {
 
         {/* תוכן ראשי */}
         <div ref={mainRef} className="flex-1 overflow-y-auto overflow-x-hidden p-4 lg:p-6">
-          <div key={currentTab} className="animate-fade-in">
+          {/* מסיר את קלאס האנימציה בסיומה — אחרת ה-transform השיורי (גם translateY(0)) יוצר
+              containing block חדש, וכל חלון "fixed" בתוך הדף (כרטיסי לקוח/מכשיר/חלק, גלריות וכו')
+              נעצם ביחס לקונטיינר הזה במקום למסך כולו — נחתך, נעלם ה-X, ולחיצה בחוץ לא סוגרת. */}
+          <div
+            key={currentTab}
+            className="animate-fade-in"
+            onAnimationEnd={(e) => e.currentTarget.classList.remove('animate-fade-in')}
+          >
             {children}
           </div>
         </div>
