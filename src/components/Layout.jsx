@@ -4,6 +4,7 @@ import { useAppContext } from '../store/AppContext';
 import { ROLE_LABELS } from '../constants/userRoles';
 import { LogOut, Menu, X, Search, Plus } from 'lucide-react';
 import NotificationBell from './NotificationBell';
+import SyncIndicator from './SyncIndicator';
 import { Button } from './Button';
 import { CommandPalette } from './CommandPalette';
 
@@ -195,6 +196,7 @@ export default function Layout({ children, currentTab, onTabChange, tabs }) {
               <Search size={20} />
             </button>
             <NotificationBell onNavigate={onTabChange} />
+            <SyncIndicator />
             <div className="text-sm text-slate-600 hidden md:block">
               {state.settings.business_phone}
             </div>

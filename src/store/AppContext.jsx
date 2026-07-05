@@ -484,6 +484,7 @@ export const AppProvider = ({ children }) => {
   const [state, dispatch] = useReducer(appReducer, null, buildInitialState);
   const [dbLoading, setDbLoading] = useState(isSupabaseConfigured());
   const [isOffline, setIsOffline] = useState(false);
+  const [pendingSyncCount, setPendingSyncCount] = useState(0);
   const initializedRef = useRef(false);
   const pendingSavesRef = useRef(new Set());
   const pendingToastRef = useRef(null); // { storageKey, message, type, duration }
@@ -492,6 +493,9 @@ export const AppProvider = ({ children }) => {
   const flushTimerRef = useRef(null);
   const flushingRef = useRef(false);
   const { showToast } = useToast();
+
+  // רענון ספירת הפריטים הממתינים לסנכרון (לחיווי בהדר)
+  const refreshPending = useCallback(() => setPendingSyncCount(syncQueueSize()), []);
 
   // כתיבה בודדת לענן (upsert/delete). מחזיר true אם הצליחה.
   const attemptWrite = useCallback(async (dbKey, entry) => {
@@ -533,18 +537,21 @@ export const AppProvider = ({ children }) => {
         const ok = await attemptWrite(dbKey, entry);
         if (ok) dequeueSync(dbKey, entry.ts);
         else allOk = false;
+        refreshPending();
       }
     } finally {
       flushingRef.current = false;
     }
+    refreshPending();
     if (allOk && syncQueueSize() === 0) setIsOffline(false);
-  }, [attemptWrite]);
+  }, [attemptWrite, refreshPending]);
 
   // רישום שינוי לתור (סינכרוני, עמיד) + תזמון flush עם debounce
   const scheduleFlush = useCallback(() => {
+    refreshPending();
     if (flushTimerRef.current) clearTimeout(flushTimerRef.current);
     flushTimerRef.current = setTimeout(() => { flushQueue(); }, 500);
-  }, [flushQueue]);
+  }, [flushQueue, refreshPending]);
 
   // טעינה ראשונית מ-Supabase
   useEffect(() => {
@@ -790,7 +797,7 @@ export const AppProvider = ({ children }) => {
   }
 
   return (
-    <AppContext.Provider value={{ state, dispatch: loggedDispatch, isOffline }}>
+    <AppContext.Provider value={{ state, dispatch: loggedDispatch, isOffline, pendingSyncCount }}>
       {isOffline && <OfflineBanner />}
       {children}
     </AppContext.Provider>
