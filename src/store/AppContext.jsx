@@ -9,6 +9,7 @@ import { DEFAULT_STATUS_CONFIG } from '../utils/statusConfig';
 import { useToast } from './ToastContext';
 import OfflineBanner from '../components/OfflineBanner';
 import { enqueueSync, dequeueSync, getSyncQueue, hasPendingSync, syncQueueSize } from './syncQueue';
+import { hasPendingBase64, migratePendingImages } from './imageMigration';
 
 export const DEFAULT_ROLE_CONFIG = {
   office: {
@@ -492,10 +493,28 @@ export const AppProvider = ({ children }) => {
   const prevGranularRef = useRef({});
   const flushTimerRef = useRef(null);
   const flushingRef = useRef(false);
+  // עוקב אחרי ה-state העדכני — לשימוש בג'וב רקע (מיגרציית תמונות) בלי ליצור תלות ב-state
+  const stateRef = useRef(state);
+  stateRef.current = state;
+  const migratingImagesRef = useRef(false);
   const { showToast } = useToast();
 
   // רענון ספירת הפריטים הממתינים לסנכרון (לחיווי בהדר)
   const refreshPending = useCallback(() => setPendingSyncCount(syncQueueSize()), []);
+
+  // ניסיון חוזר להעלאת תמונות שנתקעו כ-base64 מקומי (ראה imageMigration.js)
+  const runImageMigration = useCallback(async () => {
+    if (!isSupabaseConfigured() || migratingImagesRef.current) return;
+    if (!hasPendingBase64(stateRef.current)) return;
+    migratingImagesRef.current = true;
+    try {
+      await migratePendingImages(stateRef.current, dispatch);
+    } catch (e) {
+      console.error('Image migration error:', e);
+    } finally {
+      migratingImagesRef.current = false;
+    }
+  }, [dispatch]);
 
   // כתיבה בודדת לענן (upsert/delete). מחזיר true אם הצליחה.
   const attemptWrite = useCallback(async (dbKey, entry) => {
@@ -600,6 +619,8 @@ export const AppProvider = ({ children }) => {
       }
       initializedRef.current = true;
       setDbLoading(false);
+      // נסה להעלות מחדש תמונות שנתקעו מקומית (רק אחרי שהטעינה הראשונית הסתיימה)
+      setTimeout(() => runImageMigration(), 2000);
     }).catch(() => {
       // אין חיבור לשרת בטעינה — נשארים עם הנתונים המקומיים (גיבוי localStorage) ומסמנים אופליין
       setIsOffline(true);
@@ -613,18 +634,21 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     if (!isSupabaseConfigured()) return;
     if (typeof navigator !== 'undefined' && navigator.onLine === false && syncQueueSize() > 0) setIsOffline(true);
-    const handleOnline = () => { flushQueue(); };
+    const handleOnline = () => { flushQueue(); runImageMigration(); };
     const handleOffline = () => { if (syncQueueSize() > 0) setIsOffline(true); };
     // בהסתרת/סגירת הטאב (נעילת מסך, מעבר אפליקציה) — נסה לדחוף מיד את מה שבתור
     const handleHide = () => { if (document.visibilityState === 'hidden') flushQueue(); };
     // ניסיון חוזר תקופתי כל עוד יש פריטים בתור
     const retry = setInterval(() => { if (syncQueueSize() > 0) flushQueue(); }, 15000);
+    // ניסיון חוזר תקופתי (איטי יותר) להעלאת תמונות שנתקעו מקומית
+    const imageRetry = setInterval(() => runImageMigration(), 60000);
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
     document.addEventListener('visibilitychange', handleHide);
     window.addEventListener('pagehide', handleHide);
     return () => {
       clearInterval(retry);
+      clearInterval(imageRetry);
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
       document.removeEventListener('visibilitychange', handleHide);
