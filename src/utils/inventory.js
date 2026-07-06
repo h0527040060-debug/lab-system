@@ -15,9 +15,7 @@ export const getRecommendedOrderQty = (part, stockBatches) => {
   const current = getTotalStock(part.id, stockBatches);
   const min = part.min_stock || 0;
   if (current >= min) return 0;
-  const deficit = min - current;
-  const reserve = Math.ceil(min / 2);
-  return deficit + reserve;
+  return min - current;
 };
 
 export const groupShortagesBySupplier = (parts, stockBatches) => {
