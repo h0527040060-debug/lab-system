@@ -524,12 +524,18 @@ export default function PartEditModal({ part, onSave, onClose }) {
                 <input type="text" placeholder="מק״ט ספק" value={supplier.supplier_sku}
                   onChange={e => updateSupplier(idx, 'supplier_sku', e.target.value)}
                   className="col-span-2 border border-slate-300 rounded px-2 py-1 text-xs" />
-                <input type="number" placeholder="מחיר" value={supplier.price}
-                  onChange={e => updateSupplier(idx, 'price', parseFloat(e.target.value) || 0)}
-                  className="col-span-2 border border-slate-300 rounded px-2 py-1 text-xs" />
-                <input type="number" placeholder="ימים" value={supplier.lead_time_days}
-                  onChange={e => updateSupplier(idx, 'lead_time_days', parseInt(e.target.value) || 0)}
-                  className="col-span-2 border border-slate-300 rounded px-2 py-1 text-xs" />
+                <div className="col-span-2 flex flex-col gap-0.5">
+                  <span className="text-[10px] text-slate-400">עלות רכש ₪</span>
+                  <input type="number" value={supplier.price}
+                    onChange={e => updateSupplier(idx, 'price', parseFloat(e.target.value) || 0)}
+                    className="border border-slate-300 rounded px-2 py-1 text-xs w-full" />
+                </div>
+                <div className="col-span-2 flex flex-col gap-0.5">
+                  <span className="text-[10px] text-slate-400">זמן אספקה (ימים)</span>
+                  <input type="number" value={supplier.lead_time_days}
+                    onChange={e => updateSupplier(idx, 'lead_time_days', parseInt(e.target.value) || 0)}
+                    className="border border-slate-300 rounded px-2 py-1 text-xs w-full" />
+                </div>
                 <label className="col-span-2 flex items-center gap-1 text-xs cursor-pointer">
                   <input type="radio" name="default_supplier" checked={supplier.is_default} onChange={() => setDefaultSupplier(idx)} />
                   <span>ברירת מחדל</span>
