@@ -7,6 +7,8 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
+      // Service Worker משמיד-עצמו — מנקה cache תקוע אצל כל המשתמשים ומבטל SW ישן
+      selfDestroying: true,
       registerType: 'autoUpdate',
       manifest: {
         name: 'מעבדת הורוביץ',
