@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAppContext } from '../../../store/AppContext';
 import { uploadToStorage } from '../../../store/supabaseStorage';
+import { compressImage } from '../../../utils/imageCompression';
 import { generateManufacturerId, generateModelId } from '../../../utils/idGenerators';
 import ConfirmDialog from '../../../components/ConfirmDialog';
 import AutocompleteInput from '../../../components/AutocompleteInput';
@@ -59,7 +60,8 @@ export function ManufacturersModels() {
           reader.onerror = reject;
           reader.readAsDataURL(file);
         });
-        const url = await uploadToStorage(dataUrl, 'models');
+        const compressed = await compressImage(dataUrl);
+        const url = await uploadToStorage(compressed, 'models');
         setter(prev => ({ ...prev, images: [...prev.images, url].slice(0, 4) }));
       }
     } finally {

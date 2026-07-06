@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useAppContext } from '../store/AppContext';
 import { uploadToStorage } from '../store/supabaseStorage';
+import { compressImage } from '../utils/imageCompression';
 import { generateManufacturerId, generateModelId } from '../utils/idGenerators';
 import AutocompleteInput from './AutocompleteInput';
 import { Plus, X } from 'lucide-react';
@@ -88,7 +89,8 @@ export default function ManufacturerModelPicker({ initialBrand = '', initialMode
           reader.onerror = reject;
           reader.readAsDataURL(file);
         });
-        const url = await uploadToStorage(dataUrl, 'models');
+        const compressed = await compressImage(dataUrl);
+        const url = await uploadToStorage(compressed, 'models');
         setNewModelImages(prev => [...prev, url].slice(0, 4));
       }
     } finally {

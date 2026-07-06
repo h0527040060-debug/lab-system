@@ -230,7 +230,8 @@ export default function DiagnosisModal({ repair, onClose }) {
     files.forEach(file => {
       const reader = new FileReader();
       reader.onloadend = async () => {
-        const url = await uploadToStorage(reader.result, 'appeals');
+        const compressed = await compressImage(reader.result);
+        const url = await uploadToStorage(compressed, 'appeals');
         setAppealEvidence(prev => [...prev, url]);
       };
       reader.readAsDataURL(file);

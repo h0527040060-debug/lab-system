@@ -1,6 +1,7 @@
 import { useState, useRef, useMemo } from 'react';
 import { useAppContext as useApp } from '../../../store/AppContext';
 import { uploadToStorage } from '../../../store/supabaseStorage';
+import { compressImage } from '../../../utils/imageCompression';
 import { generateInternalBarcode } from '../../../utils/idGenerators';
 import Modal from '../../../components/Modal';
 import ConfirmDialog from '../../../components/ConfirmDialog';
@@ -140,7 +141,8 @@ export default function PartEditModal({ part, onSave, onClose }) {
           reader.onerror = reject;
           reader.readAsDataURL(file);
         });
-        const url = await uploadToStorage(dataUrl, 'parts');
+        const compressed = await compressImage(dataUrl);
+        const url = await uploadToStorage(compressed, 'parts');
         setForm(f => ({
           ...f,
           images: [...f.images.filter(isValidImage), url].slice(0, 4)
@@ -201,7 +203,8 @@ export default function PartEditModal({ part, onSave, onClose }) {
           reader.onerror = reject;
           reader.readAsDataURL(file);
         });
-        const url = await uploadToStorage(dataUrl, 'parts');
+        const compressed = await compressImage(dataUrl);
+        const url = await uploadToStorage(compressed, 'parts');
         setForm(f => ({
           ...f,
           assembly_instructions: {

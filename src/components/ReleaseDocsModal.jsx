@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useAppContext } from '../store/AppContext';
 import { useToast } from '../store/ToastContext';
 import { uploadToStorage } from '../store/supabaseStorage';
+import { compressImage } from '../utils/imageCompression';
 import { REPAIR_STATUSES } from '../constants/statuses';
 import Modal from './Modal';
 import ConfirmDialog from './ConfirmDialog';
@@ -32,7 +33,7 @@ export default function ReleaseDocsModal({ repair, onClose }) {
 
       const reader = new FileReader();
       reader.onloadend = async () => {
-        const data = isVideo ? reader.result : await uploadToStorage(reader.result, 'release');
+        const data = isVideo ? reader.result : await uploadToStorage(await compressImage(reader.result), 'release');
         setMedia(prev => [...prev, {
           type: isVideo ? 'video' : 'image',
           data,
