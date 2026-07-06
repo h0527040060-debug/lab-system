@@ -4,22 +4,23 @@ import ImageGalleryModal from './ImageGalleryModal';
 
 const isRealImageUrl = (img) => img && (img.startsWith('data:image/') || img.startsWith('http'));
 
-// תצוגת תמונה ממוזערת למכשיר — קודם התמונה הראשית של המכשיר עצמו (מהקליטה),
-// ורק אם אין כזו — התמונה הראשית של הדגם בקטלוג (מקביל ל-PartThumbnail).
+// תצוגת תמונה ממוזערת למכשיר — קודם התמונה הראשית של הדגם בקטלוג (התמונה
+// הקבועה שמזהה את המוצר), ורק אם אין כזו — תמונת המכשיר עצמו (מקביל ל-PartThumbnail).
+// חשוב: תמונות המכשיר לרוב מגיעות מקליטת תיקון (תיעוד מצב להוכחה ללקוח) ולא
+// נועדו לזהות את הדגם — לכן הן רק גיבוי, לא המקור העיקרי.
 // לחיצה על התמונה פותחת אותה בגדול (עצמאי — לא מפעיל קליק של שורה שעוטפת).
 export default function DeviceThumbnail({ device, size = 'sm', className = '' }) {
   const { state } = useAppContext();
   const [showGallery, setShowGallery] = useState(false);
-
-  const deviceImage = device?.images?.[0];
 
   const model = state.models.find(m =>
     m.name.toLowerCase() === (device?.model || '').toLowerCase() &&
     state.manufacturers.find(mf => mf.id === m.manufacturer_id)?.name.toLowerCase() === (device?.brand || '').toLowerCase()
   );
   const modelImage = model?.images?.[model?.main_image_index || 0];
+  const deviceImage = device?.images?.[0];
 
-  const mainImage = isRealImageUrl(deviceImage) ? deviceImage : modelImage;
+  const mainImage = isRealImageUrl(modelImage) ? modelImage : deviceImage;
   const isRealImage = isRealImageUrl(mainImage);
 
   const sizeClass = {
