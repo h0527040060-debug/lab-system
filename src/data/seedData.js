@@ -42,6 +42,7 @@ export const SEED_PARTS = [
     min_stock: 3,
     selling_markup_percent: 50,
     images: ['🔌'],
+    compatible_devices: [],
   },
   {
     id: 2, name: 'Heating Element 3000W', manufacturer: 'Ozti', manufacturer_sku: 'HE-3000',
@@ -53,6 +54,7 @@ export const SEED_PARTS = [
     min_stock: 4,
     selling_markup_percent: 60,
     images: ['🔥'],
+    compatible_devices: [],
   },
 ];
 

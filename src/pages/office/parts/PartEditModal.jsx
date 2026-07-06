@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { useAppContext as useApp } from '../../../store/AppContext';
 import { uploadToStorage } from '../../../store/supabaseStorage';
 import { generateInternalBarcode } from '../../../utils/idGenerators';
@@ -27,6 +27,7 @@ const buildDefault = () => ({
   min_stock: 1,
   cost_price: 0, selling_price: 0, selling_markup_percent: 0,
   assembly_instructions: { text: '', video_url: '', images: [] },
+  compatible_devices: [],
 });
 
 export default function PartEditModal({ part, onSave, onClose }) {
@@ -43,6 +44,36 @@ export default function PartEditModal({ part, onSave, onClose }) {
   } : buildDefault());
 
   const [activeTab, setActiveTab] = useState('basic');
+  const [deviceBrand, setDeviceBrand] = useState('');
+  const [deviceModel, setDeviceModel] = useState('');
+
+  const deviceSuggestions = useMemo(() => {
+    const seen = new Set();
+    return state.devices
+      .filter(d => d.brand && d.model)
+      .filter(d => {
+        const key = `${d.brand}||${d.model}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .map(d => ({ brand: d.brand, model: d.model }));
+  }, [state.devices]);
+
+  const addCompatibleDevice = () => {
+    const b = deviceBrand.trim();
+    const m = deviceModel.trim();
+    if (!b || !m) return;
+    const exists = form.compatible_devices?.some(d => d.brand === b && d.model === m);
+    if (exists) return;
+    setForm(f => ({ ...f, compatible_devices: [...(f.compatible_devices || []), { brand: b, model: m }] }));
+    setDeviceBrand('');
+    setDeviceModel('');
+  };
+
+  const removeCompatibleDevice = (idx) => {
+    setForm(f => ({ ...f, compatible_devices: f.compatible_devices.filter((_, i) => i !== idx) }));
+  };
   const [lastPriceEdit, setLastPriceEdit] = useState('markup');
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [uploadingImages, setUploadingImages] = useState(false);
@@ -249,7 +280,7 @@ export default function PartEditModal({ part, onSave, onClose }) {
           <button onClick={onClose} className="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-100">ביטול</button>
           <button
             onClick={handleSave}
-            disabled={!form.name || !form.manufacturer}
+            disabled={!form.name}
             className="bg-orange-500 hover:bg-orange-600 disabled:bg-slate-300 text-white px-6 py-2 rounded-lg font-semibold"
           >
             {part ? 'עדכן' : 'הוסף'}
@@ -284,7 +315,7 @@ export default function PartEditModal({ part, onSave, onClose }) {
                 className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" />
             </div>
             <div>
-              <label className="text-xs font-semibold block mb-1">יצרן *</label>
+              <label className="text-xs font-semibold block mb-1">יצרן</label>
               <input type="text" value={form.manufacturer} onChange={e => setForm(f => ({ ...f, manufacturer: e.target.value }))}
                 className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" />
             </div>
@@ -337,6 +368,59 @@ export default function PartEditModal({ part, onSave, onClose }) {
                   placeholder="אלקטרוניקה" className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" />
               </div>
             </div>
+          </div>
+
+          {/* מכשירים תואמים */}
+          <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
+            <h4 className="text-xs font-bold text-slate-700 mb-1">🔗 מכשירים תואמים</h4>
+            <p className="text-[10px] text-slate-400 mb-2">ריק = החלק מתאים לכל המכשירים</p>
+            <div className="flex gap-2 mb-2">
+              <input
+                type="text"
+                list="brand-suggestions-parts"
+                placeholder="יצרן (לדוגמה: Dynamics)"
+                value={deviceBrand}
+                onChange={e => setDeviceBrand(e.target.value)}
+                className="flex-1 border border-slate-300 rounded px-2 py-1 text-xs"
+              />
+              <input
+                type="text"
+                list="model-suggestions-parts"
+                placeholder="דגם (לדוגמה: MX91)"
+                value={deviceModel}
+                onChange={e => setDeviceModel(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && addCompatibleDevice()}
+                className="flex-1 border border-slate-300 rounded px-2 py-1 text-xs"
+              />
+              <button
+                type="button"
+                onClick={addCompatibleDevice}
+                disabled={!deviceBrand.trim() || !deviceModel.trim()}
+                className="px-3 py-1 bg-blue-500 hover:bg-blue-600 disabled:bg-slate-300 text-white rounded text-xs font-semibold"
+              >
+                הוסף
+              </button>
+            </div>
+            <datalist id="brand-suggestions-parts">
+              {[...new Set(deviceSuggestions.map(d => d.brand))].map(b => <option key={b} value={b} />)}
+            </datalist>
+            <datalist id="model-suggestions-parts">
+              {deviceSuggestions
+                .filter(d => !deviceBrand || d.brand === deviceBrand)
+                .map(d => <option key={`${d.brand}||${d.model}`} value={d.model} />)}
+            </datalist>
+            {form.compatible_devices?.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {form.compatible_devices.map((d, i) => (
+                  <span key={i} className="inline-flex items-center gap-1 bg-blue-100 text-blue-800 text-xs rounded-full px-2.5 py-0.5 font-medium">
+                    {d.brand} {d.model}
+                    <button type="button" onClick={() => removeCompatibleDevice(i)} className="hover:text-red-600 ml-1">
+                      <X size={11} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}

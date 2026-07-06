@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useAppContext as useApp } from '../store/AppContext';
 import Modal from './Modal';
 import ConfirmDialog from './ConfirmDialog';
-import { Plus, Trash2, MapPin, Building2 } from 'lucide-react';
+import { Plus, Trash2, MapPin, Building2, X } from 'lucide-react';
 
 export function PartEditModal({ part, onSave, onClose }) {
   const { state } = useApp();
@@ -13,7 +13,39 @@ export function PartEditModal({ part, onSave, onClose }) {
     shelf: '', bin: '', zone: '',
     suppliers: [],
     min_stock: 1, selling_markup_percent: 50,
+    compatible_devices: [],
   });
+  const [deviceBrand, setDeviceBrand] = useState('');
+  const [deviceModel, setDeviceModel] = useState('');
+
+  // רשימת דגמים ייחודיים מהמכשירים הקיימים לצורך autocomplete
+  const deviceSuggestions = useMemo(() => {
+    const seen = new Set();
+    return state.devices
+      .filter(d => d.brand && d.model)
+      .filter(d => {
+        const key = `${d.brand}||${d.model}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .map(d => ({ brand: d.brand, model: d.model }));
+  }, [state.devices]);
+
+  const addCompatibleDevice = () => {
+    const b = deviceBrand.trim();
+    const m = deviceModel.trim();
+    if (!b || !m) return;
+    const exists = form.compatible_devices?.some(d => d.brand === b && d.model === m);
+    if (exists) return;
+    setForm(prev => ({ ...prev, compatible_devices: [...(prev.compatible_devices || []), { brand: b, model: m }] }));
+    setDeviceBrand('');
+    setDeviceModel('');
+  };
+
+  const removeCompatibleDevice = (idx) => {
+    setForm(prev => ({ ...prev, compatible_devices: prev.compatible_devices.filter((_, i) => i !== idx) }));
+  };
 
   const updateSupplier = (idx, field, value) => {
     setForm(prev => ({
@@ -50,7 +82,7 @@ export function PartEditModal({ part, onSave, onClose }) {
     }));
   };
 
-  const canSave = form.name && form.manufacturer;
+  const canSave = !!form.name;
 
   return (
     <Modal
@@ -83,7 +115,7 @@ export function PartEditModal({ part, onSave, onClose }) {
             />
           </div>
           <div>
-            <label className="text-xs font-semibold block mb-1">יצרן *</label>
+            <label className="text-xs font-semibold block mb-1">יצרן</label>
             <input
               type="text"
               value={form.manufacturer}
@@ -187,6 +219,59 @@ export function PartEditModal({ part, onSave, onClose }) {
               />
             </div>
           </div>
+        </div>
+
+        {/* מכשירים תואמים */}
+        <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
+          <h4 className="text-xs font-bold text-slate-700 mb-1">🔗 מכשירים תואמים</h4>
+          <p className="text-[10px] text-slate-400 mb-2">ריק = החלק מתאים לכל המכשירים</p>
+          <div className="flex gap-2 mb-2">
+            <input
+              type="text"
+              list="brand-suggestions"
+              placeholder="יצרן (לדוגמה: Dynamics)"
+              value={deviceBrand}
+              onChange={e => setDeviceBrand(e.target.value)}
+              className="flex-1 border border-slate-300 rounded px-2 py-1 text-xs"
+            />
+            <input
+              type="text"
+              list="model-suggestions"
+              placeholder="דגם (לדוגמה: MX91)"
+              value={deviceModel}
+              onChange={e => setDeviceModel(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && addCompatibleDevice()}
+              className="flex-1 border border-slate-300 rounded px-2 py-1 text-xs"
+            />
+            <button
+              type="button"
+              onClick={addCompatibleDevice}
+              disabled={!deviceBrand.trim() || !deviceModel.trim()}
+              className="px-3 py-1 bg-blue-500 hover:bg-blue-600 disabled:bg-slate-300 text-white rounded text-xs font-semibold"
+            >
+              הוסף
+            </button>
+          </div>
+          <datalist id="brand-suggestions">
+            {[...new Set(deviceSuggestions.map(d => d.brand))].map(b => <option key={b} value={b} />)}
+          </datalist>
+          <datalist id="model-suggestions">
+            {deviceSuggestions
+              .filter(d => !deviceBrand || d.brand === deviceBrand)
+              .map(d => <option key={`${d.brand}||${d.model}`} value={d.model} />)}
+          </datalist>
+          {form.compatible_devices?.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {form.compatible_devices.map((d, i) => (
+                <span key={i} className="inline-flex items-center gap-1 bg-blue-100 text-blue-800 text-xs rounded-full px-2.5 py-0.5 font-medium">
+                  {d.brand} {d.model}
+                  <button type="button" onClick={() => removeCompatibleDevice(i)} className="hover:text-red-600 ml-1">
+                    <X size={11} />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">

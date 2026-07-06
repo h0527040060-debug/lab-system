@@ -60,6 +60,7 @@ export default function DiagnosisModal({ repair, onClose }) {
   const [partSearch, setPartSearch] = useState('');
   const [addingWork, setAddingWork] = useState(false);
   const [addingPart, setAddingPart] = useState(false);
+  const [showAllParts, setShowAllParts] = useState(false);
 
   const [showAppealForm, setShowAppealForm] = useState(false);
   const [lightboxPhoto, setLightboxPhoto] = useState(null);
@@ -88,7 +89,21 @@ export default function DiagnosisModal({ repair, onClose }) {
     ...allFilteredWorks.filter(w => !relevantWorkIds.has(w.id)),
   ];
 
+  // סינון לפי תאימות דגם
+  const isCompatibleWithDevice = (part) => {
+    const cd = part.compatible_devices;
+    if (!cd || cd.length === 0) return true; // ריק = תואם לכולם
+    if (!device?.brand || !device?.model) return true;
+    return cd.some(
+      d => d.brand?.toLowerCase() === device.brand?.toLowerCase() &&
+           d.model?.toLowerCase() === device.model?.toLowerCase()
+    );
+  };
+
+  const compatibleCount = state.parts.filter(isCompatibleWithDevice).length;
+
   const filteredParts = state.parts.filter(p => {
+    if (!showAllParts && !isCompatibleWithDevice(p)) return false;
     if (!partSearch) return true;
     const s = partSearch.toLowerCase();
     return (
@@ -429,6 +444,21 @@ export default function DiagnosisModal({ repair, onClose }) {
                 חלק חדש
               </button>
             </div>
+            {device?.brand && device?.model && (
+              <div className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-lg px-3 py-1.5 mb-2 text-xs">
+                <span className="text-blue-700">
+                  {showAllParts
+                    ? `מציג את כל החלקים (${state.parts.length})`
+                    : `מציג ${compatibleCount} חלקים תואמים ל-${device.brand} ${device.model}`}
+                </span>
+                <button
+                  onClick={() => setShowAllParts(v => !v)}
+                  className="text-blue-600 hover:text-blue-800 font-semibold underline mr-2"
+                >
+                  {showAllParts ? 'הצג תואמים בלבד' : 'הצג את כל החלקים'}
+                </button>
+              </div>
+            )}
             <div className="relative mb-1">
               <Search size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
