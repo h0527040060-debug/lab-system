@@ -146,12 +146,13 @@ export default function OfficeCustomers() {
                     {customerDevices.map(d => {
                       const deviceRepairs = state.repairs.filter(r => r.device_id === d.id);
                       return (
-                        <div key={d.id} className="border border-slate-200 rounded-lg p-3 text-sm hover:border-blue-200 transition-colors">
+                        <div
+                          key={d.id}
+                          onClick={() => setQuickDevice({ device: d, customer: selectedCustomer })}
+                          className="border border-slate-200 rounded-lg p-3 text-sm hover:border-blue-200 transition-colors cursor-pointer"
+                        >
                           <div className="flex justify-between items-start mb-1">
-                            <button
-                              onClick={() => setQuickDevice({ device: d, customer: selectedCustomer })}
-                              className="flex items-center gap-2 text-right hover:text-blue-700 flex-1 min-w-0"
-                            >
+                            <div className="flex items-center gap-2 text-right flex-1 min-w-0">
                               <DeviceThumbnail device={d} size="sm" />
                               <span className="min-w-0">
                                 <p className="font-semibold truncate">{d.type || `${d.brand} ${d.model}`}</p>
@@ -162,11 +163,11 @@ export default function OfficeCustomers() {
                                   <p className="text-xs text-orange-600 mt-1">{deviceRepairs.length} תיקונים</p>
                                 )}
                               </span>
-                            </button>
+                            </div>
                             <div className="flex items-center gap-1 mr-2">
                               <span className="text-xs font-mono text-slate-400">{d.id}</span>
                               <button
-                                onClick={() => setEditingDevice(d)}
+                                onClick={(e) => { e.stopPropagation(); setEditingDevice(d); }}
                                 className="p-1 hover:bg-orange-100 rounded text-slate-400 hover:text-orange-600"
                                 title="ערוך מכשיר"
                                 aria-label="ערוך מכשיר"

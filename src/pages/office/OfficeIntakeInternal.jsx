@@ -323,10 +323,10 @@ export default function OfficeIntakeInternal({ onNavigate }) {
                   <p className="text-center text-slate-500 py-8 text-sm">לא נמצאו מכשירים פנימיים. עבור ל"מכשיר חדש".</p>
                 ) : (
                   internalDevices.map(d => (
-                    <button
+                    <div
                       key={d.id}
                       onClick={() => setSelectedDeviceId(d.id)}
-                      className={`w-full text-right p-3 border-b last:border-b-0 hover:bg-slate-50 ${selectedDeviceId === d.id ? 'bg-purple-50' : ''}`}
+                      className={`w-full text-right p-3 border-b last:border-b-0 hover:bg-slate-50 cursor-pointer ${selectedDeviceId === d.id ? 'bg-purple-50' : ''}`}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -340,7 +340,7 @@ export default function OfficeIntakeInternal({ onNavigate }) {
                         </div>
                         <span className="text-xs text-slate-400 font-mono">{d.id}</span>
                       </div>
-                    </button>
+                    </div>
                   ))
                 )}
               </div>

@@ -69,12 +69,14 @@ export default function OfficeDevices() {
                 const repairsCount = state.repairs.filter(r => r.device_id === d.id).length;
                 const problematic = repairsCount >= 3;
                 return (
-                  <div key={d.id} style={stagger(i)} className="p-3 animate-fade-in">
+                  <div
+                    key={d.id}
+                    style={stagger(i)}
+                    onClick={() => setQuickDevice({ device: d, customer: owner })}
+                    className="p-3 animate-fade-in cursor-pointer hover:bg-slate-50"
+                  >
                     <div className="flex justify-between items-start mb-1">
-                      <button
-                        onClick={() => setQuickDevice({ device: d, customer: owner })}
-                        className="flex items-center gap-2 text-right flex-1 min-w-0"
-                      >
+                      <div className="flex items-center gap-2 text-right flex-1 min-w-0">
                         <DeviceThumbnail device={d} size="sm" />
                         <span className="min-w-0">
                           <p className="font-semibold text-sm truncate">{d.type || `${d.brand} ${d.model}`}</p>
@@ -82,16 +84,16 @@ export default function OfficeDevices() {
                             {d.type && `${d.brand} ${d.model} • `}{d.manufacturer_serial && `Serial: ${d.manufacturer_serial}`}
                           </p>
                         </span>
-                      </button>
+                      </div>
                       <button
-                        onClick={() => setPartsForDevice(d)}
+                        onClick={(e) => { e.stopPropagation(); setPartsForDevice(d); }}
                         className="p-2 hover:bg-blue-100 rounded-lg text-slate-400 hover:text-blue-600 mr-1 shrink-0"
                         title="חלקים מתאימים"
                       >
                         <PackageSearch size={14} />
                       </button>
                       <button
-                        onClick={() => setEditingDevice(d)}
+                        onClick={(e) => { e.stopPropagation(); setEditingDevice(d); }}
                         className="p-2 hover:bg-orange-100 rounded-lg text-slate-400 hover:text-orange-600 mr-1 shrink-0"
                         title="ערוך מכשיר"
                       >
@@ -99,13 +101,10 @@ export default function OfficeDevices() {
                       </button>
                     </div>
                     <div className="flex items-center justify-between mt-1">
-                      <button
-                        onClick={() => setQuickDevice({ device: d, customer: owner })}
-                        className="font-mono text-xs text-orange-600 hover:underline"
-                      >{d.id}</button>
+                      <span className="font-mono text-xs text-orange-600">{d.id}</span>
                       <div className="flex items-center gap-2 text-xs">
                         {owner && (
-                          <button onClick={() => setQuickCustomer(owner)} className="text-slate-500 hover:text-blue-600 hover:underline">{owner.name}</button>
+                          <button onClick={(e) => { e.stopPropagation(); setQuickCustomer(owner); }} className="text-slate-500 hover:text-blue-600 hover:underline">{owner.name}</button>
                         )}
                         <span className={`font-bold flex items-center gap-0.5 ${problematic ? 'text-red-600' : repairsCount > 0 ? 'text-orange-600' : 'text-slate-400'}`}>
                           {repairsCount} תיקונים
@@ -139,31 +138,30 @@ export default function OfficeDevices() {
                     const problematic = repairsCount >= 3;
 
                     return (
-                      <tr key={d.id} style={stagger(i)} className="border-b border-slate-100 hover:bg-slate-50 animate-fade-in">
+                      <tr
+                        key={d.id}
+                        style={stagger(i)}
+                        onClick={() => setQuickDevice({ device: d, customer: owner })}
+                        className="border-b border-slate-100 hover:bg-slate-50 animate-fade-in cursor-pointer"
+                      >
                         <td className="p-3">
-                          <button
-                            onClick={() => setQuickDevice({ device: d, customer: owner })}
-                            className="font-mono text-xs font-bold text-orange-600 hover:underline"
-                          >{d.id}</button>
+                          <span className="font-mono text-xs font-bold text-orange-600">{d.id}</span>
                         </td>
                         <td className="p-3">{d.type}</td>
                         <td className="p-3">
-                          <button
-                            onClick={() => setQuickDevice({ device: d, customer: owner })}
-                            className="flex items-center gap-2 text-right hover:text-blue-600 group"
-                          >
+                          <div className="flex items-center gap-2 text-right">
                             <DeviceThumbnail device={d} size="sm" />
                             <span>
-                              <p className="font-semibold group-hover:underline">{d.brand}</p>
+                              <p className="font-semibold">{d.brand}</p>
                               <p className="text-xs text-slate-500">{d.model}</p>
                             </span>
-                          </button>
+                          </div>
                         </td>
                         <td className="p-3 font-mono text-xs">{d.manufacturer_serial || '—'}</td>
                         <td className="p-3 text-xs">
                           {owner ? (
                             <button
-                              onClick={() => setQuickCustomer(owner)}
+                              onClick={(e) => { e.stopPropagation(); setQuickCustomer(owner); }}
                               className="hover:text-blue-600 hover:underline"
                             >{owner.name}</button>
                           ) : '—'}
@@ -180,14 +178,14 @@ export default function OfficeDevices() {
                         <td className="p-3 text-center">
                           <div className="flex items-center justify-center gap-1">
                             <button
-                              onClick={() => setPartsForDevice(d)}
+                              onClick={(e) => { e.stopPropagation(); setPartsForDevice(d); }}
                               className="p-2 hover:bg-blue-100 rounded-lg text-slate-400 hover:text-blue-600"
                               title="חלקים מתאימים"
                             >
                               <PackageSearch size={14} />
                             </button>
                             <button
-                              onClick={() => setEditingDevice(d)}
+                              onClick={(e) => { e.stopPropagation(); setEditingDevice(d); }}
                               className="p-2 hover:bg-orange-100 rounded-lg text-slate-400 hover:text-orange-600"
                               title="ערוך מכשיר"
                             >

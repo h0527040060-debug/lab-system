@@ -1,11 +1,15 @@
+import { useState } from 'react';
 import { useAppContext } from '../store/AppContext';
+import ImageGalleryModal from './ImageGalleryModal';
 
 const isRealImageUrl = (img) => img && (img.startsWith('data:image/') || img.startsWith('http'));
 
 // תצוגת תמונה ממוזערת למכשיר — קודם התמונה הראשית של המכשיר עצמו (מהקליטה),
-// ורק אם אין כזו — התמונה הראשית של הדגם בקטלוג (מקביל ל-PartThumbnail)
-export default function DeviceThumbnail({ device, size = 'sm', className = '', onClick }) {
+// ורק אם אין כזו — התמונה הראשית של הדגם בקטלוג (מקביל ל-PartThumbnail).
+// לחיצה על התמונה פותחת אותה בגדול (עצמאי — לא מפעיל קליק של שורה שעוטפת).
+export default function DeviceThumbnail({ device, size = 'sm', className = '' }) {
   const { state } = useAppContext();
+  const [showGallery, setShowGallery] = useState(false);
 
   const deviceImage = device?.images?.[0];
 
@@ -29,7 +33,7 @@ export default function DeviceThumbnail({ device, size = 'sm', className = '', o
   const inner = isRealImage ? (
     <div className={`${sizeClass} bg-slate-100 rounded border border-slate-200 overflow-hidden flex-shrink-0 flex items-center justify-center relative ${className}`}>
       <img src={mainImage} alt={device?.model || ''} className="w-full h-full object-contain" />
-      {onClick && <span className="absolute inset-0 bg-black/0 hover:bg-black/15 transition-colors" />}
+      <span className="absolute inset-0 bg-black/0 hover:bg-black/15 transition-colors" />
     </div>
   ) : (
     <div className={`${sizeClass} bg-slate-100 rounded border border-slate-200 flex items-center justify-center flex-shrink-0 text-slate-400 ${className}`}>
@@ -37,9 +41,25 @@ export default function DeviceThumbnail({ device, size = 'sm', className = '', o
     </div>
   );
 
-  return onClick ? (
-    <button type="button" onClick={onClick} className="cursor-pointer flex-shrink-0" title="הצג פרטי מכשיר">
-      {inner}
-    </button>
-  ) : inner;
+  if (!isRealImage) return inner;
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); setShowGallery(true); }}
+        className="cursor-pointer flex-shrink-0"
+        title="הצג תמונה"
+      >
+        {inner}
+      </button>
+      {showGallery && (
+        <ImageGalleryModal
+          images={[mainImage]}
+          altText={device?.type || device?.model || ''}
+          onClose={() => setShowGallery(false)}
+        />
+      )}
+    </>
+  );
 }
