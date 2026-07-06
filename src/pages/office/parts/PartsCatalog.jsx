@@ -166,7 +166,7 @@ export default function PartsCatalog() {
                           {part.zone && <p className="text-slate-500 mt-0.5">{part.zone}</p>}
                         </td>
                         <td className="p-3 text-xs">
-                          {supplier ? (<><p className="font-semibold">{supplier.supplier_name}</p><p className="text-slate-500">{formatMoney(supplier.price)} • {supplier.lead_time_days} ימים</p></>) : <span className="text-slate-400">—</span>}
+                          {supplier ? (<><p className="font-semibold">{supplier.supplier_name}</p><p className="text-slate-500">{formatMoney(supplier.price)}</p></>) : <span className="text-slate-400">—</span>}
                         </td>
                         <td className="p-3 text-center">
                           <button onClick={() => setViewingBatches(part)} className={`font-bold text-lg hover:underline ${lowStock ? 'text-red-600' : stock > 0 ? 'text-green-600' : 'text-slate-400'}`}>{stock}</button>
@@ -239,7 +239,7 @@ export default function PartsCatalog() {
                     <div className="grid grid-cols-2 gap-3 text-xs">
                       <div>
                         <p className="text-slate-400 mb-0.5">ספק ברירת מחדל</p>
-                        {supplier ? (<><p className="font-semibold">{supplier.supplier_name}</p><p className="text-slate-500">{formatMoney(supplier.price)} • {supplier.lead_time_days} ימים</p></>) : <span className="text-slate-400">—</span>}
+                        {supplier ? (<><p className="font-semibold">{supplier.supplier_name}</p><p className="text-slate-500">{formatMoney(supplier.price)}</p></>) : <span className="text-slate-400">—</span>}
                       </div>
                       <div>
                         <p className="text-slate-400 mb-0.5">מחיר ללקוח</p>

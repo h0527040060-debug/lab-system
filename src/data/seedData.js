@@ -37,7 +37,7 @@ export const SEED_PARTS = [
     internal_barcode: 'BR-SENS-001', category: 'sensor',
     shelf: 'A3', bin: 'B2', zone: 'אלקטרוניקה',
     suppliers: [
-      { supplier_id: 1, supplier_name: 'אלקטרו-חלפים בע״מ', supplier_sku: 'EL-NTC-5K', price: 150, lead_time_days: 2, is_default: true },
+      { supplier_id: 1, supplier_name: 'אלקטרו-חלפים בע״מ', supplier_sku: 'EL-NTC-5K', price: 150, is_default: true },
     ],
     min_stock: 3,
     selling_markup_percent: 50,
@@ -49,7 +49,7 @@ export const SEED_PARTS = [
     internal_barcode: 'BR-HEAT-001', category: 'heating',
     shelf: 'B1', bin: 'A4', zone: 'גופי חימום',
     suppliers: [
-      { supplier_id: 2, supplier_name: 'יבואני ציוד מטבח', supplier_sku: 'YCM-HE3000', price: 280, lead_time_days: 5, is_default: true },
+      { supplier_id: 2, supplier_name: 'יבואני ציוד מטבח', supplier_sku: 'YCM-HE3000', price: 280, is_default: true },
     ],
     min_stock: 4,
     selling_markup_percent: 60,

@@ -108,7 +108,7 @@ export default function PartQuickModal({ part, onClose }) {
                 <Truck size={14} className="text-slate-400 shrink-0" />
                 <div>
                   <p className="font-semibold text-slate-800">{supplier.supplier_name}</p>
-                  <p className="text-xs text-slate-500">{formatMoney(supplier.price)} • {supplier.lead_time_days} ימי אספקה</p>
+                  <p className="text-xs text-slate-500">{formatMoney(supplier.price)}</p>
                 </div>
               </div>
             )}

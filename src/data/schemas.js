@@ -94,7 +94,6 @@
  * @property {string} supplier_name
  * @property {string} [supplier_sku]
  * @property {number} price
- * @property {number} lead_time_days
  * @property {boolean} is_default
  */
 

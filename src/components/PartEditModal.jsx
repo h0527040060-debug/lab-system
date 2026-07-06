@@ -63,7 +63,6 @@ export function PartEditModal({ part, onSave, onClose }) {
         supplier_name: state.suppliers[0]?.name || '',
         supplier_sku: '',
         price: 0,
-        lead_time_days: 7,
         is_default: prev.suppliers.length === 0,
       }]
     }));
@@ -302,7 +301,7 @@ export function PartEditModal({ part, onSave, onClose }) {
                   onChange={(e) => updateSupplier(idx, 'supplier_sku', e.target.value)}
                   className="col-span-3 border border-slate-300 rounded px-2 py-1 text-xs"
                 />
-                <div className="col-span-2 flex flex-col gap-0.5">
+                <div className="col-span-3 flex flex-col gap-0.5">
                   <span className="text-[10px] text-slate-400">עלות רכש ₪</span>
                   <input
                     type="number"
@@ -311,16 +310,7 @@ export function PartEditModal({ part, onSave, onClose }) {
                     className="border border-slate-300 rounded px-2 py-1 text-xs w-full"
                   />
                 </div>
-                <div className="col-span-2 flex flex-col gap-0.5">
-                  <span className="text-[10px] text-slate-400">זמן אספקה (ימים)</span>
-                  <input
-                    type="number"
-                    value={supplier.lead_time_days}
-                    onChange={(e) => updateSupplier(idx, 'lead_time_days', parseInt(e.target.value) || 0)}
-                    className="border border-slate-300 rounded px-2 py-1 text-xs w-full"
-                  />
-                </div>
-                <label className="col-span-1 flex items-center gap-1 text-xs cursor-pointer">
+                <label className="col-span-2 flex items-center gap-1 text-xs cursor-pointer">
                   <input
                     type="radio"
                     name="default_supplier"
