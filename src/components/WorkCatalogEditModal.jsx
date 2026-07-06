@@ -1,25 +1,71 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { useAppContext } from '../store/AppContext';
 import Modal from './Modal';
+import AutocompleteInput from './AutocompleteInput';
+import { getWorkCompatibleDevices } from '../utils/workCatalog';
+import { X } from 'lucide-react';
 
 export function WorkCatalogEditModal({ item, onSave, onClose }) {
-  const [form, setForm] = useState(item || {
-    work_name: '', brand: '', model: '', price: 0, estimated_hours_default: 1, notes: '',
+  const { state } = useAppContext();
+  const [form, setForm] = useState(item ? {
+    ...item,
+    compatible_devices: getWorkCompatibleDevices(item),
+  } : {
+    work_name: '', price: 0, estimated_hours_default: 1, notes: '', compatible_devices: [],
   });
+  const [deviceBrand, setDeviceBrand] = useState('');
+  const [deviceModel, setDeviceModel] = useState('');
 
-  const canSave = form.work_name && form.brand && form.model && form.price >= 0;
+  const allBrands = useMemo(() =>
+    [...new Set(state.devices.filter(d => d.brand).map(d => d.brand))].sort(),
+    [state.devices]
+  );
+  const modelsForBrand = useMemo(() =>
+    [...new Set(
+      state.devices
+        .filter(d => d.model && (!deviceBrand || d.brand?.toLowerCase() === deviceBrand.toLowerCase()))
+        .map(d => d.model)
+    )].sort(),
+    [state.devices, deviceBrand]
+  );
+
+  const addCompatibleDevice = () => {
+    const b = deviceBrand.trim();
+    if (!b) return;
+    const m = deviceModel.trim();
+    const exists = form.compatible_devices?.some(d => d.brand === b && (d.model || '') === m);
+    if (exists) return;
+    setForm(f => ({ ...f, compatible_devices: [...(f.compatible_devices || []), { brand: b, model: m }] }));
+    setDeviceBrand('');
+    setDeviceModel('');
+  };
+
+  const removeCompatibleDevice = (idx) => {
+    setForm(f => ({ ...f, compatible_devices: f.compatible_devices.filter((_, i) => i !== idx) }));
+  };
+
+  const canSave = form.work_name?.trim() && form.price >= 0;
+
+  const handleSave = () => {
+    const cd = form.compatible_devices || [];
+    // שדות legacy — לתצוגה בהצעות מחיר/חשבוניות ישנות שמסתמכות על brand/model בודדים
+    const legacyBrand = cd.length === 0 ? 'כל היצרנים' : cd.length === 1 ? cd[0].brand : cd.map(d => d.brand).join(', ');
+    const legacyModel = cd.length === 0 ? 'כל הדגמים' : cd.length === 1 ? (cd[0].model || 'כל הדגמים') : `${cd.length} דגמים`;
+    onSave({ ...form, brand: legacyBrand, model: legacyModel });
+  };
 
   return (
     <Modal
       open={true}
       onClose={onClose}
       title={item ? `עריכת ${item.id}` : 'הוספת עבודה חדשה'}
-      subtitle="הגדרת מחיר עבודה לפי דגם"
+      subtitle="הגדרת מחיר עבודה והמכשירים שהיא מתאימה להם"
       maxWidth="max-w-xl"
       footer={
         <div className="flex justify-end gap-2">
           <button onClick={onClose} className="px-4 py-2 rounded-lg border border-slate-300 hover:bg-slate-100">ביטול</button>
           <button
-            onClick={() => onSave(form)}
+            onClick={handleSave}
             disabled={!canSave}
             className="bg-orange-500 hover:bg-orange-600 disabled:bg-slate-300 text-white px-6 py-2 rounded-lg font-semibold"
           >
@@ -35,35 +81,63 @@ export function WorkCatalogEditModal({ item, onSave, onClose }) {
             type="text"
             value={form.work_name}
             onChange={(e) => setForm({ ...form, work_name: e.target.value })}
-            placeholder="למשל: החלפת מייסבים, החלפת פחמים"
+            placeholder="למשל: החלפת מייסבים, החלפת פחמים, החלפת כבל חשמל, ניקוי כללי"
             className="w-full border border-slate-300 rounded-lg px-3 py-2"
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="text-sm font-semibold text-slate-700 block mb-1">יצרן *</label>
-            <input
-              type="text"
-              value={form.brand}
-              onChange={(e) => setForm({ ...form, brand: e.target.value })}
-              placeholder="Dito, Dynamic, Robot Coupe, או 'כל היצרנים'"
-              className="w-full border border-slate-300 rounded-lg px-3 py-2"
-            />
-            <p className="text-xs text-slate-500 mt-1">לעבודה גלובלית: 'כל היצרנים'</p>
+        {/* מכשירים תואמים */}
+        <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
+          <h4 className="text-xs font-bold text-slate-700 mb-1">🔗 מכשירים תואמים</h4>
+          <p className="text-[10px] text-slate-400 mb-2">
+            ריק = עבודה כללית שמתאימה לכל המכשירים (כמו החלפת כבל חשמל, ניקוי, החלפת תקע)
+          </p>
+          <div className="flex gap-2 mb-2 items-end">
+            <div className="flex-1">
+              <span className="text-[10px] text-slate-500 block mb-0.5">יצרן</span>
+              <AutocompleteInput
+                value={deviceBrand}
+                onChange={val => { setDeviceBrand(val); setDeviceModel(''); }}
+                suggestions={allBrands}
+                placeholder="יצרן"
+                allowNew
+              />
+            </div>
+            <div className="flex-1">
+              <span className="text-[10px] text-slate-500 block mb-0.5">דגם (ריק = כל הדגמים של היצרן)</span>
+              <AutocompleteInput
+                value={deviceModel}
+                onChange={val => setDeviceModel(val)}
+                suggestions={modelsForBrand}
+                placeholder="דגם מדויק (אופציונלי)"
+                allowNew
+              />
+            </div>
+            <button
+              type="button"
+              onClick={addCompatibleDevice}
+              disabled={!deviceBrand.trim()}
+              className="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 disabled:bg-slate-300 text-white rounded text-xs font-semibold shrink-0"
+            >
+              הוסף
+            </button>
           </div>
-
-          <div>
-            <label className="text-sm font-semibold text-slate-700 block mb-1">דגם *</label>
-            <input
-              type="text"
-              value={form.model}
-              onChange={(e) => setForm({ ...form, model: e.target.value })}
-              placeholder="MX91, R301, או 'כל הדגמים'"
-              className="w-full border border-slate-300 rounded-lg px-3 py-2"
-            />
-            <p className="text-xs text-slate-500 mt-1">לכל הדגמים: 'כל הדגמים'</p>
-          </div>
+          {form.compatible_devices?.length > 0 ? (
+            <div className="flex flex-wrap gap-1.5">
+              {form.compatible_devices.map((d, i) => (
+                <span key={i} className="inline-flex items-center gap-1 bg-blue-100 text-blue-800 text-xs rounded-full px-2.5 py-0.5 font-medium">
+                  {d.brand}{d.model ? ` ${d.model}` : ' (כל הדגמים)'}
+                  <button type="button" onClick={() => removeCompatibleDevice(i)} className="hover:text-red-600 ml-1">
+                    <X size={11} />
+                  </button>
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-green-700 bg-green-50 border border-green-200 rounded-lg px-2 py-1.5 font-medium">
+              ✓ עבודה כללית — תוצג ותהיה זמינה לכל המכשירים
+            </p>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-3">

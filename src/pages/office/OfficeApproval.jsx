@@ -4,6 +4,7 @@ import { REPAIR_STATUSES } from '../../constants/statuses';
 import { WARRANTY_TYPES, WARRANTY_LABELS } from '../../constants/warranty';
 import { formatDateTime, formatMoney } from '../../utils/formatters';
 import { calculateQuoteBreakdown, getPartSellingPrice } from '../../utils/pricing';
+import { isWorkCompatibleWithDevice } from '../../utils/workCatalog';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
 import Modal from '../../components/Modal';
@@ -359,11 +360,7 @@ function EditQuoteModal({ repair, onClose }) {
           <div>
             <h4 className="font-bold text-sm mb-2">🛠️ עבודות מהקטלוג</h4>
             <div className="border border-slate-200 rounded-lg max-h-40 overflow-y-auto">
-              {state.workCatalog.filter(w =>
-                w.brand === device?.brand ||
-                w.brand === 'כל היצרנים' ||
-                w.brand === '(חופשי)'
-              ).map(w => {
+              {state.workCatalog.filter(w => isWorkCompatibleWithDevice(w, device)).map(w => {
                 const isSelected = workCodes.includes(w.id);
                 return (
                   <button

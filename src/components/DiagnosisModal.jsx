@@ -5,7 +5,7 @@ import { uploadToStorage } from '../store/supabaseStorage';
 import { REPAIR_STATUSES } from '../constants/statuses';
 import { WARRANTY_TYPES, WARRANTY_LABELS } from '../constants/warranty';
 import { formatDateTime, formatMoney } from '../utils/formatters';
-import { filterWorkCatalogForDevice, calculateAvgHoursForWork } from '../utils/workCatalog';
+import { filterWorkCatalogForDevice, calculateAvgHoursForWork, isWorkCompatibleWithDevice, isWorkGeneral } from '../utils/workCatalog';
 import { generateWorkCodeId, generateInternalBarcode } from '../utils/idGenerators';
 import { addPartToManualOrder } from '../utils/inventory';
 import Modal from './Modal';
@@ -62,6 +62,7 @@ export default function DiagnosisModal({ repair, onClose }) {
   const [addingWork, setAddingWork] = useState(false);
   const [addingPart, setAddingPart] = useState(false);
   const [showAllParts, setShowAllParts] = useState(false);
+  const [showAllWorks, setShowAllWorks] = useState(false);
 
   // הזמנה ידנית מהירה — ללא תלות במלאי מינימום/קיים
   const [manualOrderQty, setManualOrderQty] = useState({});
@@ -100,10 +101,7 @@ export default function DiagnosisModal({ repair, onClose }) {
       w.id?.toLowerCase().includes(s)
     );
   });
-  const sortedWorks = [
-    ...allFilteredWorks.filter(w => relevantWorkIds.has(w.id)),
-    ...allFilteredWorks.filter(w => !relevantWorkIds.has(w.id)),
-  ];
+  const filteredWorks = allFilteredWorks.filter(w => showAllWorks || relevantWorkIds.has(w.id));
 
   // סינון לפי תאימות דגם
   const isCompatibleWithDevice = (part) => {
@@ -401,6 +399,21 @@ export default function DiagnosisModal({ repair, onClose }) {
                 עבודה חדשה
               </button>
             </div>
+            {device?.brand && device?.model && (
+              <div className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-lg px-3 py-1.5 mb-2 text-xs">
+                <span className="text-blue-700">
+                  {showAllWorks
+                    ? `מציג את כל העבודות (${state.workCatalog.length})`
+                    : `מציג ${relevantWorkIds.size} עבודות תואמות ל-${device.brand} ${device.model}`}
+                </span>
+                <button
+                  onClick={() => setShowAllWorks(v => !v)}
+                  className="text-blue-600 hover:text-blue-800 font-semibold underline mr-2"
+                >
+                  {showAllWorks ? 'הצג תואמים בלבד' : 'הצג את כל העבודות'}
+                </button>
+              </div>
+            )}
             <div className="relative mb-1">
               <Search size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
@@ -412,14 +425,15 @@ export default function DiagnosisModal({ repair, onClose }) {
               />
             </div>
             <div className="bg-slate-50 border border-slate-200 rounded-lg p-2 max-h-72 overflow-y-auto space-y-1">
-              {sortedWorks.length === 0 ? (
+              {filteredWorks.length === 0 ? (
                 <p className="text-sm text-slate-500 text-center py-4">
                   {workSearch ? 'לא נמצאו עבודות תואמות' : 'קטלוג העבודות ריק'}
                 </p>
               ) : (
-                sortedWorks.map(w => {
+                filteredWorks.map(w => {
                   const isSelected = selectedWorks.includes(w.id);
                   const isRelevant = relevantWorkIds.has(w.id);
+                  const isGeneral = isWorkGeneral(w);
                   const avg = calculateAvgHoursForWork(w.id, state.repairs);
                   return (
                     <button
@@ -431,7 +445,9 @@ export default function DiagnosisModal({ repair, onClose }) {
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-sm flex items-center gap-1.5">
                           {w.work_name}
-                          {isRelevant && (
+                          {isGeneral ? (
+                            <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-normal">עבודה כללית</span>
+                          ) : isRelevant && (
                             <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-normal">מתאים למכשיר</span>
                           )}
                         </p>

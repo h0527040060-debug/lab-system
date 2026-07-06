@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useAppContext } from '../../store/AppContext';
 import { generateWorkCodeId } from '../../utils/idGenerators';
 import { formatMoney } from '../../utils/formatters';
-import { calculateAvgHoursForWork } from '../../utils/workCatalog';
+import { calculateAvgHoursForWork, getWorkCompatibleDevices, isWorkGeneral } from '../../utils/workCatalog';
 import PageHeader from '../../components/PageHeader';
 import SearchInput from '../../components/SearchInput';
 import EmptyState from '../../components/EmptyState';
@@ -19,11 +19,13 @@ export default function OfficeWorkCatalog() {
   const filteredCatalog = state.workCatalog.filter(w => {
     if (!search) return true;
     const s = search.toLowerCase();
+    const compatibleMatch = getWorkCompatibleDevices(w).some(
+      d => d.brand?.toLowerCase().includes(s) || d.model?.toLowerCase().includes(s)
+    );
     return (
       w.work_name?.toLowerCase().includes(s) ||
-      w.brand?.toLowerCase().includes(s) ||
-      w.model?.toLowerCase().includes(s) ||
-      w.id?.toLowerCase().includes(s)
+      w.id?.toLowerCase().includes(s) ||
+      compatibleMatch
     );
   });
 
@@ -79,8 +81,7 @@ export default function OfficeWorkCatalog() {
               <tr>
                 <th className="text-right p-3 font-semibold">קוד</th>
                 <th className="text-right p-3 font-semibold">שם עבודה</th>
-                <th className="text-right p-3 font-semibold">יצרן</th>
-                <th className="text-right p-3 font-semibold">דגם</th>
+                <th className="text-right p-3 font-semibold">מכשירים תואמים</th>
                 <th className="text-right p-3 font-semibold">מחיר</th>
                 <th className="text-right p-3 font-semibold hidden md:table-cell">שעות ברירת מחדל</th>
                 <th className="text-right p-3 font-semibold hidden md:table-cell">ממוצע היסטורי</th>
@@ -90,12 +91,24 @@ export default function OfficeWorkCatalog() {
             <tbody>
               {filteredCatalog.map(w => {
                 const avg = calculateAvgHoursForWork(w.id, state.repairs);
+                const compatibleDevices = getWorkCompatibleDevices(w);
                 return (
                   <tr key={w.id} className="border-b border-slate-100 hover:bg-slate-50">
                     <td className="p-3 font-mono text-xs text-orange-600 font-bold">{w.id}</td>
                     <td className="p-3 font-semibold">{w.work_name}</td>
-                    <td className="p-3 text-slate-600">{w.brand}</td>
-                    <td className="p-3 text-slate-600">{w.model}</td>
+                    <td className="p-3">
+                      {isWorkGeneral(w) ? (
+                        <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">כל המכשירים</span>
+                      ) : (
+                        <div className="flex flex-wrap gap-1">
+                          {compatibleDevices.map((d, i) => (
+                            <span key={i} className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full font-medium">
+                              {d.brand}{d.model ? ` ${d.model}` : ' (כל הדגמים)'}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </td>
                     <td className="p-3 font-bold">{formatMoney(w.price)}</td>
                     <td className="p-3 text-slate-600 hidden md:table-cell">{w.estimated_hours_default} ש'</td>
                     <td className="p-3 text-xs hidden md:table-cell">
