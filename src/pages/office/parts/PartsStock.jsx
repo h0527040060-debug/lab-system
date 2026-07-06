@@ -6,13 +6,17 @@ import EmptyState from '../../../components/EmptyState';
 import PartThumbnail from '../../../components/PartThumbnail';
 import SearchInput from '../../../components/SearchInput';
 import PartQuickModal from '../../../components/PartQuickModal';
-import { Package } from 'lucide-react';
+import { Package, Plus, X } from 'lucide-react';
+
+const EMPTY_ADD_FORM = { part_id: '', quantity: 1, unit_cost: 0, supplier_name: 'מלאי פתיחה' };
 
 export default function PartsStock() {
-  const { state } = useApp();
+  const { state, dispatch } = useApp();
   const [selectedPart, setSelectedPart] = useState(null);
   const [search, setSearch] = useState('');
   const [viewingPart, setViewingPart] = useState(null);
+  const [showAddStock, setShowAddStock] = useState(false);
+  const [addForm, setAddForm] = useState(EMPTY_ADD_FORM);
 
   const partsWithStock = state.parts
     .filter(p => {
@@ -37,6 +41,27 @@ export default function PartsStock() {
   const displayPart = selectedPart ? partsWithStock.find(p => p.id === selectedPart) : null;
   const displayBatches = displayPart ? displayPart.batches : state.stockBatches.sort((a, b) => new Date(a.received_date) - new Date(b.received_date));
 
+  const handleAddStock = () => {
+    if (!addForm.part_id || !addForm.quantity || addForm.quantity <= 0) return;
+    const batchIdCounter = state.stockBatches.length + 1;
+    const batchId = `BATCH-${String(batchIdCounter).padStart(4, '0')}`;
+    dispatch({
+      type: 'ADD_STOCK_BATCH',
+      payload: {
+        id: batchId,
+        part_id: addForm.part_id,
+        received_date: new Date().toISOString(),
+        quantity: Number(addForm.quantity),
+        quantity_remaining: Number(addForm.quantity),
+        supplier_name: addForm.supplier_name || 'מלאי פתיחה',
+        unit_cost: Number(addForm.unit_cost) || 0,
+        purchase_order_id: null,
+      },
+    });
+    setAddForm(EMPTY_ADD_FORM);
+    setShowAddStock(false);
+  };
+
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
@@ -44,7 +69,80 @@ export default function PartsStock() {
           <h2 className="text-lg font-bold text-slate-900">מלאי ואצוות</h2>
           <p className="text-sm text-slate-500">כל האצוות לפי FIFO — ישן יוצא קודם</p>
         </div>
+        <button
+          onClick={() => setShowAddStock(v => !v)}
+          className="flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-semibold"
+        >
+          <Plus size={16} />
+          הוסף מלאי ידנית
+        </button>
       </div>
+
+      {/* טופס הוספת מלאי ידנית */}
+      {showAddStock && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-bold text-blue-900 text-sm">הוספת מלאי קיים</h3>
+            <button onClick={() => setShowAddStock(false)} className="text-slate-400 hover:text-slate-600">
+              <X size={16} />
+            </button>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div>
+              <label className="text-xs font-semibold text-slate-700 block mb-1">חלק *</label>
+              <select
+                value={addForm.part_id}
+                onChange={e => setAddForm(f => ({ ...f, part_id: e.target.value }))}
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+              >
+                <option value="">-- בחר חלק --</option>
+                {state.parts.map(p => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-700 block mb-1">כמות *</label>
+              <input
+                type="number"
+                min="1"
+                value={addForm.quantity}
+                onChange={e => setAddForm(f => ({ ...f, quantity: e.target.value }))}
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-700 block mb-1">עלות יחידה ₪</label>
+              <input
+                type="number"
+                min="0"
+                value={addForm.unit_cost}
+                onChange={e => setAddForm(f => ({ ...f, unit_cost: e.target.value }))}
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-700 block mb-1">שם ספק</label>
+              <input
+                type="text"
+                value={addForm.supplier_name}
+                onChange={e => setAddForm(f => ({ ...f, supplier_name: e.target.value }))}
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+                placeholder="מלאי פתיחה"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end mt-3">
+            <button
+              onClick={handleAddStock}
+              disabled={!addForm.part_id || !addForm.quantity || Number(addForm.quantity) <= 0}
+              className="bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white px-5 py-2 rounded-lg text-sm font-semibold"
+            >
+              הוסף לקטלוג
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {/* רשימת חלקים */}
@@ -70,7 +168,7 @@ export default function PartsStock() {
                 <PartThumbnail part={p} size="xs" />
                 <div className="flex-1 min-w-0">
                   <p className="truncate text-xs font-medium">{p.name}</p>
-                  <p className="text-xs text-slate-500">מלאי: {p.totalStock}</p>
+                  <p className={`text-xs ${p.totalStock === 0 ? 'text-red-500 font-semibold' : 'text-slate-500'}`}>מלאי: {p.totalStock}</p>
                 </div>
               </button>
             ))}

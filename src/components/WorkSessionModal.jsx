@@ -9,7 +9,8 @@ import { filterWorkCatalogForDevice } from '../utils/workCatalog';
 import Modal from './Modal';
 import InfoCard from './InfoCard';
 import ConfirmDialog from './ConfirmDialog';
-import { Play, Square, User, Wrench, Package, AlertTriangle, Plus, CheckCircle2, Trash2, Clock, BookOpen } from 'lucide-react';
+import DiagnosisModal from './DiagnosisModal';
+import { Play, Square, User, Wrench, AlertTriangle, Plus, CheckCircle2, Trash2, Clock, BookOpen, Stethoscope, Timer } from 'lucide-react';
 import PartThumbnail from './PartThumbnail';
 import AssemblyInstructionsViewer from './AssemblyInstructionsViewer';
 
@@ -29,8 +30,14 @@ export default function WorkSessionModal({ repair, onClose }) {
   const [showAddWork, setShowAddWork] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
-  const [stockError, setStockError] = useState(null);
   const [assemblyPart, setAssemblyPart] = useState(null);
+  const [showDiagnosis, setShowDiagnosis] = useState(false);
+
+  // מצב מדידת זמן: 'stopwatch' (ברירת מחדל) או 'manual'
+  const [timeMode, setTimeMode] = useState('stopwatch');
+  const [manualHours, setManualHours] = useState(0);
+  const [manualMins, setManualMins] = useState(0);
+  const totalManualMinutes = manualHours * 60 + manualMins;
 
   const originalWorks = repair.diagnosed_work_codes || [];
   const originalParts = repair.diagnosed_parts || [];
@@ -52,24 +59,33 @@ export default function WorkSessionModal({ repair, onClose }) {
 
   const handleFinish = () => {
     const allAllocations = [];
+    const missingParts = [];
 
     for (const partItem of partsToUse) {
+      if (!partItem.quantity || partItem.quantity === 0) continue;
+
       const allocation = allocateFifo(partItem.part_id, partItem.quantity, state.stockBatches);
       if (!allocation.success) {
         const part = state.parts.find(p => p.id === partItem.part_id);
-        setStockError(`אין מספיק מלאי של ${part?.name}. זמין: ${allocation.totalAvailable}, נדרש: ${partItem.quantity}`);
-        setConfirmAction(null);
-        return;
+        missingParts.push(`${part?.name || partItem.part_id} (זמין: ${allocation.totalAvailable})`);
+        // ממשיכים ללא הקצאת batch לחלק חסר — מלאי לא מעודכן לחלק זה
+      } else {
+        allAllocations.push(...allocation.allocations);
       }
-      allAllocations.push(...allocation.allocations);
     }
 
     const workEnd = new Date().toISOString();
-    const elapsedMs = new Date(workEnd) - new Date(repair.work_start);
-    const actualHours = elapsedMs / (1000 * 60 * 60);
+    let actualHours;
+    if (timeMode === 'manual') {
+      actualHours = totalManualMinutes / 60;
+    } else {
+      const startTime = repair.work_start || workEnd;
+      const elapsedMs = new Date(workEnd) - new Date(startTime);
+      actualHours = elapsedMs / (1000 * 60 * 60);
+    }
+
     const internalPartsCost = calculateAllocationCost(allAllocations);
 
-    // אחד כמויות לפי batch_id
     const usedFromBatch = {};
     allAllocations.forEach(a => {
       usedFromBatch[a.batch_id] = (usedFromBatch[a.batch_id] || 0) + a.quantity;
@@ -94,13 +110,16 @@ export default function WorkSessionModal({ repair, onClose }) {
         performed_work_codes: completedWorks,
         used_parts: allAllocations,
         internal_parts_cost: internalPartsCost,
-        has_unapproved_changes: hasChanges,
+        has_unapproved_changes: hasChanges || missingParts.length > 0,
         performed_by_user_id: state.currentUser?.id,
         performed_by_name: state.currentUser?.name,
       }
     });
 
-    showToast('הסטופר נסגר! הקריאה עברה ל"ממתין תיעוד" — יש להעלות תמונה/וידאו', 'info', 4000);
+    if (missingParts.length > 0) {
+      showToast(`אזהרה: מלאי לא מספיק — ${missingParts.join(', ')}`, 'warning', 5000);
+    }
+    showToast('עבודה הסתיימה! הקריאה עברה ל"ממתין תיעוד"', 'info', 4000);
     setConfirmAction(null);
     onClose();
   };
@@ -118,7 +137,8 @@ export default function WorkSessionModal({ repair, onClose }) {
   };
 
   const updatePartQty = (partId, qty) => {
-    const newQty = Math.max(1, parseInt(qty) || 1);
+    const newQty = parseInt(qty);
+    if (isNaN(newQty) || newQty < 0) return;
     setPartsToUse(prev => prev.map(p => p.part_id === partId ? { ...p, quantity: newQty } : p));
   };
 
@@ -133,9 +153,23 @@ export default function WorkSessionModal({ repair, onClose }) {
     setShowAddWork(false);
   };
 
+  const handleDiagnosisClose = () => {
+    setShowDiagnosis(false);
+    // סנכרון מחדש של רשימת החלקים לאחר עדכון האבחון
+    const updatedRepair = state.repairs.find(r => r.id === repair.id);
+    if (updatedRepair?.diagnosed_parts) {
+      setPartsToUse(updatedRepair.diagnosed_parts.map(p => ({ ...p })));
+    }
+  };
+
   const relevantWorks = filterWorkCatalogForDevice(state.workCatalog, device);
   const availableWorksToAdd = relevantWorks.filter(w => !completedWorks.includes(w.id));
   const availablePartsToAdd = state.parts.filter(p => !partsToUse.find(used => used.part_id === p.id));
+
+  const manualTimeLabel = totalManualMinutes > 0
+    ? `${manualHours > 0 ? `${manualHours} שע' ` : ''}${manualMins > 0 ? `${manualMins} דק'` : ''}`.trim()
+    : 'לא הוזן זמן';
+  const canFinish = completedWorks.length > 0;
 
   return (
     <>
@@ -156,9 +190,9 @@ export default function WorkSessionModal({ repair, onClose }) {
               </div>
             )}
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
             <button onClick={onClose} className="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-100">סגור</button>
-            {!isRunning ? (
+            {!isRunning && timeMode === 'stopwatch' && (
               <button
                 onClick={handleStart}
                 className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-bold flex items-center gap-2"
@@ -166,10 +200,21 @@ export default function WorkSessionModal({ repair, onClose }) {
                 <Play size={18} />
                 התחל סטופר
               </button>
-            ) : (
+            )}
+            {!isRunning && timeMode === 'manual' && (
               <button
-                onClick={() => setConfirmAction({ action: 'finish' })}
-                disabled={completedWorks.length === 0}
+                onClick={() => canFinish ? setConfirmAction({ action: 'finish' }) : null}
+                disabled={!canFinish}
+                className="bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white px-6 py-2 rounded-lg font-bold flex items-center gap-2"
+              >
+                <Timer size={18} />
+                סיים עבודה
+              </button>
+            )}
+            {isRunning && (
+              <button
+                onClick={() => canFinish ? setConfirmAction({ action: 'finish' }) : null}
+                disabled={!canFinish}
                 className="bg-red-600 hover:bg-red-700 disabled:bg-slate-300 text-white px-6 py-2 rounded-lg font-bold flex items-center gap-2"
               >
                 <Square size={18} />
@@ -180,6 +225,67 @@ export default function WorkSessionModal({ repair, onClose }) {
         </div>
       }
     >
+      {/* בחירת מצב זמן — מוצגת כשהסטופר עדיין לא רץ */}
+      {!isRunning && (
+        <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 mb-4">
+          <p className="text-xs font-semibold text-slate-600 mb-2">מצב מדידת זמן</p>
+          <div className="flex gap-2 mb-2">
+            <button
+              onClick={() => setTimeMode('stopwatch')}
+              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-semibold border transition-colors ${
+                timeMode === 'stopwatch'
+                  ? 'bg-green-600 text-white border-green-600'
+                  : 'bg-white text-slate-600 border-slate-300 hover:border-green-400'
+              }`}
+            >
+              <Clock size={15} />
+              סטופר
+            </button>
+            <button
+              onClick={() => setTimeMode('manual')}
+              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-semibold border transition-colors ${
+                timeMode === 'manual'
+                  ? 'bg-blue-600 text-white border-blue-600'
+                  : 'bg-white text-slate-600 border-slate-300 hover:border-blue-400'
+              }`}
+            >
+              <Timer size={15} />
+              הזנה ידנית
+            </button>
+          </div>
+          {timeMode === 'manual' && (
+            <div className="flex items-center gap-3 mt-2">
+              <span className="text-sm text-slate-600">זמן ביצוע:</span>
+              <div className="flex items-center gap-1">
+                <input
+                  type="number"
+                  min="0"
+                  max="23"
+                  value={manualHours}
+                  onChange={e => setManualHours(Math.max(0, parseInt(e.target.value) || 0))}
+                  className="w-14 border border-slate-300 rounded-lg px-2 py-1.5 text-sm text-center"
+                />
+                <span className="text-sm text-slate-500">שעות</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <input
+                  type="number"
+                  min="0"
+                  max="59"
+                  value={manualMins}
+                  onChange={e => setManualMins(Math.max(0, Math.min(59, parseInt(e.target.value) || 0)))}
+                  className="w-14 border border-slate-300 rounded-lg px-2 py-1.5 text-sm text-center"
+                />
+                <span className="text-sm text-slate-500">דקות</span>
+              </div>
+              {totalManualMinutes > 0 && (
+                <span className="text-sm font-semibold text-blue-700">{manualTimeLabel}</span>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {isRunning && (
         <div className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-300 rounded-xl p-4 mb-4 text-center">
           <div className="flex items-center justify-center gap-2 text-green-700 mb-1">
@@ -276,13 +382,22 @@ export default function WorkSessionModal({ repair, onClose }) {
       <div className="mt-4">
         <div className="flex items-center justify-between mb-2">
           <h3 className="font-bold text-slate-800">חלקים בשימוש ({partsToUse.length})</h3>
-          <button
-            onClick={() => setShowAddPart(!showAddPart)}
-            className="text-sm text-orange-600 hover:text-orange-700 font-semibold flex items-center gap-1"
-          >
-            <Plus size={16} />
-            הוסף חלק
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowDiagnosis(true)}
+              className="text-sm text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-1"
+            >
+              <Stethoscope size={16} />
+              ערוך אבחון
+            </button>
+            <button
+              onClick={() => setShowAddPart(!showAddPart)}
+              className="text-sm text-orange-600 hover:text-orange-700 font-semibold flex items-center gap-1"
+            >
+              <Plus size={16} />
+              הוסף חלק
+            </button>
+          </div>
         </div>
 
         {showAddPart && (
@@ -296,8 +411,7 @@ export default function WorkSessionModal({ repair, onClose }) {
                   <button
                     key={p.id}
                     onClick={() => addPart(p.id)}
-                    disabled={stock === 0}
-                    className="w-full text-right p-2 hover:bg-white rounded text-sm disabled:opacity-50 flex items-center justify-between gap-2"
+                    className="w-full text-right p-2 hover:bg-white rounded text-sm flex items-center justify-between gap-2"
                   >
                     <div className="flex items-center gap-2">
                       <PartThumbnail part={p} size="xs" />
@@ -317,14 +431,14 @@ export default function WorkSessionModal({ repair, onClose }) {
             if (!part) return null;
             const isNew = !originalParts.find(op => op.part_id === item.part_id);
             const totalStock = getTotalStock(item.part_id, state.stockBatches);
-            const lowStock = totalStock < item.quantity;
+            const lowStock = totalStock < item.quantity && item.quantity > 0;
 
             return (
               <div
                 key={item.part_id}
                 className={`flex items-center gap-2 p-2 rounded-lg border ${
                   isNew ? 'bg-orange-50 border-orange-300' :
-                  lowStock ? 'bg-red-50 border-red-300' :
+                  lowStock ? 'bg-amber-50 border-amber-300' :
                   'bg-slate-50 border-slate-200'
                 }`}
               >
@@ -334,14 +448,14 @@ export default function WorkSessionModal({ repair, onClose }) {
                     {part.name}
                     {isNew && <span className="text-xs bg-orange-200 text-orange-800 px-2 py-0.5 rounded font-bold mr-2">חדש!</span>}
                   </p>
-                  <p className={`text-xs ${lowStock ? 'text-red-600 font-bold' : 'text-slate-500'}`}>
+                  <p className={`text-xs ${lowStock ? 'text-amber-700 font-semibold' : 'text-slate-500'}`}>
                     {part.manufacturer} • מלאי זמין: {totalStock}
-                    {lowStock && ` (לא מספיק!)`}
+                    {lowStock && ` ⚠ מלאי חסר`}
                   </p>
                 </div>
                 <input
                   type="number"
-                  min="1"
+                  min="0"
                   value={item.quantity}
                   onChange={(e) => updatePartQty(item.part_id, e.target.value)}
                   className="w-16 border border-slate-300 rounded px-2 py-1 text-sm text-center"
@@ -361,22 +475,16 @@ export default function WorkSessionModal({ repair, onClose }) {
             <p className="text-sm text-slate-500 text-center py-3 border border-dashed border-slate-300 rounded-lg">אין חלקים בשימוש</p>
           )}
         </div>
-
-        {stockError && (
-          <div className="mt-3 bg-red-50 border-2 border-red-300 rounded-lg p-3 flex items-start gap-2">
-            <AlertTriangle className="text-red-600 mt-0.5 shrink-0" size={18} />
-            <div>
-              <p className="font-bold text-red-800">לא ניתן לסיים תיקון</p>
-              <p className="text-sm text-red-700">{stockError}</p>
-            </div>
-          </div>
-        )}
       </div>
 
       <ConfirmDialog
         open={!!confirmAction}
-        title="סיום סטופר"
-        message={`האם בטוח שברצונך לסיים? זמן עבודה: ${stopwatch.display}. ${partsToUse.length} סוגי חלקים יוסרו מהמלאי לפי FIFO.`}
+        title={isRunning ? 'סיום סטופר' : 'סיום עבודה'}
+        message={
+          isRunning
+            ? `האם בטוח שברצונך לסיים? זמן עבודה: ${stopwatch.display}. ${partsToUse.filter(p => p.quantity > 0).length} סוגי חלקים יעובדו.`
+            : `האם בטוח שברצונך לסיים? זמן מוזן: ${manualTimeLabel}. ${partsToUse.filter(p => p.quantity > 0).length} סוגי חלקים יעובדו.`
+        }
         confirmLabel="כן, סיים"
         onConfirm={handleFinish}
         onCancel={() => setConfirmAction(null)}
@@ -391,6 +499,12 @@ export default function WorkSessionModal({ repair, onClose }) {
         onCancel={() => setConfirmDelete(null)}
       />
     </Modal>
+    {showDiagnosis && (
+      <DiagnosisModal
+        repair={state.repairs.find(r => r.id === repair.id) || repair}
+        onClose={handleDiagnosisClose}
+      />
+    )}
     {assemblyPart && <AssemblyInstructionsViewer part={assemblyPart} onClose={() => setAssemblyPart(null)} />}
     </>
   );
