@@ -9,9 +9,9 @@ import ConfirmDialog from '../../../components/ConfirmDialog';
 import PartThumbnail from '../../../components/PartThumbnail';
 import PartEditModal from './PartEditModal';
 import Modal from '../../../components/Modal';
-import PartQuickModal from '../../../components/PartQuickModal';
 import { Package, Plus, Edit2, Trash2, AlertTriangle, MapPin, BookOpen } from 'lucide-react';
 import AssemblyInstructionsViewer from '../../../components/AssemblyInstructionsViewer';
+import ImageGalleryModal from '../../../components/ImageGalleryModal';
 
 export default function PartsCatalog() {
   const { state, dispatch } = useApp();
@@ -21,7 +21,7 @@ export default function PartsCatalog() {
   const [viewingBatches, setViewingBatches] = useState(null);
   const [deletingPart, setDeletingPart] = useState(null);
   const [viewingAssembly, setViewingAssembly] = useState(null);
-  const [quickViewPart, setQuickViewPart] = useState(null);
+  const [galleryPart, setGalleryPart] = useState(null);
 
   const filteredParts = state.parts.filter(p => {
     if (showLowStockOnly && !isPartLowStock(p, state.stockBatches)) return false;
@@ -110,9 +110,9 @@ export default function PartsCatalog() {
                       <tr key={part.id} className={`border-b border-slate-100 hover:bg-slate-50 ${lowStock ? 'bg-red-50' : ''}`}>
                         <td className="p-3">
                           <div className="flex items-center gap-2">
-                            <PartThumbnail part={part} size="sm" onClick={() => setQuickViewPart(part)} />
+                            <PartThumbnail part={part} size="sm" onClick={part.images?.some(img => img?.startsWith('data:image/')) ? () => setGalleryPart(part) : undefined} />
                             <div>
-                              <button onClick={() => setQuickViewPart(part)} className="font-semibold hover:text-orange-600 hover:underline text-right">{part.name}</button>
+                              <p className="font-semibold">{part.name}</p>
                               <p className="text-xs text-slate-500">{part.manufacturer} • {part.manufacturer_sku}</p>
                             </div>
                           </div>
@@ -164,10 +164,10 @@ export default function PartsCatalog() {
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-2 min-w-0">
                         <div className="flex-shrink-0">
-                          <PartThumbnail part={part} size="sm" onClick={() => setQuickViewPart(part)} />
+                          <PartThumbnail part={part} size="sm" onClick={part.images?.some(img => img?.startsWith('data:image/')) ? () => setGalleryPart(part) : undefined} />
                         </div>
                         <div className="min-w-0">
-                          <button onClick={() => setQuickViewPart(part)} className="font-semibold text-slate-900 truncate hover:text-orange-600 hover:underline block text-right">{part.name}</button>
+                          <p className="font-semibold text-slate-900 truncate">{part.name}</p>
                           <p className="text-xs text-slate-500 truncate">{part.manufacturer} • {part.manufacturer_sku}</p>
                           {part.internal_barcode && <p className="font-mono text-xs text-slate-400">{part.internal_barcode}</p>}
                         </div>
@@ -228,8 +228,13 @@ export default function PartsCatalog() {
         <AssemblyInstructionsViewer part={viewingAssembly} onClose={() => setViewingAssembly(null)} />
       )}
 
-      {quickViewPart && (
-        <PartQuickModal part={quickViewPart} onClose={() => setQuickViewPart(null)} />
+      {galleryPart && (
+        <ImageGalleryModal
+          images={galleryPart.images}
+          startIndex={galleryPart.main_image_index || 0}
+          altText={galleryPart.name}
+          onClose={() => setGalleryPart(null)}
+        />
       )}
 
       <ConfirmDialog
