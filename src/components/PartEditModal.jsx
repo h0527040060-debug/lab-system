@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useAppContext as useApp } from '../store/AppContext';
 import Modal from './Modal';
 import ConfirmDialog from './ConfirmDialog';
+import AutocompleteInput from './AutocompleteInput';
 import { Plus, Trash2, MapPin, Building2, X } from 'lucide-react';
 
 export function PartEditModal({ part, onSave, onClose }) {
@@ -18,19 +19,19 @@ export function PartEditModal({ part, onSave, onClose }) {
   const [deviceBrand, setDeviceBrand] = useState('');
   const [deviceModel, setDeviceModel] = useState('');
 
-  // רשימת דגמים ייחודיים מהמכשירים הקיימים לצורך autocomplete
-  const deviceSuggestions = useMemo(() => {
-    const seen = new Set();
-    return state.devices
-      .filter(d => d.brand && d.model)
-      .filter(d => {
-        const key = `${d.brand}||${d.model}`;
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      })
-      .map(d => ({ brand: d.brand, model: d.model }));
-  }, [state.devices]);
+  // קטלוג יצרנים ודגמים ייחודיים מהמכשירים הקיימים
+  const allBrands = useMemo(() =>
+    [...new Set(state.devices.filter(d => d.brand).map(d => d.brand))].sort(),
+    [state.devices]
+  );
+  const modelsForBrand = useMemo(() =>
+    [...new Set(
+      state.devices
+        .filter(d => d.model && (!deviceBrand || d.brand?.toLowerCase() === deviceBrand.toLowerCase()))
+        .map(d => d.model)
+    )].sort(),
+    [state.devices, deviceBrand]
+  );
 
   const addCompatibleDevice = () => {
     const b = deviceBrand.trim();
@@ -225,41 +226,36 @@ export function PartEditModal({ part, onSave, onClose }) {
         <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
           <h4 className="text-xs font-bold text-slate-700 mb-1">🔗 מכשירים תואמים</h4>
           <p className="text-[10px] text-slate-400 mb-2">ריק = החלק מתאים לכל המכשירים</p>
-          <div className="flex gap-2 mb-2">
-            <input
-              type="text"
-              list="brand-suggestions"
-              placeholder="יצרן (לדוגמה: Dynamics)"
-              value={deviceBrand}
-              onChange={e => setDeviceBrand(e.target.value)}
-              className="flex-1 border border-slate-300 rounded px-2 py-1 text-xs"
-            />
-            <input
-              type="text"
-              list="model-suggestions"
-              placeholder="דגם (לדוגמה: MX91)"
-              value={deviceModel}
-              onChange={e => setDeviceModel(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && addCompatibleDevice()}
-              className="flex-1 border border-slate-300 rounded px-2 py-1 text-xs"
-            />
+          <div className="flex gap-2 mb-2 items-end">
+            <div className="flex-1">
+              <span className="text-[10px] text-slate-500 block mb-0.5">יצרן</span>
+              <AutocompleteInput
+                value={deviceBrand}
+                onChange={val => { setDeviceBrand(val); setDeviceModel(''); }}
+                suggestions={allBrands}
+                placeholder="יצרן"
+                allowNew
+              />
+            </div>
+            <div className="flex-1">
+              <span className="text-[10px] text-slate-500 block mb-0.5">דגם מדויק</span>
+              <AutocompleteInput
+                value={deviceModel}
+                onChange={val => setDeviceModel(val)}
+                suggestions={modelsForBrand}
+                placeholder="דגם"
+                allowNew
+              />
+            </div>
             <button
               type="button"
               onClick={addCompatibleDevice}
               disabled={!deviceBrand.trim() || !deviceModel.trim()}
-              className="px-3 py-1 bg-blue-500 hover:bg-blue-600 disabled:bg-slate-300 text-white rounded text-xs font-semibold"
+              className="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 disabled:bg-slate-300 text-white rounded text-xs font-semibold shrink-0"
             >
               הוסף
             </button>
           </div>
-          <datalist id="brand-suggestions">
-            {[...new Set(deviceSuggestions.map(d => d.brand))].map(b => <option key={b} value={b} />)}
-          </datalist>
-          <datalist id="model-suggestions">
-            {deviceSuggestions
-              .filter(d => !deviceBrand || d.brand === deviceBrand)
-              .map(d => <option key={`${d.brand}||${d.model}`} value={d.model} />)}
-          </datalist>
           {form.compatible_devices?.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {form.compatible_devices.map((d, i) => (

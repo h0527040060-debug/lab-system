@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { useAppContext } from '../store/AppContext';
 import Modal from './Modal';
 import AutocompleteInput from './AutocompleteInput';
@@ -54,6 +54,20 @@ export function DeviceEditModal({ device, onClose }) {
 
   const set = (field, val) => setForm(f => ({ ...f, [field]: val }));
   const canSave = form.brand.trim() && form.model.trim();
+
+  // קטלוג יצרנים ודגמים מהמכשירים הקיימים
+  const allBrands = useMemo(() =>
+    [...new Set(state.devices.filter(d => d.brand).map(d => d.brand))].sort(),
+    [state.devices]
+  );
+  const modelsForBrand = useMemo(() =>
+    [...new Set(
+      state.devices
+        .filter(d => d.model && (!form.brand || d.brand?.toLowerCase() === form.brand?.toLowerCase()))
+        .map(d => d.model)
+    )].sort(),
+    [state.devices, form.brand]
+  );
 
   const handleSave = () => {
     dispatch({ type: 'UPDATE_DEVICE', payload: { ...device, ...form } });
@@ -120,20 +134,24 @@ export function DeviceEditModal({ device, onClose }) {
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-1">יצרן *</label>
-            <input
+            <AutocompleteInput
               value={form.brand}
-              onChange={e => set('brand', e.target.value)}
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-400"
+              onChange={val => { set('brand', val); set('model', ''); }}
+              suggestions={allBrands}
               placeholder="Samsung, LG..."
+              allowNew
+              className="text-sm"
             />
           </div>
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-1">דגם *</label>
-            <input
+            <AutocompleteInput
               value={form.model}
-              onChange={e => set('model', e.target.value)}
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-400"
-              placeholder="מספר דגם"
+              onChange={val => set('model', val)}
+              suggestions={modelsForBrand}
+              placeholder="מספר דגם מדויק"
+              allowNew
+              className="text-sm"
             />
           </div>
         </div>
