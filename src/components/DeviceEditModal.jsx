@@ -5,7 +5,8 @@ import AutocompleteInput from './AutocompleteInput';
 import ManufacturerModelPicker from './ManufacturerModelPicker';
 import ImageGalleryModal from './ImageGalleryModal';
 import ConfirmDialog from './ConfirmDialog';
-import { X, RefreshCw, Camera, Dices } from 'lucide-react';
+import DeviceCompatiblePartsModal from './DeviceCompatiblePartsModal';
+import { X, RefreshCw, Camera, Dices, PackageSearch } from 'lucide-react';
 import { uploadToStorage } from '../store/supabaseStorage';
 import { generateEngravingNumber } from '../utils/idGenerators';
 
@@ -42,6 +43,7 @@ export function DeviceEditModal({ device, onClose }) {
   const [replaceIndex, setReplaceIndex] = useState(null);
   const [galleryIndex, setGalleryIndex] = useState(null);
   const [confirmDeleteImg, setConfirmDeleteImg] = useState(null);
+  const [showPartsEditor, setShowPartsEditor] = useState(false);
 
   const [form, setForm] = useState({
     brand: device.brand || '',
@@ -129,6 +131,15 @@ export function DeviceEditModal({ device, onClose }) {
           initialModel={form.model}
           onSelect={({ brand, model, type }) => setForm(f => ({ ...f, brand, model, type: type || f.type }))}
         />
+        <button
+          type="button"
+          onClick={() => setShowPartsEditor(true)}
+          disabled={!form.brand.trim() || !form.model.trim()}
+          className="w-full flex items-center justify-center gap-1.5 text-sm font-semibold text-blue-600 hover:text-blue-800 disabled:text-slate-300 border border-blue-200 disabled:border-slate-200 rounded-lg py-2"
+        >
+          <PackageSearch size={15} />
+          בחר חלקים תואמים למכשיר זה מהקטלוג
+        </button>
         <div>
           <label className="block text-sm font-semibold text-slate-700 mb-1">שם מכשיר</label>
           <AutocompleteInput
@@ -285,6 +296,13 @@ export function DeviceEditModal({ device, onClose }) {
       onConfirm={() => { handleDeleteImage(confirmDeleteImg); setConfirmDeleteImg(null); }}
       onCancel={() => setConfirmDeleteImg(null)}
     />
+    {showPartsEditor && (
+      <DeviceCompatiblePartsModal
+        device={{ brand: form.brand, model: form.model, type: form.type }}
+        startInEditMode
+        onClose={() => setShowPartsEditor(false)}
+      />
+    )}
     </>
   );
 }
