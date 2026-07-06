@@ -55,16 +55,16 @@ export default function DeviceQuickModal({ device, customer, repairs = [], onClo
 
         <div className="p-4 space-y-4">
           <div className="grid grid-cols-2 gap-3">
-            {device.type && (
+            {device.type && (device.brand || device.model) && (
               <div className="flex items-center gap-2 text-sm text-slate-700">
                 <Cpu size={14} className="text-slate-400 shrink-0" />
-                <span>{device.type}</span>
+                <span>{device.brand} {device.model}</span>
               </div>
             )}
-            {device.serial && (
+            {device.manufacturer_serial && (
               <div className="flex items-center gap-2 text-sm text-slate-700">
                 <Hash size={14} className="text-slate-400 shrink-0" />
-                <span dir="ltr" className="font-mono text-xs">{device.serial}</span>
+                <span dir="ltr" className="font-mono text-xs">{device.manufacturer_serial}</span>
               </div>
             )}
             {customer && (

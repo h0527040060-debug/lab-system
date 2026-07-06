@@ -137,8 +137,10 @@ export default function LabSearch({ onNavigate }) {
                             <span className="font-mono text-sm font-bold text-cyan-600">{d.id}</span>
                             <span className="text-xs text-slate-500">• {repairsCount} תיקונים</span>
                           </div>
-                          <p className="font-semibold text-sm">{d.brand} {d.model}</p>
-                          <p className="text-xs text-slate-500">{d.type} • {owner?.name}</p>
+                          <p className="font-semibold text-sm">{d.type || `${d.brand} ${d.model}`}</p>
+                          <p className="text-xs text-slate-500">
+                            {d.type && `${d.brand} ${d.model} • `}{owner?.name}
+                          </p>
                           {d.manufacturer_serial && (
                             <p className="text-xs font-mono text-slate-500">Serial: {d.manufacturer_serial}</p>
                           )}

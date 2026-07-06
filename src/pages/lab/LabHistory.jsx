@@ -65,10 +65,10 @@ export default function LabHistory() {
                     }`}
                   >
                     <div className="flex justify-between">
-                      <p className="font-semibold text-sm">{d.brand} {d.model}</p>
+                      <p className="font-semibold text-sm">{d.type || `${d.brand} ${d.model}`}</p>
                       <span className="text-xs font-mono text-slate-400">{d.id}</span>
                     </div>
-                    <p className="text-xs text-slate-500">{d.type}</p>
+                    {d.type && <p className="text-xs text-slate-500">{d.brand} {d.model}</p>}
                     {repairsCount > 0 && (
                       <p className="text-xs text-orange-600 mt-1">{repairsCount} תיקונים</p>
                     )}

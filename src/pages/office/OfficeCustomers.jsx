@@ -154,8 +154,10 @@ export default function OfficeCustomers() {
                             >
                               <DeviceThumbnail device={d} size="sm" />
                               <span className="min-w-0">
-                                <p className="font-semibold truncate">{d.brand} {d.model}</p>
-                                <p className="text-xs text-slate-500 mt-0.5 truncate">{d.type} {d.manufacturer_serial && `• Serial: ${d.manufacturer_serial}`}</p>
+                                <p className="font-semibold truncate">{d.type || `${d.brand} ${d.model}`}</p>
+                                <p className="text-xs text-slate-500 mt-0.5 truncate">
+                                  {d.type && `${d.brand} ${d.model} • `}{d.manufacturer_serial && `Serial: ${d.manufacturer_serial}`}
+                                </p>
                                 {deviceRepairs.length > 0 && (
                                   <p className="text-xs text-orange-600 mt-1">{deviceRepairs.length} תיקונים</p>
                                 )}

@@ -77,8 +77,10 @@ export default function OfficeDevices() {
                       >
                         <DeviceThumbnail device={d} size="sm" />
                         <span className="min-w-0">
-                          <p className="font-semibold text-sm truncate">{d.brand} {d.model}</p>
-                          <p className="text-xs text-slate-500 truncate">{d.type} {d.manufacturer_serial && `• ${d.manufacturer_serial}`}</p>
+                          <p className="font-semibold text-sm truncate">{d.type || `${d.brand} ${d.model}`}</p>
+                          <p className="text-xs text-slate-500 truncate">
+                            {d.type && `${d.brand} ${d.model} • `}{d.manufacturer_serial && `Serial: ${d.manufacturer_serial}`}
+                          </p>
                         </span>
                       </button>
                       <button

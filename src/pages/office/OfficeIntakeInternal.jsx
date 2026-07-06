@@ -332,8 +332,10 @@ export default function OfficeIntakeInternal({ onNavigate }) {
                         <div className="flex items-center gap-2">
                           <DeviceThumbnail device={d} size="sm" />
                           <div>
-                            <p className="font-semibold">{d.brand} {d.model}</p>
-                            <p className="text-xs text-slate-500">{d.type} • Serial: {d.manufacturer_serial || '—'}</p>
+                            <p className="font-semibold">{d.type || `${d.brand} ${d.model}`}</p>
+                            <p className="text-xs text-slate-500">
+                              {d.type && `${d.brand} ${d.model} • `}Serial: {d.manufacturer_serial || '—'}
+                            </p>
                           </div>
                         </div>
                         <span className="text-xs text-slate-400 font-mono">{d.id}</span>
