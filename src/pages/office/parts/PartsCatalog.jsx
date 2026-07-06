@@ -36,12 +36,55 @@ export default function PartsCatalog() {
     );
   });
 
-  const handleSavePart = (partData) => {
-    if (partData.id) {
-      dispatch({ type: 'UPDATE_PART', payload: partData });
+  // סנכרון מלאי קיים לאצוות: תוספת = אצווה חדשה, הפחתה = ניכוי FIFO מהאצוות
+  const reconcileStock = (partId, current, target) => {
+    const diff = target - current;
+    if (diff === 0) return;
+    if (diff > 0) {
+      const batchId = `BATCH-${String(state.stockBatches.length + 1).padStart(4, '0')}`;
+      dispatch({
+        type: 'ADD_STOCK_BATCH',
+        payload: {
+          id: batchId,
+          part_id: partId,
+          received_date: new Date().toISOString(),
+          quantity: diff,
+          quantity_remaining: diff,
+          supplier_name: 'התאמת מלאי ידנית',
+          unit_cost: 0,
+          purchase_order_id: null,
+        },
+      });
     } else {
-      const newId = Math.max(0, ...state.parts.map(p => p.id || 0)) + 1;
-      dispatch({ type: 'ADD_PART', payload: { ...partData, id: newId } });
+      let toRemove = -diff;
+      const batches = state.stockBatches
+        .filter(b => b.part_id === partId && b.quantity_remaining > 0)
+        .sort((a, b) => new Date(a.received_date) - new Date(b.received_date));
+      const updates = [];
+      for (const b of batches) {
+        if (toRemove <= 0) break;
+        const take = Math.min(b.quantity_remaining, toRemove);
+        updates.push({ id: b.id, quantity_remaining: b.quantity_remaining - take });
+        toRemove -= take;
+      }
+      if (updates.length > 0) {
+        dispatch({ type: 'UPDATE_STOCK_BATCHES_BULK', payload: updates });
+      }
+    }
+  };
+
+  const handleSavePart = (partData) => {
+    const { __targetStock, __initialStock, ...cleanPart } = partData;
+    let partId;
+    if (cleanPart.id) {
+      dispatch({ type: 'UPDATE_PART', payload: cleanPart });
+      partId = cleanPart.id;
+    } else {
+      partId = Math.max(0, ...state.parts.map(p => p.id || 0)) + 1;
+      dispatch({ type: 'ADD_PART', payload: { ...cleanPart, id: partId } });
+    }
+    if (__targetStock !== undefined && __targetStock !== __initialStock) {
+      reconcileStock(partId, __initialStock || 0, __targetStock);
     }
     setEditingPart(null);
   };

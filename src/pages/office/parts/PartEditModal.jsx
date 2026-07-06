@@ -5,7 +5,8 @@ import { generateInternalBarcode } from '../../../utils/idGenerators';
 import Modal from '../../../components/Modal';
 import ConfirmDialog from '../../../components/ConfirmDialog';
 import AutocompleteInput from '../../../components/AutocompleteInput';
-import { MapPin, Building2, Plus, Trash2, ImagePlus, FileText, BookOpen, PlayCircle, X } from 'lucide-react';
+import { getTotalStock } from '../../../utils/fifo';
+import { MapPin, Building2, Plus, Trash2, ImagePlus, FileText, BookOpen, PlayCircle, X, Package } from 'lucide-react';
 
 const CATEGORIES = [
   { value: 'sensor', label: 'חיישן' },
@@ -47,6 +48,13 @@ export default function PartEditModal({ part, onSave, onClose }) {
   const [activeTab, setActiveTab] = useState('basic');
   const [deviceBrand, setDeviceBrand] = useState('');
   const [deviceModel, setDeviceModel] = useState('');
+
+  // מלאי קיים — מחושב מהאצוות. עריכה תסונכרן לאצוות בעת שמירה (בקטלוג)
+  const initialStock = useMemo(
+    () => (part?.id ? getTotalStock(part.id, state.stockBatches) : 0),
+    [part, state.stockBatches]
+  );
+  const [stockQty, setStockQty] = useState(initialStock);
 
   const allBrands = useMemo(() =>
     [...new Set(state.devices.filter(d => d.brand).map(d => d.brand))].sort(),
@@ -256,6 +264,10 @@ export default function PartEditModal({ part, onSave, onClose }) {
       finalPart.internal_barcode = finalPart.internal_barcode ||
         generateInternalBarcode(finalPart.category || 'other', state.parts.map(p => p.internal_barcode));
     }
+    // מלאי קיים — הקטלוג יסנכרן לאצוות לפי ההפרש
+    const targetStock = parseInt(stockQty);
+    finalPart.__targetStock = isNaN(targetStock) ? initialStock : Math.max(0, targetStock);
+    finalPart.__initialStock = initialStock;
     onSave(finalPart);
   };
 
@@ -327,7 +339,7 @@ export default function PartEditModal({ part, onSave, onClose }) {
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div>
               <label className="text-xs font-semibold block mb-1">קטגוריה</label>
               <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
@@ -340,6 +352,15 @@ export default function PartEditModal({ part, onSave, onClose }) {
               <input type="number" value={form.min_stock}
                 onChange={e => setForm(f => ({ ...f, min_stock: parseInt(e.target.value) || 0 }))}
                 className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" />
+            </div>
+            <div className="bg-green-50 border-2 border-green-400 rounded-lg p-2 -m-0.5">
+              <label className="text-xs font-bold block mb-1 text-green-800 flex items-center gap-1">
+                <Package size={13} /> מלאי קיים
+              </label>
+              <input type="number" min="0" value={stockQty}
+                onChange={e => setStockQty(e.target.value)}
+                className="w-full border-2 border-green-400 bg-white rounded-lg px-3 py-2 text-sm font-bold text-green-800 focus:outline-none focus:border-green-600" />
+              <p className="text-[10px] text-green-600 mt-0.5 font-medium">מסונכרן לאצוות</p>
             </div>
             <div>
               <label className="text-xs font-semibold block mb-1">ברקוד פנימי</label>
