@@ -1,16 +1,22 @@
 import { useAppContext } from '../store/AppContext';
 
-// תצוגת תמונה ממוזערת למכשיר — לפי תמונת הדגם הראשית בקטלוג (מקביל ל-PartThumbnail)
+const isRealImageUrl = (img) => img && (img.startsWith('data:image/') || img.startsWith('http'));
+
+// תצוגת תמונה ממוזערת למכשיר — קודם התמונה הראשית של המכשיר עצמו (מהקליטה),
+// ורק אם אין כזו — התמונה הראשית של הדגם בקטלוג (מקביל ל-PartThumbnail)
 export default function DeviceThumbnail({ device, size = 'sm', className = '', onClick }) {
   const { state } = useAppContext();
+
+  const deviceImage = device?.images?.[0];
 
   const model = state.models.find(m =>
     m.name.toLowerCase() === (device?.model || '').toLowerCase() &&
     state.manufacturers.find(mf => mf.id === m.manufacturer_id)?.name.toLowerCase() === (device?.brand || '').toLowerCase()
   );
-  const mainIdx = model?.main_image_index || 0;
-  const mainImage = model?.images?.[mainIdx];
-  const isRealImage = mainImage && (mainImage.startsWith('data:image/') || mainImage.startsWith('http'));
+  const modelImage = model?.images?.[model?.main_image_index || 0];
+
+  const mainImage = isRealImageUrl(deviceImage) ? deviceImage : modelImage;
+  const isRealImage = isRealImageUrl(mainImage);
 
   const sizeClass = {
     xs: 'w-6 h-6',
