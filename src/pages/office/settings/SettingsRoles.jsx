@@ -3,6 +3,7 @@ import { useAppContext } from '../../../store/AppContext';
 import { useToast } from '../../../store/ToastContext';
 import { DEFAULT_ROLE_CONFIG } from '../../../store/AppContext';
 import { REPAIR_STATUSES } from '../../../constants/statuses';
+import { TAB_CATALOG } from '../../../constants/pageRegistry';
 import { getStatusDisplay } from '../../../utils/statusConfig';
 import { Check, RotateCcw } from 'lucide-react';
 
@@ -13,14 +14,23 @@ const ROLE_LABELS = {
 
 const ALL_STATUSES = Object.values(REPAIR_STATUSES);
 
+// טאבים הניתנים להקצאה (ללא adminOnly ו-hidden)
+const ASSIGNABLE_TABS = TAB_CATALOG.filter(t => !t.adminOnly && !t.hidden);
+
 function RolePanel({ roleKey, roleData, statusConfig, onSave }) {
   const { label, icon, desc } = ROLE_LABELS[roleKey];
-  const [selected, setSelected] = useState(new Set(roleData?.visible_statuses ?? []));
+
+  const [selectedStatuses, setSelectedStatuses] = useState(
+    new Set(roleData?.visible_statuses ?? DEFAULT_ROLE_CONFIG[roleKey].visible_statuses)
+  );
+  const [selectedTabs, setSelectedTabs] = useState(
+    new Set(roleData?.visible_tabs ?? DEFAULT_ROLE_CONFIG[roleKey].visible_tabs)
+  );
   const [saved, setSaved] = useState(false);
   const { showToast } = useToast();
 
-  const toggle = (statusId) => {
-    setSelected(prev => {
+  const toggleStatus = (statusId) => {
+    setSelectedStatuses(prev => {
       const next = new Set(prev);
       if (next.has(statusId)) next.delete(statusId);
       else next.add(statusId);
@@ -28,18 +38,32 @@ function RolePanel({ roleKey, roleData, statusConfig, onSave }) {
     });
   };
 
+  const toggleTab = (tabId) => {
+    setSelectedTabs(prev => {
+      const next = new Set(prev);
+      if (next.has(tabId)) next.delete(tabId);
+      else next.add(tabId);
+      return next;
+    });
+  };
+
   const handleSave = () => {
-    if (selected.size === 0) {
+    if (selectedStatuses.size === 0) {
       showToast('יש לבחור לפחות סטטוס אחד לתפקיד זה', 'error');
       return;
     }
-    onSave(roleKey, Array.from(selected));
+    if (selectedTabs.size === 0) {
+      showToast('יש לבחור לפחות טאב אחד לתפקיד זה', 'error');
+      return;
+    }
+    onSave(roleKey, Array.from(selectedStatuses), Array.from(selectedTabs));
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
 
   const handleReset = () => {
-    setSelected(new Set(DEFAULT_ROLE_CONFIG[roleKey]?.visible_statuses ?? []));
+    setSelectedStatuses(new Set(DEFAULT_ROLE_CONFIG[roleKey].visible_statuses));
+    setSelectedTabs(new Set(DEFAULT_ROLE_CONFIG[roleKey].visible_tabs));
   };
 
   return (
@@ -54,14 +78,15 @@ function RolePanel({ roleKey, roleData, statusConfig, onSave }) {
         </button>
       </div>
 
+      {/* בחירת סטטוסים */}
+      <p className="text-xs font-semibold text-slate-600 mb-2">סטטוסים בלוח Kanban</p>
       <p className="text-xs text-slate-500 mb-3 bg-slate-50 rounded-lg p-2">
-        סמן את הסטטוסים שתפקיד זה יוכל לראות בלוח Kanban. סטטוסים לא מסומנים יוסתרו לחלוטין מהתצוגה.
+        סמן את הסטטוסים שתפקיד זה יוכל לראות. סטטוסים לא מסומנים יוסתרו מהתצוגה.
       </p>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-5">
         {ALL_STATUSES.map(statusId => {
           const display = getStatusDisplay(statusId, statusConfig);
-          const isChecked = selected.has(statusId);
+          const isChecked = selectedStatuses.has(statusId);
           return (
             <label
               key={statusId}
@@ -74,11 +99,42 @@ function RolePanel({ roleKey, roleData, statusConfig, onSave }) {
               <input
                 type="checkbox"
                 checked={isChecked}
-                onChange={() => toggle(statusId)}
+                onChange={() => toggleStatus(statusId)}
                 className="w-4 h-4 accent-orange-500 shrink-0"
               />
               <span className={`text-xs px-2 py-0.5 rounded-full font-semibold border ${display.bg} ${display.text} ${display.border}`}>
                 {display.emoji} {display.label}
+              </span>
+            </label>
+          );
+        })}
+      </div>
+
+      {/* בחירת טאבים */}
+      <p className="text-xs font-semibold text-slate-600 mb-2">טאבים בתפריט הניווט</p>
+      <p className="text-xs text-slate-500 mb-3 bg-slate-50 rounded-lg p-2">
+        סמן את הטאבים שיופיעו בתפריט לתפקיד זה. אדמין תמיד רואה את כל הטאבים.
+      </p>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-5">
+        {ASSIGNABLE_TABS.map(tab => {
+          const isChecked = selectedTabs.has(tab.id);
+          return (
+            <label
+              key={tab.id}
+              className={`flex items-center gap-2 p-2.5 rounded-lg border cursor-pointer transition-colors ${
+                isChecked
+                  ? 'border-blue-300 bg-blue-50'
+                  : 'border-slate-200 hover:bg-slate-50'
+              }`}
+            >
+              <input
+                type="checkbox"
+                checked={isChecked}
+                onChange={() => toggleTab(tab.id)}
+                className="w-4 h-4 accent-blue-500 shrink-0"
+              />
+              <span className="text-xs">
+                {tab.icon} {tab.label}
               </span>
             </label>
           );
@@ -93,7 +149,9 @@ function RolePanel({ roleKey, roleData, statusConfig, onSave }) {
           <Check size={16} />
           {saved ? '✓ נשמר!' : 'שמור הגדרות תפקיד'}
         </button>
-        <span className="text-xs text-slate-400">{selected.size} סטטוסים מוצגים</span>
+        <span className="text-xs text-slate-400">
+          {selectedStatuses.size} סטטוסים · {selectedTabs.size} טאבים
+        </span>
       </div>
     </div>
   );
@@ -102,10 +160,16 @@ function RolePanel({ roleKey, roleData, statusConfig, onSave }) {
 export function SettingsRoles() {
   const { state, dispatch } = useAppContext();
 
-  const handleSave = (roleKey, visible_statuses) => {
+  const handleSave = (roleKey, visible_statuses, visible_tabs) => {
     dispatch({
       type: 'UPDATE_ROLE_CONFIG',
-      payload: { [roleKey]: { ...state.roleConfig?.[roleKey], visible_statuses } },
+      payload: {
+        [roleKey]: {
+          ...state.roleConfig?.[roleKey],
+          visible_statuses,
+          visible_tabs,
+        },
+      },
     });
   };
 

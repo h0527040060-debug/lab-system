@@ -1,13 +1,12 @@
 import { useAppContext } from './store/AppContext';
 import { USER_ROLES } from './constants/userRoles';
 import LoginPage from './pages/LoginPage';
-import OfficeRouter from './pages/OfficeRouter';
-import LabRouter from './pages/LabRouter';
+import MainRouter from './pages/MainRouter';
 import { InstallPrompt } from './components/InstallPrompt';
 import { RepairStatusPage } from './pages/RepairStatusPage';
 
 export default function App() {
-  const { state, dispatch } = useAppContext();
+  const { state } = useAppContext();
 
   const hash = window.location.hash;
   if (hash.startsWith('#/repair/')) {
@@ -22,9 +21,8 @@ export default function App() {
   switch (state.currentUser.role) {
     case USER_ROLES.ADMIN:
     case USER_ROLES.OFFICE:
-      return <><OfficeRouter /><InstallPrompt /></>;
     case USER_ROLES.LAB:
-      return <><LabRouter /><InstallPrompt /></>;
+      return <><MainRouter /><InstallPrompt /></>;
     default:
       return <LoginPage />;
   }

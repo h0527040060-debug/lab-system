@@ -12,7 +12,7 @@ import { CommandPalette } from './CommandPalette';
 const BOTTOM_NAV_IDS = {
   office: ['kanban', 'intake', 'repairs', 'customers', 'search'],
   admin:  ['kanban', 'intake', 'repairs', 'customers', 'search'],
-  lab:    ['kanban', 'dashboard', 'search', 'history'],
+  lab:    ['kanban', 'lab-dashboard', 'search', 'history'],
 };
 
 export default function Layout({ children, currentTab, onTabChange, tabs }) {

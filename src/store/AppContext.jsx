@@ -18,9 +18,15 @@ export const DEFAULT_ROLE_CONFIG = {
       'yellow_ready_to_work','in_work','pending_release_docs',
       'pending_payment','paid_waiting_pickup',
     ],
+    visible_tabs: [
+      'kanban','dashboard','intake','intake-internal','approval','appeals',
+      'payment','pickup','repairs','customers','devices','parts',
+      'work-catalog','general-expenses','reports','settings','users',
+    ],
   },
   lab: {
     visible_statuses: ['yellow_ready_to_work','in_work','pending_release_docs'],
+    visible_tabs: ['kanban','lab-dashboard','search','history'],
   },
 };
 
