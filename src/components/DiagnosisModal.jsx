@@ -533,23 +533,6 @@ export default function DiagnosisModal({ repair, onClose }) {
                             <BookOpen size={14} />
                           </button>
                         ) : null}
-                        <div className="flex items-center gap-1 shrink-0" onClick={e => e.stopPropagation()}>
-                          <input
-                            type="number" min="1" value={getManualOrderQty(p.id)}
-                            onChange={e => setManualOrderQtyFor(p.id, e.target.value)}
-                            title="כמות להזמנה ידנית"
-                            className="w-11 border border-blue-300 rounded px-1 py-1 text-xs text-center"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => handleCreateManualOrder(p)}
-                            className={`text-xs font-semibold whitespace-nowrap ${
-                              orderAddedId === p.id ? 'text-green-600' : 'text-blue-600 hover:text-blue-800 hover:underline'
-                            }`}
-                          >
-                            {orderAddedId === p.id ? '✓ נוסף להזמנה' : 'הוסף הזמנה ידנית'}
-                          </button>
-                        </div>
                         {isSelected && (
                           <input
                             type="number"
@@ -560,6 +543,26 @@ export default function DiagnosisModal({ repair, onClose }) {
                           />
                         )}
                       </div>
+                      {totalStock === 0 && (
+                        <div className="flex items-center gap-1.5 mt-1 pr-7" onClick={e => e.stopPropagation()}>
+                          <span className="text-[10px] text-red-500 font-semibold shrink-0">אין במלאי</span>
+                          <input
+                            type="number" min="1" value={getManualOrderQty(p.id)}
+                            onChange={e => setManualOrderQtyFor(p.id, e.target.value)}
+                            title="כמות להזמנה ידנית"
+                            className="w-9 border border-blue-300 rounded px-1 py-0.5 text-xs text-center shrink-0"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleCreateManualOrder(p)}
+                            className={`text-xs font-semibold whitespace-nowrap ${
+                              orderAddedId === p.id ? 'text-green-600' : 'text-blue-600 hover:text-blue-800 hover:underline'
+                            }`}
+                          >
+                            {orderAddedId === p.id ? '✓ נוסף' : 'הוסף להזמנה'}
+                          </button>
+                        </div>
+                      )}
                     </div>
                   );
                 })
