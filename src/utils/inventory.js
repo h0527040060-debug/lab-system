@@ -1,4 +1,5 @@
 import { getTotalStock } from './fifo';
+import { generatePurchaseOrderId } from './idGenerators';
 
 export const getDefaultSupplier = (part) => {
   if (!part?.suppliers || part.suppliers.length === 0) return null;
@@ -35,6 +36,48 @@ export const groupShortagesBySupplier = (parts, stockBatches) => {
     });
   });
   return grouped;
+};
+
+// הוספה ידנית של חלק להזמנת רכש — ללא תלות במלאי מינימום/קיים.
+// מצטרף להזמנה פתוחה קיימת לאותו ספק אם יש, אחרת יוצר הזמנה חדשה.
+export const addPartToManualOrder = (state, dispatch, part, quantity) => {
+  const qty = Math.max(1, parseInt(quantity) || 1);
+  const supplier = getDefaultSupplier(part);
+  const supplierName = supplier?.supplier_name || part.manufacturer || 'לא צוין ספק';
+  const unitCost = supplier?.price || 0;
+
+  const existingOrder = state.purchaseOrders.find(
+    o => o.status === 'pending' && o.supplier_name === supplierName
+  );
+
+  if (existingOrder) {
+    const existingItem = existingOrder.items.find(i => i.part_id === part.id);
+    const items = existingItem
+      ? existingOrder.items.map(i => i.part_id === part.id
+          ? { ...i, quantity: i.quantity + qty, total_cost: (i.quantity + qty) * i.unit_cost }
+          : i)
+      : [...existingOrder.items, { part_id: part.id, part_name: part.name, quantity: qty, unit_cost: unitCost, total_cost: unitCost * qty }];
+    const total = items.reduce((sum, i) => sum + i.total_cost, 0);
+    dispatch({ type: 'UPDATE_PURCHASE_ORDER', payload: { id: existingOrder.id, items, total } });
+    return existingOrder.id;
+  }
+
+  const orderId = generatePurchaseOrderId(state.purchaseOrders.map(o => o.id));
+  dispatch({
+    type: 'ADD_PURCHASE_ORDER',
+    payload: {
+      id: orderId,
+      supplier_name: supplierName,
+      order_date: new Date().toISOString(),
+      expected_delivery: null,
+      received_date: null,
+      status: 'pending',
+      items: [{ part_id: part.id, part_name: part.name, quantity: qty, unit_cost: unitCost, total_cost: unitCost * qty }],
+      total: unitCost * qty,
+      notes: 'נוצר ידנית',
+    },
+  });
+  return orderId;
 };
 
 export const calculateWeightedAvgCost = (partId, stockBatches) => {

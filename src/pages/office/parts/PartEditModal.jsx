@@ -6,7 +6,8 @@ import Modal from '../../../components/Modal';
 import ConfirmDialog from '../../../components/ConfirmDialog';
 import AutocompleteInput from '../../../components/AutocompleteInput';
 import { getTotalStock } from '../../../utils/fifo';
-import { MapPin, Building2, Plus, Trash2, ImagePlus, FileText, BookOpen, PlayCircle, X, Package } from 'lucide-react';
+import { getDefaultSupplier, addPartToManualOrder } from '../../../utils/inventory';
+import { MapPin, Building2, Plus, Trash2, ImagePlus, FileText, BookOpen, PlayCircle, X, Package, ShoppingCart, Check } from 'lucide-react';
 
 const CATEGORIES = [
   { value: 'sensor', label: 'חיישן' },
@@ -33,7 +34,7 @@ const buildDefault = () => ({
 });
 
 export default function PartEditModal({ part, onSave, onClose }) {
-  const { state } = useApp();
+  const { state, dispatch } = useApp();
   const [form, setForm] = useState(part ? {
     ...buildDefault(),
     ...part,
@@ -55,6 +56,18 @@ export default function PartEditModal({ part, onSave, onClose }) {
     [part, state.stockBatches]
   );
   const [stockQty, setStockQty] = useState(initialStock);
+
+  // הזמנה ידנית מהירה — ללא תלות במלאי מינימום/קיים
+  const [orderQty, setOrderQty] = useState(1);
+  const [orderAdded, setOrderAdded] = useState(false);
+  const defaultSupplierName = part?.id ? getDefaultSupplier(part)?.supplier_name : null;
+
+  const handleAddToOrder = () => {
+    if (!part?.id) return;
+    addPartToManualOrder(state, dispatch, part, orderQty);
+    setOrderAdded(true);
+    setTimeout(() => setOrderAdded(false), 2000);
+  };
 
   const allBrands = useMemo(() =>
     [...new Set(state.devices.filter(d => d.brand).map(d => d.brand))].sort(),
@@ -370,6 +383,33 @@ export default function PartEditModal({ part, onSave, onClose }) {
                 className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-mono" />
             </div>
           </div>
+
+          {part?.id && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center gap-3 flex-wrap">
+              <ShoppingCart size={16} className="text-blue-600 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-bold text-blue-800">הזמנה ידנית מהירה</p>
+                <p className="text-[10px] text-blue-500">
+                  ללא תלות במלאי מינימום — לחלקים שלא מוחזקים במלאי
+                  {defaultSupplierName && ` • ספק: ${defaultSupplierName}`}
+                </p>
+              </div>
+              <input
+                type="number" min="1" value={orderQty}
+                onChange={e => setOrderQty(parseInt(e.target.value) || 1)}
+                className="w-16 border border-blue-300 rounded-lg px-2 py-1.5 text-sm text-center bg-white"
+              />
+              <button
+                type="button"
+                onClick={handleAddToOrder}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 shrink-0 ${
+                  orderAdded ? 'bg-green-600 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'
+                }`}
+              >
+                {orderAdded ? <><Check size={13} /> נוסף</> : 'הוסף להזמנה'}
+              </button>
+            </div>
+          )}
 
           <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
             <h4 className="text-xs font-bold text-slate-700 mb-2 flex items-center gap-1"><MapPin size={12} />מיקום במחסן</h4>

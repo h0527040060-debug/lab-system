@@ -7,6 +7,7 @@ import { WARRANTY_TYPES, WARRANTY_LABELS } from '../constants/warranty';
 import { formatDateTime, formatMoney } from '../utils/formatters';
 import { filterWorkCatalogForDevice, calculateAvgHoursForWork } from '../utils/workCatalog';
 import { generateWorkCodeId, generateInternalBarcode } from '../utils/idGenerators';
+import { addPartToManualOrder } from '../utils/inventory';
 import Modal from './Modal';
 import InfoCard from './InfoCard';
 import ImageGalleryModal from './ImageGalleryModal';
@@ -61,6 +62,21 @@ export default function DiagnosisModal({ repair, onClose }) {
   const [addingWork, setAddingWork] = useState(false);
   const [addingPart, setAddingPart] = useState(false);
   const [showAllParts, setShowAllParts] = useState(false);
+
+  // הזמנה ידנית מהירה — ללא תלות במלאי מינימום/קיים
+  const [manualOrderQty, setManualOrderQty] = useState({});
+  const [orderAddedId, setOrderAddedId] = useState(null);
+
+  const getManualOrderQty = (partId) => manualOrderQty[partId] ?? 1;
+  const setManualOrderQtyFor = (partId, val) => {
+    setManualOrderQty(prev => ({ ...prev, [partId]: Math.max(1, parseInt(val) || 1) }));
+  };
+
+  const handleCreateManualOrder = (part) => {
+    addPartToManualOrder(state, dispatch, part, getManualOrderQty(part.id));
+    setOrderAddedId(part.id);
+    setTimeout(() => setOrderAddedId(null), 2000);
+  };
 
   const [showAppealForm, setShowAppealForm] = useState(false);
   const [lightboxPhoto, setLightboxPhoto] = useState(null);
@@ -369,6 +385,8 @@ export default function DiagnosisModal({ repair, onClose }) {
             />
           </div>
 
+          {/* עבודות וחלקים — שני טורים זה לצד זה */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* סקשן עבודות */}
           <div>
             <div className="flex items-center justify-between mb-1">
@@ -393,7 +411,7 @@ export default function DiagnosisModal({ repair, onClose }) {
                 className="w-full border border-slate-300 rounded-lg pr-8 pl-3 py-1.5 text-sm"
               />
             </div>
-            <div className="bg-slate-50 border border-slate-200 rounded-lg p-2 max-h-52 overflow-y-auto space-y-1">
+            <div className="bg-slate-50 border border-slate-200 rounded-lg p-2 max-h-72 overflow-y-auto space-y-1">
               {sortedWorks.length === 0 ? (
                 <p className="text-sm text-slate-500 text-center py-4">
                   {workSearch ? 'לא נמצאו עבודות תואמות' : 'קטלוג העבודות ריק'}
@@ -469,7 +487,7 @@ export default function DiagnosisModal({ repair, onClose }) {
                 className="w-full border border-slate-300 rounded-lg pr-8 pl-3 py-1.5 text-sm"
               />
             </div>
-            <div className="bg-slate-50 border border-slate-200 rounded-lg p-2 max-h-52 overflow-y-auto space-y-1">
+            <div className="bg-slate-50 border border-slate-200 rounded-lg p-2 max-h-72 overflow-y-auto space-y-1">
               {filteredParts.length === 0 ? (
                 <p className="text-sm text-slate-500 text-center py-4">
                   {partSearch ? 'לא נמצאו חלקים תואמים' : 'המלאי ריק'}
@@ -499,6 +517,23 @@ export default function DiagnosisModal({ repair, onClose }) {
                             <BookOpen size={14} />
                           </button>
                         ) : null}
+                        <div className="flex items-center gap-1 shrink-0" onClick={e => e.stopPropagation()}>
+                          <input
+                            type="number" min="1" value={getManualOrderQty(p.id)}
+                            onChange={e => setManualOrderQtyFor(p.id, e.target.value)}
+                            title="כמות להזמנה ידנית"
+                            className="w-11 border border-blue-300 rounded px-1 py-1 text-xs text-center"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleCreateManualOrder(p)}
+                            className={`text-xs font-semibold whitespace-nowrap ${
+                              orderAddedId === p.id ? 'text-green-600' : 'text-blue-600 hover:text-blue-800 hover:underline'
+                            }`}
+                          >
+                            {orderAddedId === p.id ? '✓ נוסף להזמנה' : 'הוסף הזמנה ידנית'}
+                          </button>
+                        </div>
                         {isSelected && (
                           <input
                             type="number"
@@ -514,6 +549,7 @@ export default function DiagnosisModal({ repair, onClose }) {
                 })
               )}
             </div>
+          </div>
           </div>
 
           {/* חלקים לבירור */}
