@@ -14,11 +14,12 @@ const ROLE_LABELS = {
 
 const ALL_STATUSES = Object.values(REPAIR_STATUSES);
 
-// טאבים הניתנים להקצאה (ללא adminOnly ו-hidden)
-const ASSIGNABLE_TABS = TAB_CATALOG.filter(t => !t.adminOnly && !t.hidden);
-
 function RolePanel({ roleKey, roleData, statusConfig, onSave }) {
   const { label, icon, desc } = ROLE_LABELS[roleKey];
+
+  // טאבים הניתנים להקצאה (ללא adminOnly ו-hidden) — מחושב בזמן render
+  // כדי להימנע מקריאה ל-TAB_CATALOG בזמן טעינת המודול (תלות מעגלית)
+  const assignableTabs = TAB_CATALOG.filter(t => !t.adminOnly && !t.hidden);
 
   const [selectedStatuses, setSelectedStatuses] = useState(
     new Set(roleData?.visible_statuses ?? DEFAULT_ROLE_CONFIG[roleKey].visible_statuses)
@@ -116,7 +117,7 @@ function RolePanel({ roleKey, roleData, statusConfig, onSave }) {
         סמן את הטאבים שיופיעו בתפריט לתפקיד זה. אדמין תמיד רואה את כל הטאבים.
       </p>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-5">
-        {ASSIGNABLE_TABS.map(tab => {
+        {assignableTabs.map(tab => {
           const isChecked = selectedTabs.has(tab.id);
           return (
             <label
