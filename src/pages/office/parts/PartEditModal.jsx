@@ -4,7 +4,7 @@ import { uploadToStorage } from '../../../store/supabaseStorage';
 import { generateInternalBarcode } from '../../../utils/idGenerators';
 import Modal from '../../../components/Modal';
 import ConfirmDialog from '../../../components/ConfirmDialog';
-import AutocompleteInput from '../../../components/AutocompleteInput';
+import ManufacturerModelPicker from '../../../components/ManufacturerModelPicker';
 import { getTotalStock } from '../../../utils/fifo';
 import { getDefaultSupplier, addPartToManualOrder } from '../../../utils/inventory';
 import { MapPin, Building2, Plus, Trash2, ImagePlus, FileText, BookOpen, PlayCircle, X, Package, ShoppingCart, Check } from 'lucide-react';
@@ -68,19 +68,6 @@ export default function PartEditModal({ part, onSave, onClose }) {
     setOrderAdded(true);
     setTimeout(() => setOrderAdded(false), 2000);
   };
-
-  const allBrands = useMemo(() =>
-    [...new Set(state.devices.filter(d => d.brand).map(d => d.brand))].sort(),
-    [state.devices]
-  );
-  const modelsForBrand = useMemo(() =>
-    [...new Set(
-      state.devices
-        .filter(d => d.model && (!deviceBrand || d.brand?.toLowerCase() === deviceBrand.toLowerCase()))
-        .map(d => d.model)
-    )].sort(),
-    [state.devices, deviceBrand]
-  );
 
   const addCompatibleDevice = () => {
     const b = deviceBrand.trim();
@@ -437,30 +424,17 @@ export default function PartEditModal({ part, onSave, onClose }) {
             <p className="text-[10px] text-slate-400 mb-2">ריק = החלק מתאים לכל המכשירים</p>
             <div className="flex gap-2 mb-2 items-end">
               <div className="flex-1">
-                <span className="text-[10px] text-slate-500 block mb-0.5">יצרן</span>
-                <AutocompleteInput
-                  value={deviceBrand}
-                  onChange={val => { setDeviceBrand(val); setDeviceModel(''); }}
-                  suggestions={allBrands}
-                  placeholder="יצרן"
-                  allowNew
-                />
-              </div>
-              <div className="flex-1">
-                <span className="text-[10px] text-slate-500 block mb-0.5">דגם מדויק</span>
-                <AutocompleteInput
-                  value={deviceModel}
-                  onChange={val => setDeviceModel(val)}
-                  suggestions={modelsForBrand}
-                  placeholder="דגם"
-                  allowNew
+                <ManufacturerModelPicker
+                  initialBrand={deviceBrand}
+                  initialModel={deviceModel}
+                  onSelect={({ brand, model }) => { setDeviceBrand(brand); setDeviceModel(model); }}
                 />
               </div>
               <button
                 type="button"
                 onClick={addCompatibleDevice}
                 disabled={!deviceBrand.trim() || !deviceModel.trim()}
-                className="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 disabled:bg-slate-300 text-white rounded text-xs font-semibold shrink-0"
+                className="px-3 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-slate-300 text-white rounded text-xs font-semibold shrink-0"
               >
                 הוסף
               </button>

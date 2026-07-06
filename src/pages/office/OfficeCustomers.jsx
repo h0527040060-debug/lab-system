@@ -8,6 +8,7 @@ import { formatDateTime } from '../../utils/formatters';
 import DeviceQuickModal from '../../components/DeviceQuickModal';
 import { CustomerEditModal } from '../../components/CustomerEditModal';
 import { DeviceEditModal } from '../../components/DeviceEditModal';
+import DeviceThumbnail from '../../components/DeviceThumbnail';
 import { Users, Phone, Mail, MapPin, Wrench, FileText, Edit2 } from 'lucide-react';
 import { FAB } from '../../components/FAB';
 
@@ -149,13 +150,16 @@ export default function OfficeCustomers() {
                           <div className="flex justify-between items-start mb-1">
                             <button
                               onClick={() => setQuickDevice({ device: d, customer: selectedCustomer })}
-                              className="text-right hover:text-blue-700 flex-1"
+                              className="flex items-center gap-2 text-right hover:text-blue-700 flex-1 min-w-0"
                             >
-                              <p className="font-semibold">{d.brand} {d.model}</p>
-                              <p className="text-xs text-slate-500 mt-0.5">{d.type} {d.manufacturer_serial && `• Serial: ${d.manufacturer_serial}`}</p>
-                              {deviceRepairs.length > 0 && (
-                                <p className="text-xs text-orange-600 mt-1">{deviceRepairs.length} תיקונים</p>
-                              )}
+                              <DeviceThumbnail device={d} size="sm" />
+                              <span className="min-w-0">
+                                <p className="font-semibold truncate">{d.brand} {d.model}</p>
+                                <p className="text-xs text-slate-500 mt-0.5 truncate">{d.type} {d.manufacturer_serial && `• Serial: ${d.manufacturer_serial}`}</p>
+                                {deviceRepairs.length > 0 && (
+                                  <p className="text-xs text-orange-600 mt-1">{deviceRepairs.length} תיקונים</p>
+                                )}
+                              </span>
                             </button>
                             <div className="flex items-center gap-1 mr-2">
                               <span className="text-xs font-mono text-slate-400">{d.id}</span>

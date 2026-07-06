@@ -1,11 +1,13 @@
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef } from 'react';
 import { useAppContext } from '../store/AppContext';
 import Modal from './Modal';
 import AutocompleteInput from './AutocompleteInput';
+import ManufacturerModelPicker from './ManufacturerModelPicker';
 import ImageGalleryModal from './ImageGalleryModal';
 import ConfirmDialog from './ConfirmDialog';
-import { X, RefreshCw, Camera } from 'lucide-react';
+import { X, RefreshCw, Camera, Dices } from 'lucide-react';
 import { uploadToStorage } from '../store/supabaseStorage';
+import { generateEngravingNumber } from '../utils/idGenerators';
 
 const MAX_IMAGES = 4;
 const IMG_MAX_PX = 800;
@@ -55,22 +57,13 @@ export function DeviceEditModal({ device, onClose }) {
   const set = (field, val) => setForm(f => ({ ...f, [field]: val }));
   const canSave = form.brand.trim() && form.model.trim();
 
-  // קטלוג יצרנים ודגמים מהמכשירים הקיימים
-  const allBrands = useMemo(() =>
-    [...new Set(state.devices.filter(d => d.brand).map(d => d.brand))].sort(),
-    [state.devices]
-  );
-  const modelsForBrand = useMemo(() =>
-    [...new Set(
-      state.devices
-        .filter(d => d.model && (!form.brand || d.brand?.toLowerCase() === form.brand?.toLowerCase()))
-        .map(d => d.model)
-    )].sort(),
-    [state.devices, form.brand]
-  );
+  const suggestSerial = () => set('manufacturer_serial', generateEngravingNumber(state.devices));
 
   const handleSave = () => {
-    dispatch({ type: 'UPDATE_DEVICE', payload: { ...device, ...form } });
+    const finalForm = form.manufacturer_serial.trim()
+      ? form
+      : { ...form, manufacturer_serial: generateEngravingNumber(state.devices) };
+    dispatch({ type: 'UPDATE_DEVICE', payload: { ...device, ...finalForm } });
     onClose();
   };
 
@@ -131,30 +124,11 @@ export function DeviceEditModal({ device, onClose }) {
       }
     >
       <div className="space-y-3">
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1">יצרן *</label>
-            <AutocompleteInput
-              value={form.brand}
-              onChange={val => { set('brand', val); set('model', ''); }}
-              suggestions={allBrands}
-              placeholder="Samsung, LG..."
-              allowNew
-              className="text-sm"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1">דגם *</label>
-            <AutocompleteInput
-              value={form.model}
-              onChange={val => set('model', val)}
-              suggestions={modelsForBrand}
-              placeholder="מספר דגם מדויק"
-              allowNew
-              className="text-sm"
-            />
-          </div>
-        </div>
+        <ManufacturerModelPicker
+          initialBrand={form.brand}
+          initialModel={form.model}
+          onSelect={({ brand, model, type }) => setForm(f => ({ ...f, brand, model, type: type || f.type }))}
+        />
         <div>
           <label className="block text-sm font-semibold text-slate-700 mb-1">שם מכשיר</label>
           <AutocompleteInput
@@ -169,13 +143,23 @@ export function DeviceEditModal({ device, onClose }) {
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-1">Serial יצרן</label>
-            <input
-              value={form.manufacturer_serial}
-              onChange={e => set('manufacturer_serial', e.target.value)}
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-400 font-mono"
-              dir="ltr"
-              placeholder="S/N"
-            />
+            <div className="flex gap-1.5">
+              <input
+                value={form.manufacturer_serial}
+                onChange={e => set('manufacturer_serial', e.target.value)}
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-400 font-mono"
+                dir="ltr"
+                placeholder="S/N (אם אין — יוצע מספר לחריטה)"
+              />
+              <button
+                type="button"
+                onClick={suggestSerial}
+                title="הצע מספר לחריטה במקום מוסתר במכשיר"
+                className="shrink-0 px-2.5 border border-slate-300 rounded-lg text-slate-500 hover:text-orange-600 hover:border-orange-400"
+              >
+                <Dices size={16} />
+              </button>
+            </div>
           </div>
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-1">שנת ייצור</label>

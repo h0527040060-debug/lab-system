@@ -1,12 +1,10 @@
-import { useState, useMemo } from 'react';
-import { useAppContext } from '../store/AppContext';
+import { useState } from 'react';
 import Modal from './Modal';
-import AutocompleteInput from './AutocompleteInput';
+import ManufacturerModelPicker from './ManufacturerModelPicker';
 import { getWorkCompatibleDevices } from '../utils/workCatalog';
 import { X } from 'lucide-react';
 
 export function WorkCatalogEditModal({ item, onSave, onClose }) {
-  const { state } = useAppContext();
   const [form, setForm] = useState(item ? {
     ...item,
     compatible_devices: getWorkCompatibleDevices(item),
@@ -15,19 +13,6 @@ export function WorkCatalogEditModal({ item, onSave, onClose }) {
   });
   const [deviceBrand, setDeviceBrand] = useState('');
   const [deviceModel, setDeviceModel] = useState('');
-
-  const allBrands = useMemo(() =>
-    [...new Set(state.devices.filter(d => d.brand).map(d => d.brand))].sort(),
-    [state.devices]
-  );
-  const modelsForBrand = useMemo(() =>
-    [...new Set(
-      state.devices
-        .filter(d => d.model && (!deviceBrand || d.brand?.toLowerCase() === deviceBrand.toLowerCase()))
-        .map(d => d.model)
-    )].sort(),
-    [state.devices, deviceBrand]
-  );
 
   const addCompatibleDevice = () => {
     const b = deviceBrand.trim();
@@ -94,30 +79,18 @@ export function WorkCatalogEditModal({ item, onSave, onClose }) {
           </p>
           <div className="flex gap-2 mb-2 items-end">
             <div className="flex-1">
-              <span className="text-[10px] text-slate-500 block mb-0.5">יצרן</span>
-              <AutocompleteInput
-                value={deviceBrand}
-                onChange={val => { setDeviceBrand(val); setDeviceModel(''); }}
-                suggestions={allBrands}
-                placeholder="יצרן"
-                allowNew
-              />
-            </div>
-            <div className="flex-1">
-              <span className="text-[10px] text-slate-500 block mb-0.5">דגם (ריק = כל הדגמים של היצרן)</span>
-              <AutocompleteInput
-                value={deviceModel}
-                onChange={val => setDeviceModel(val)}
-                suggestions={modelsForBrand}
-                placeholder="דגם מדויק (אופציונלי)"
-                allowNew
+              <ManufacturerModelPicker
+                initialBrand={deviceBrand}
+                initialModel={deviceModel}
+                allowEmptyModel
+                onSelect={({ brand, model }) => { setDeviceBrand(brand); setDeviceModel(model); }}
               />
             </div>
             <button
               type="button"
               onClick={addCompatibleDevice}
               disabled={!deviceBrand.trim()}
-              className="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 disabled:bg-slate-300 text-white rounded text-xs font-semibold shrink-0"
+              className="px-3 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-slate-300 text-white rounded text-xs font-semibold shrink-0"
             >
               הוסף
             </button>

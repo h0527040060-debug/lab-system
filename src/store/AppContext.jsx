@@ -10,6 +10,7 @@ import { useToast } from './ToastContext';
 import OfflineBanner from '../components/OfflineBanner';
 import { enqueueSync, dequeueSync, getSyncQueue, hasPendingSync, syncQueueSize } from './syncQueue';
 import { hasPendingBase64, migratePendingImages } from './imageMigration';
+import { buildCatalogFromExisting } from './catalogMigration';
 
 export const DEFAULT_ROLE_CONFIG = {
   office: {
@@ -81,6 +82,8 @@ const buildInitialState = () => {
     services:         loadFromStorage(storageKeys.SERVICES, SEED_SERVICES),
     technicians:      loadFromStorage(storageKeys.TECHNICIANS, SEED_TECHNICIANS),
     warrantyAppeals:  loadFromStorage(storageKeys.WARRANTY_APPEALS, []),
+    manufacturers:    loadFromStorage(storageKeys.MANUFACTURERS, []),
+    models:           loadFromStorage(storageKeys.MODELS, []),
     settings:         (() => {
       const s = loadFromStorage(storageKeys.SETTINGS, SEED_SETTINGS);
       // הבטח שfieldLists קיים גם למשתמשים קיימים עם settings ישן
@@ -162,6 +165,31 @@ const appReducer = (state, action) => {
       return { ...state, suppliers: state.suppliers.map(s => s.id === action.payload.id ? { ...s, ...action.payload } : s) };
     case 'DELETE_SUPPLIER':
       return { ...state, suppliers: state.suppliers.filter(s => s.id !== action.payload) };
+
+    // --- יצרנים ---
+    case 'ADD_MANUFACTURER':
+      return { ...state, manufacturers: [...state.manufacturers, action.payload] };
+    case 'UPDATE_MANUFACTURER':
+      return { ...state, manufacturers: state.manufacturers.map(m => m.id === action.payload.id ? { ...m, ...action.payload } : m) };
+    case 'DELETE_MANUFACTURER':
+      return { ...state, manufacturers: state.manufacturers.filter(m => m.id !== action.payload) };
+
+    // --- דגמים ---
+    case 'ADD_MODEL':
+      return { ...state, models: [...state.models, action.payload] };
+    case 'UPDATE_MODEL':
+      return { ...state, models: state.models.map(m => m.id === action.payload.id ? { ...m, ...action.payload } : m) };
+    case 'DELETE_MODEL':
+      return { ...state, models: state.models.filter(m => m.id !== action.payload) };
+
+    // --- מיגרציה חד-פעמית לקטלוג יצרנים/דגמים ---
+    case 'RUN_CATALOG_MIGRATION':
+      return {
+        ...state,
+        manufacturers: action.payload.manufacturers,
+        models: action.payload.models,
+        settings: { ...state.settings, catalogMigrated: true },
+      };
 
     // --- הזמנות רכש ---
     case 'ADD_PURCHASE_ORDER':
@@ -327,6 +355,8 @@ const appReducer = (state, action) => {
         services:        p.services        ?? state.services,
         technicians:     p.technicians     ?? state.technicians,
         warrantyAppeals: p.warrantyAppeals ?? state.warrantyAppeals,
+        manufacturers:   p.manufacturers   ?? state.manufacturers,
+        models:          p.models          ?? state.models,
         settings:        p.settings        ?? state.settings,
         users,
         statusConfig:    p.statusConfig    ?? state.statusConfig,
@@ -361,6 +391,12 @@ const ACTION_META = {
   ADD_SUPPLIER:         { entity: 'supplier',  desc: (p) => `הוסיף ספק: ${p.name}` },
   UPDATE_SUPPLIER:      { entity: 'supplier',  desc: (p) => `עדכן ספק: ${p.id}` },
   DELETE_SUPPLIER:      { entity: 'supplier',  desc: (p) => `מחק ספק: ${p}` },
+  ADD_MANUFACTURER:     { entity: 'manufacturer', desc: (p) => `הוסיף יצרן: ${p.name}` },
+  UPDATE_MANUFACTURER:  { entity: 'manufacturer', desc: (p) => `עדכן יצרן: ${p.id}` },
+  DELETE_MANUFACTURER:  { entity: 'manufacturer', desc: (p) => `מחק יצרן: ${p}` },
+  ADD_MODEL:            { entity: 'model',     desc: (p) => `הוסיף דגם: ${p.name}` },
+  UPDATE_MODEL:         { entity: 'model',     desc: (p) => `עדכן דגם: ${p.id}` },
+  DELETE_MODEL:         { entity: 'model',     desc: (p) => `מחק דגם: ${p}` },
   ADD_PURCHASE_ORDER:   { entity: 'purchase',  desc: (p) => `יצר הזמנת רכש: ${p.id}` },
   UPDATE_PURCHASE_ORDER:{ entity: 'purchase',  desc: (p) => `עדכן הזמנת רכש: ${p.id}` },
   ADD_GENERAL_EXPENSE:  { entity: 'expense',   desc: (p) => `הוסיף הוצאה: ${p.description || p.id}` },
@@ -430,6 +466,12 @@ const TOAST_MESSAGES = {
   ADD_SUPPLIER:            (p) => ({ msg: `ספק "${p.name}" נוסף`, type: 'success' }),
   UPDATE_SUPPLIER:         ()  => ({ msg: 'ספק עודכן', type: 'success' }),
   DELETE_SUPPLIER:         ()  => ({ msg: 'ספק נמחק', type: 'success' }),
+  ADD_MANUFACTURER:        (p) => ({ msg: `יצרן "${p.name}" נוסף`, type: 'success' }),
+  UPDATE_MANUFACTURER:     ()  => ({ msg: 'יצרן עודכן', type: 'success' }),
+  DELETE_MANUFACTURER:     ()  => ({ msg: 'יצרן נמחק', type: 'success' }),
+  ADD_MODEL:               (p) => ({ msg: `דגם "${p.name}" נוסף`, type: 'success' }),
+  UPDATE_MODEL:            ()  => ({ msg: 'דגם עודכן', type: 'success' }),
+  DELETE_MODEL:            ()  => ({ msg: 'דגם נמחק', type: 'success' }),
   ADD_PURCHASE_ORDER:      (p) => ({ msg: `הזמנת רכש ${p.id} נוצרה`, type: 'success' }),
   UPDATE_PURCHASE_ORDER:   ()  => ({ msg: 'הזמנת רכש עודכנה', type: 'success' }),
   ADD_GENERAL_EXPENSE:     ()  => ({ msg: 'הוצאה נרשמה בהצלחה', type: 'success' }),
@@ -465,7 +507,11 @@ const ACTION_TO_STORAGE_KEY = {
   DELETE_PART: storageKeys.PARTS,               ADD_STOCK_BATCH: storageKeys.STOCK_BATCHES,
   UPDATE_STOCK_BATCH: storageKeys.STOCK_BATCHES, UPDATE_STOCK_BATCHES_BULK: storageKeys.STOCK_BATCHES,
   ADD_SUPPLIER: storageKeys.SUPPLIERS,          UPDATE_SUPPLIER: storageKeys.SUPPLIERS,
-  DELETE_SUPPLIER: storageKeys.SUPPLIERS,       ADD_PURCHASE_ORDER: storageKeys.PURCHASE_ORDERS,
+  DELETE_SUPPLIER: storageKeys.SUPPLIERS,
+  ADD_MANUFACTURER: storageKeys.MANUFACTURERS,  UPDATE_MANUFACTURER: storageKeys.MANUFACTURERS,
+  DELETE_MANUFACTURER: storageKeys.MANUFACTURERS, ADD_MODEL: storageKeys.MODELS,
+  UPDATE_MODEL: storageKeys.MODELS,             DELETE_MODEL: storageKeys.MODELS,
+  ADD_PURCHASE_ORDER: storageKeys.PURCHASE_ORDERS,
   UPDATE_PURCHASE_ORDER: storageKeys.PURCHASE_ORDERS, ADD_GENERAL_EXPENSE: storageKeys.GENERAL_EXPENSES,
   UPDATE_GENERAL_EXPENSE: storageKeys.GENERAL_EXPENSES, DELETE_GENERAL_EXPENSE: storageKeys.GENERAL_EXPENSES,
   ADD_WORK_ITEM: storageKeys.WORK_CATALOG,      UPDATE_WORK_ITEM: storageKeys.WORK_CATALOG,
@@ -503,7 +549,21 @@ export const AppProvider = ({ children }) => {
   const stateRef = useRef(state);
   stateRef.current = state;
   const migratingImagesRef = useRef(false);
+  const catalogMigrationRanRef = useRef(false);
   const { showToast } = useToast();
+
+  // מיגרציה חד-פעמית: בונה קטלוג יצרנים/דגמים מנתונים קיימים (ראה catalogMigration.js)
+  // רצה רק אחרי שהטעינה הראשונית (מ-Supabase או localStorage) הסתיימה — כדי לא ליצור
+  // כפילויות אם מכשיר אחר כבר סנכרן קטלוג לענן.
+  const runCatalogMigration = useCallback(() => {
+    if (catalogMigrationRanRef.current) return;
+    const current = stateRef.current;
+    if (current.settings?.catalogMigrated) return;
+    if ((current.manufacturers || []).length > 0) return;
+    catalogMigrationRanRef.current = true;
+    const { manufacturers, models } = buildCatalogFromExisting(current);
+    dispatch({ type: 'RUN_CATALOG_MIGRATION', payload: { manufacturers, models } });
+  }, [dispatch]);
 
   // רענון ספירת הפריטים הממתינים לסנכרון (לחיווי בהדר)
   const refreshPending = useCallback(() => setPendingSyncCount(syncQueueSize()), []);
@@ -627,12 +687,22 @@ export const AppProvider = ({ children }) => {
       setDbLoading(false);
       // נסה להעלות מחדש תמונות שנתקעו מקומית (רק אחרי שהטעינה הראשונית הסתיימה)
       setTimeout(() => runImageMigration(), 2000);
+      // מיגרציית קטלוג יצרנים/דגמים — רק אחרי שידוע אם יש כבר נתונים בענן (מונע כפילויות בין מכשירים)
+      runCatalogMigration();
     }).catch(() => {
       // אין חיבור לשרת בטעינה — נשארים עם הנתונים המקומיים (גיבוי localStorage) ומסמנים אופליין
       setIsOffline(true);
       initializedRef.current = true;
       setDbLoading(false);
+      runCatalogMigration();
     });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // אם אין Supabase מוגדר כלל (למשל סביבת פיתוח מקומית) — הרץ מיד, בלי להמתין לטעינה מהענן
+  useEffect(() => {
+    if (isSupabaseConfigured()) return;
+    runCatalogMigration();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -758,6 +828,8 @@ export const AppProvider = ({ children }) => {
   useEffect(() => { scheduleSave(storageKeys.SERVICES, state.services, null); scheduleGranularSave('services', state.services); }, [state.services, scheduleSave, scheduleGranularSave]);
   useEffect(() => { scheduleSave(storageKeys.TECHNICIANS, state.technicians, null); scheduleGranularSave('technicians', state.technicians); }, [state.technicians, scheduleSave, scheduleGranularSave]);
   useEffect(() => { scheduleSave(storageKeys.WARRANTY_APPEALS, state.warrantyAppeals, null); scheduleGranularSave('warrantyAppeals', state.warrantyAppeals); }, [state.warrantyAppeals, scheduleSave, scheduleGranularSave]);
+  useEffect(() => { scheduleSave(storageKeys.MANUFACTURERS, state.manufacturers, null); scheduleGranularSave('manufacturers', state.manufacturers); }, [state.manufacturers, scheduleSave, scheduleGranularSave]);
+  useEffect(() => { scheduleSave(storageKeys.MODELS, state.models, null); scheduleGranularSave('models', state.models); }, [state.models, scheduleSave, scheduleGranularSave]);
   useEffect(() => { scheduleSave(storageKeys.SETTINGS, state.settings, STATE_TO_DB_KEY.settings); }, [state.settings, scheduleSave]);
   useEffect(() => { scheduleSave(storageKeys.CURRENT_USER, state.currentUser, null); }, [state.currentUser, scheduleSave]);
   useEffect(() => { scheduleSave(storageKeys.USERS, state.users, null); scheduleGranularSave('users', state.users); }, [state.users, scheduleSave, scheduleGranularSave]);

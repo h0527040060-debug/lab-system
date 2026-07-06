@@ -5,7 +5,8 @@ import { uploadToStorage } from '../store/supabaseStorage';
 import { REPAIR_STATUSES } from '../constants/statuses';
 import { WARRANTY_TYPES, WARRANTY_LABELS } from '../constants/warranty';
 import { formatDateTime, formatMoney } from '../utils/formatters';
-import { filterWorkCatalogForDevice, calculateAvgHoursForWork, isWorkCompatibleWithDevice, isWorkGeneral } from '../utils/workCatalog';
+import { filterWorkCatalogForDevice, calculateAvgHoursForWork, isWorkGeneral } from '../utils/workCatalog';
+import { isPartCompatibleWithDevice } from '../utils/deviceCompat';
 import { generateWorkCodeId, generateInternalBarcode } from '../utils/idGenerators';
 import { addPartToManualOrder } from '../utils/inventory';
 import Modal from './Modal';
@@ -103,21 +104,10 @@ export default function DiagnosisModal({ repair, onClose }) {
   });
   const filteredWorks = allFilteredWorks.filter(w => showAllWorks || relevantWorkIds.has(w.id));
 
-  // סינון לפי תאימות דגם
-  const isCompatibleWithDevice = (part) => {
-    const cd = part.compatible_devices;
-    if (!cd || cd.length === 0) return true; // ריק = תואם לכולם
-    if (!device?.brand || !device?.model) return true;
-    return cd.some(
-      d => d.brand?.toLowerCase() === device.brand?.toLowerCase() &&
-           d.model?.toLowerCase() === device.model?.toLowerCase()
-    );
-  };
-
-  const compatibleCount = state.parts.filter(isCompatibleWithDevice).length;
+  const compatibleCount = state.parts.filter(p => isPartCompatibleWithDevice(p, device)).length;
 
   const filteredParts = state.parts.filter(p => {
-    if (!showAllParts && !isCompatibleWithDevice(p)) return false;
+    if (!showAllParts && !isPartCompatibleWithDevice(p, device)) return false;
     if (!partSearch) return true;
     const s = partSearch.toLowerCase();
     return (

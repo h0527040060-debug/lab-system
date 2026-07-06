@@ -1,11 +1,14 @@
 import { useState } from 'react';
-import { X, Hash, Cpu, User, Edit2 } from 'lucide-react';
+import { X, Hash, Cpu, User, Edit2, PackageSearch } from 'lucide-react';
 import { formatDateTime } from '../utils/formatters';
 import StatusBadge from './StatusBadge';
 import { DeviceEditModal } from './DeviceEditModal';
+import DeviceThumbnail from './DeviceThumbnail';
+import DeviceCompatiblePartsModal from './DeviceCompatiblePartsModal';
 
 export default function DeviceQuickModal({ device, customer, repairs = [], onClose }) {
   const [showEdit, setShowEdit] = useState(false);
+  const [showParts, setShowParts] = useState(false);
   if (!device) return null;
 
   const deviceRepairs = repairs
@@ -20,11 +23,22 @@ export default function DeviceQuickModal({ device, customer, repairs = [], onClo
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between p-4 border-b border-slate-200">
-          <div>
-            <h2 className="font-bold text-lg text-slate-800">{device.type || `${device.brand} ${device.model}`}</h2>
-            <p className="font-mono text-xs text-slate-400">{device.id}</p>
+          <div className="flex items-center gap-2 min-w-0">
+            <DeviceThumbnail device={device} size="md" />
+            <div className="min-w-0">
+              <h2 className="font-bold text-lg text-slate-800 truncate">{device.type || `${device.brand} ${device.model}`}</h2>
+              <p className="font-mono text-xs text-slate-400">{device.id}</p>
+            </div>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 shrink-0">
+            <button
+              onClick={() => setShowParts(true)}
+              className="p-1.5 hover:bg-blue-100 rounded-lg text-slate-400 hover:text-blue-600"
+              title="חלקים מתאימים"
+              aria-label="חלקים מתאימים"
+            >
+              <PackageSearch size={16} />
+            </button>
             <button
               onClick={() => setShowEdit(true)}
               className="p-1.5 hover:bg-orange-100 rounded-lg text-slate-400 hover:text-orange-600"
@@ -88,6 +102,7 @@ export default function DeviceQuickModal({ device, customer, repairs = [], onClo
       </div>
     </div>
     {showEdit && <DeviceEditModal device={device} onClose={() => setShowEdit(false)} />}
+    {showParts && <DeviceCompatiblePartsModal device={device} onClose={() => setShowParts(false)} />}
     </>
   );
 }

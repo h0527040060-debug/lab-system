@@ -7,7 +7,9 @@ import EmptyState from '../../components/EmptyState';
 import CustomerQuickModal from '../../components/CustomerQuickModal';
 import DeviceQuickModal from '../../components/DeviceQuickModal';
 import { DeviceEditModal } from '../../components/DeviceEditModal';
-import { Wrench, AlertCircle, Edit2 } from 'lucide-react';
+import DeviceThumbnail from '../../components/DeviceThumbnail';
+import DeviceCompatiblePartsModal from '../../components/DeviceCompatiblePartsModal';
+import { Wrench, AlertCircle, Edit2, PackageSearch } from 'lucide-react';
 
 export default function OfficeDevices() {
   const { state } = useAppContext();
@@ -15,6 +17,7 @@ export default function OfficeDevices() {
   const [quickCustomer, setQuickCustomer] = useState(null);
   const [quickDevice, setQuickDevice] = useState(null);
   const [editingDevice, setEditingDevice] = useState(null);
+  const [partsForDevice, setPartsForDevice] = useState(null);
   const stagger = useStagger(25);
 
   const filteredDevices = [...state.devices]
@@ -70,14 +73,24 @@ export default function OfficeDevices() {
                     <div className="flex justify-between items-start mb-1">
                       <button
                         onClick={() => setQuickDevice({ device: d, customer: owner })}
-                        className="text-right flex-1"
+                        className="flex items-center gap-2 text-right flex-1 min-w-0"
                       >
-                        <p className="font-semibold text-sm">{d.brand} {d.model}</p>
-                        <p className="text-xs text-slate-500">{d.type} {d.manufacturer_serial && `• ${d.manufacturer_serial}`}</p>
+                        <DeviceThumbnail device={d} size="sm" />
+                        <span className="min-w-0">
+                          <p className="font-semibold text-sm truncate">{d.brand} {d.model}</p>
+                          <p className="text-xs text-slate-500 truncate">{d.type} {d.manufacturer_serial && `• ${d.manufacturer_serial}`}</p>
+                        </span>
+                      </button>
+                      <button
+                        onClick={() => setPartsForDevice(d)}
+                        className="p-2 hover:bg-blue-100 rounded-lg text-slate-400 hover:text-blue-600 mr-1 shrink-0"
+                        title="חלקים מתאימים"
+                      >
+                        <PackageSearch size={14} />
                       </button>
                       <button
                         onClick={() => setEditingDevice(d)}
-                        className="p-2 hover:bg-orange-100 rounded-lg text-slate-400 hover:text-orange-600 mr-1"
+                        className="p-2 hover:bg-orange-100 rounded-lg text-slate-400 hover:text-orange-600 mr-1 shrink-0"
                         title="ערוך מכשיר"
                       >
                         <Edit2 size={14} />
@@ -135,10 +148,13 @@ export default function OfficeDevices() {
                         <td className="p-3">
                           <button
                             onClick={() => setQuickDevice({ device: d, customer: owner })}
-                            className="text-right hover:text-blue-600 group"
+                            className="flex items-center gap-2 text-right hover:text-blue-600 group"
                           >
-                            <p className="font-semibold group-hover:underline">{d.brand}</p>
-                            <p className="text-xs text-slate-500">{d.model}</p>
+                            <DeviceThumbnail device={d} size="sm" />
+                            <span>
+                              <p className="font-semibold group-hover:underline">{d.brand}</p>
+                              <p className="text-xs text-slate-500">{d.model}</p>
+                            </span>
                           </button>
                         </td>
                         <td className="p-3 font-mono text-xs">{d.manufacturer_serial || '—'}</td>
@@ -160,13 +176,22 @@ export default function OfficeDevices() {
                           {problematic && <p className="text-xs text-red-500">בעייתי</p>}
                         </td>
                         <td className="p-3 text-center">
-                          <button
-                            onClick={() => setEditingDevice(d)}
-                            className="p-2 hover:bg-orange-100 rounded-lg text-slate-400 hover:text-orange-600"
-                            title="ערוך מכשיר"
-                          >
-                            <Edit2 size={14} />
-                          </button>
+                          <div className="flex items-center justify-center gap-1">
+                            <button
+                              onClick={() => setPartsForDevice(d)}
+                              className="p-2 hover:bg-blue-100 rounded-lg text-slate-400 hover:text-blue-600"
+                              title="חלקים מתאימים"
+                            >
+                              <PackageSearch size={14} />
+                            </button>
+                            <button
+                              onClick={() => setEditingDevice(d)}
+                              className="p-2 hover:bg-orange-100 rounded-lg text-slate-400 hover:text-orange-600"
+                              title="ערוך מכשיר"
+                            >
+                              <Edit2 size={14} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -185,6 +210,9 @@ export default function OfficeDevices() {
       )}
       {editingDevice && (
         <DeviceEditModal device={editingDevice} onClose={() => setEditingDevice(null)} />
+      )}
+      {partsForDevice && (
+        <DeviceCompatiblePartsModal device={partsForDevice} onClose={() => setPartsForDevice(null)} />
       )}
     </div>
   );

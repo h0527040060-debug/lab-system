@@ -3,6 +3,7 @@ import PageHeader from '../../components/PageHeader';
 import { SettingsBusiness } from './settings/SettingsBusiness';
 import { SettingsStatuses } from './settings/SettingsStatuses';
 import { SettingsSuppliers } from './settings/SettingsSuppliers';
+import { ManufacturersModels } from './settings/ManufacturersModels';
 import { SettingsMisc } from './settings/SettingsMisc';
 import { SettingsRoles } from './settings/SettingsRoles';
 import { SettingsFields } from './settings/SettingsFields';
@@ -12,6 +13,7 @@ const SUB_TABS = [
   { id: 'business',  label: 'פרטי עסק',        icon: '🏢' },
   { id: 'statuses',  label: 'ניהול סטטוסים',   icon: '🏷️' },
   { id: 'suppliers', label: 'ניהול ספקים',      icon: '🚚' },
+  { id: 'catalog',   label: 'יצרנים ודגמים',    icon: '🏭' },
   { id: 'roles',     label: 'ניהול תפקידים',    icon: '👥' },
   { id: 'fields',    label: 'ניהול שדות',       icon: '📋' },
   { id: 'misc',      label: 'הגדרות שונות',     icon: '⚙️' },
@@ -22,6 +24,7 @@ const COMPONENTS = {
   business:  SettingsBusiness,
   statuses:  SettingsStatuses,
   suppliers: SettingsSuppliers,
+  catalog:   ManufacturersModels,
   roles:     SettingsRoles,
   fields:    SettingsFields,
   misc:      SettingsMisc,

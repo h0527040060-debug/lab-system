@@ -77,3 +77,33 @@ export const generateBatchId = (existingIds = []) => {
   const next = numbers.length > 0 ? Math.max(...numbers) + 1 : 1;
   return `BATCH-${String(next).padStart(4, '0')}`;
 };
+
+export const generateManufacturerId = (existingIds = []) => {
+  const numbers = existingIds
+    .filter(id => id?.startsWith('MFG-'))
+    .map(id => parseInt(id.replace('MFG-', '')))
+    .filter(n => !isNaN(n));
+  const next = numbers.length > 0 ? Math.max(...numbers) + 1 : 1;
+  return `MFG-${String(next).padStart(4, '0')}`;
+};
+
+export const generateModelId = (existingIds = []) => {
+  const numbers = existingIds
+    .filter(id => id?.startsWith('MDL-'))
+    .map(id => parseInt(id.replace('MDL-', '')))
+    .filter(n => !isNaN(n));
+  const next = numbers.length > 0 ? Math.max(...numbers) + 1 : 1;
+  return `MDL-${String(next).padStart(4, '0')}`;
+};
+
+// מציע מספר קצר (עד 4 ספרות) לחריטה על המכשיר — ייחודי מול המספרים הקיימים
+export const generateEngravingNumber = (existingDevices = []) => {
+  const existingSerials = new Set(
+    existingDevices.map(d => d.manufacturer_serial).filter(Boolean)
+  );
+  let candidate;
+  do {
+    candidate = String(Math.floor(Math.random() * 10000));
+  } while (existingSerials.has(candidate));
+  return candidate;
+};

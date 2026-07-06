@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import { useAppContext } from '../../store/AppContext';
 import { uploadToStorage } from '../../store/supabaseStorage';
-import { generateDeviceId, generateRepairId } from '../../utils/idGenerators';
+import { generateDeviceId, generateRepairId, generateEngravingNumber } from '../../utils/idGenerators';
 import { loadFromStorage, storageKeys } from '../../store/storage';
 import { REPAIR_STATUSES } from '../../constants/statuses';
 import { formatDateTime } from '../../utils/formatters';
 import PageHeader from '../../components/PageHeader';
 import AutocompleteInput from '../../components/AutocompleteInput';
-import { Wrench, FileText, Check, Plus, Camera, LayoutDashboard } from 'lucide-react';
+import ManufacturerModelPicker from '../../components/ManufacturerModelPicker';
+import DeviceThumbnail from '../../components/DeviceThumbnail';
+import { Wrench, FileText, Check, Plus, Camera, LayoutDashboard, Dices } from 'lucide-react';
 import ConfirmDialog from '../../components/ConfirmDialog';
 
 const MAX_PHOTOS = 3;
@@ -90,11 +92,13 @@ export default function OfficeIntakeInternal({ onNavigate }) {
     let deviceId = selectedDeviceId;
     if (deviceMode === 'new') {
       deviceId = generateDeviceId(state.devices.map(d => d.id));
+      const serial = newDevice.manufacturer_serial?.trim() || generateEngravingNumber(state.devices);
       dispatch({
         type: 'ADD_DEVICE',
         payload: {
           id: deviceId,
           ...newDevice,
+          manufacturer_serial: serial,
           owner_customer_id: null,
           images: intakePhotos,
           created_date: new Date().toISOString(),
@@ -251,6 +255,13 @@ export default function OfficeIntakeInternal({ onNavigate }) {
 
           {deviceMode === 'new' ? (
             <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2">
+                <ManufacturerModelPicker
+                  initialBrand={newDevice.brand}
+                  initialModel={newDevice.model}
+                  onSelect={({ brand, model, type }) => setNewDevice(d => ({ ...d, brand, model, type: type || d.type }))}
+                />
+              </div>
               <AutocompleteInput
                 value={newDevice.type}
                 onChange={val => setNewDevice({ ...newDevice, type: val })}
@@ -260,27 +271,23 @@ export default function OfficeIntakeInternal({ onNavigate }) {
                 allowNew
                 className="col-span-2"
               />
-              <AutocompleteInput
-                value={newDevice.brand}
-                onChange={val => setNewDevice({ ...newDevice, brand: val, model: '' })}
-                suggestions={[...new Set(state.devices.map(d => d.brand).filter(Boolean))]}
-                placeholder="יצרן * (Ozti, Electrolux)"
-                allowNew
-              />
-              <AutocompleteInput
-                value={newDevice.model}
-                onChange={val => setNewDevice({ ...newDevice, model: val })}
-                suggestions={[...new Set(state.devices.filter(d => d.brand === newDevice.brand).map(d => d.model).filter(Boolean))]}
-                placeholder="דגם"
-                allowNew
-              />
-              <input
-                type="text"
-                placeholder="Serial Number יצרן"
-                value={newDevice.manufacturer_serial}
-                onChange={(e) => setNewDevice({ ...newDevice, manufacturer_serial: e.target.value })}
-                className="border border-slate-300 rounded-lg px-3 py-2 col-span-2"
-              />
+              <div className="col-span-2 flex gap-1.5">
+                <input
+                  type="text"
+                  placeholder="Serial Number יצרן (אם אין — יוצע מספר לחריטה)"
+                  value={newDevice.manufacturer_serial}
+                  onChange={(e) => setNewDevice({ ...newDevice, manufacturer_serial: e.target.value })}
+                  className="flex-1 border border-slate-300 rounded-lg px-3 py-2"
+                />
+                <button
+                  type="button"
+                  onClick={() => setNewDevice(d => ({ ...d, manufacturer_serial: generateEngravingNumber(state.devices) }))}
+                  title="הצע מספר לחריטה במקום מוסתר במכשיר"
+                  className="shrink-0 px-2.5 border border-slate-300 rounded-lg text-slate-500 hover:text-orange-600 hover:border-orange-400"
+                >
+                  <Dices size={16} />
+                </button>
+              </div>
               <div>
                 <label className="text-xs text-slate-500 mb-1 block">תאריך רכישה (יד שנייה)</label>
                 <input
@@ -322,9 +329,12 @@ export default function OfficeIntakeInternal({ onNavigate }) {
                       className={`w-full text-right p-3 border-b last:border-b-0 hover:bg-slate-50 ${selectedDeviceId === d.id ? 'bg-purple-50' : ''}`}
                     >
                       <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-semibold">{d.brand} {d.model}</p>
-                          <p className="text-xs text-slate-500">{d.type} • Serial: {d.manufacturer_serial || '—'}</p>
+                        <div className="flex items-center gap-2">
+                          <DeviceThumbnail device={d} size="sm" />
+                          <div>
+                            <p className="font-semibold">{d.brand} {d.model}</p>
+                            <p className="text-xs text-slate-500">{d.type} • Serial: {d.manufacturer_serial || '—'}</p>
+                          </div>
                         </div>
                         <span className="text-xs text-slate-400 font-mono">{d.id}</span>
                       </div>

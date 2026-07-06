@@ -14,6 +14,8 @@ export const storageKeys = {
   SERVICES: 'services',
   TECHNICIANS: 'technicians',
   WARRANTY_APPEALS: 'warranty_appeals',
+  MANUFACTURERS: 'manufacturers',
+  MODELS: 'models',
   SETTINGS: 'settings',
   CURRENT_USER: 'current_user',
   USERS: 'users',

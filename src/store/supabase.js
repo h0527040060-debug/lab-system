@@ -24,6 +24,8 @@ export const GRANULAR_ENTITIES = {
   services:        'service__',
   technicians:     'tech__',
   warrantyAppeals: 'appeal__',
+  manufacturers:   'mfg__',
+  models:          'model__',
   users:           'user__',   // כל משתמש בשורה נפרדת — מונע מחיקת משתמשים חדשים
 };
 
