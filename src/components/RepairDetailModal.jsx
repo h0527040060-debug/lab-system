@@ -419,7 +419,7 @@ export default function RepairDetailModal({ repair, customer, device, onClose, o
                   <Stethoscope size={12} /> אבחון
                 </button>
               )}
-              {repair.diagnosis_notes && !canDiagnosis && (
+              {!canDiagnosis && (
                 <button
                   onClick={() => { onAction(repair.id, 'diagnosis'); onClose(); }}
                   className="flex items-center gap-1.5 text-xs bg-yellow-50 hover:bg-yellow-100 text-yellow-700 px-3 py-1.5 rounded-lg font-semibold border border-yellow-200"

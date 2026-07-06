@@ -121,6 +121,11 @@ export default function LabDashboard() {
         <WorkSessionModal
           repair={workingOnRepair}
           onClose={() => setWorkingOnRepair(null)}
+          onReturnToDiagnosis={(repairId) => {
+            const r = state.repairs.find(x => x.id === repairId) || workingOnRepair;
+            setWorkingOnRepair(null);
+            setDiagnosingRepair(r);
+          }}
         />
       )}
 

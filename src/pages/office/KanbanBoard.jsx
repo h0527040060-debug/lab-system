@@ -601,7 +601,11 @@ export default function KanbanBoard({ role = 'office', onNavigate, openRepairId 
         <DiagnosisModal repair={activeRepair} onClose={() => { setActiveRepairId(null); setActiveModal(null); }} />
       )}
       {activeRepair && activeModal === 'work' && (
-        <WorkSessionModal repair={activeRepair} onClose={() => { setActiveRepairId(null); setActiveModal(null); }} />
+        <WorkSessionModal
+          repair={activeRepair}
+          onClose={() => { setActiveRepairId(null); setActiveModal(null); }}
+          onReturnToDiagnosis={() => setActiveModal('diagnosis')}
+        />
       )}
       {activeRepair && activeModal === 'docs' && (
         <ReleaseDocsModal repair={activeRepair} onClose={() => { setActiveRepairId(null); setActiveModal(null); }} />
