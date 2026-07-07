@@ -104,14 +104,14 @@ export default function ModelEditModal({ model, onClose }) {
       maxWidth="max-w-lg"
       footer={
         <div className="flex justify-between items-center">
-          {!isNew ? (
-            <button
-              onClick={() => setConfirmDelete(true)}
-              className="flex items-center gap-1.5 text-sm text-red-600 hover:text-red-700 font-semibold"
-            >
-              <Trash2 size={15} /> מחק דגם
-            </button>
-          ) : <span />}
+          <button
+            onClick={() => setConfirmDelete(true)}
+            disabled={isNew}
+            title={isNew ? 'יש לקטלג את הדגם לפני שניתן למחוק אותו' : undefined}
+            className="flex items-center gap-1.5 text-sm text-red-600 hover:text-red-700 disabled:text-slate-300 disabled:cursor-not-allowed font-semibold"
+          >
+            <Trash2 size={15} /> מחק דגם
+          </button>
           <div className="flex gap-2">
             <button onClick={onClose} className="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-100">ביטול</button>
             <button
