@@ -26,6 +26,9 @@ export default function ModelCardModal({ brand, model, onClose, onNavigate }) {
   );
   const category = catalogModel?.device_type || devices[0]?.type || '';
   const syntheticDevice = { brand, model, type: category, images: devices[0]?.images || [] };
+  // בעריכת דגם שטרם קוטלג, ממלאים קטגוריה מראש רק אם היא כבר קטגוריה תקנית — לא טקסט חופשי ישן
+  const deviceTypesList = state.settings?.fieldLists?.deviceTypes || [];
+  const draftCategory = deviceTypesList.includes(category) ? category : '';
 
   const repairs = state.repairs
     .filter(r => deviceIds.has(r.device_id))
@@ -119,7 +122,7 @@ export default function ModelCardModal({ brand, model, onClose, onNavigate }) {
       {showParts && <DeviceCompatiblePartsModal device={syntheticDevice} onClose={() => setShowParts(false)} />}
       {editingModel && (
         <ModelEditModal
-          model={catalogModel || { id: null, name: model, device_type: category, images: [], draftBrand: brand }}
+          model={catalogModel || { id: null, name: model, device_type: draftCategory, images: [], draftBrand: brand }}
           onClose={() => setEditingModel(false)}
         />
       )}

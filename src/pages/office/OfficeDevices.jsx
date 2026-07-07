@@ -49,9 +49,13 @@ export default function OfficeDevices({ onNavigate }) {
 
   const modelGroups = useMemo(() => buildModelGroups(state), [state]);
 
-  // עריכת דגם זמינה תמיד — אם עדיין אין רשומת קטלוג (מכשיר שהמיגרציה פספסה), פותח במצב "קטלג עכשיו"
+  // עריכת דגם זמינה תמיד — אם עדיין אין רשומת קטלוג (מכשיר שהמיגרציה פספסה), פותח במצב "קטלג עכשיו".
+  // הקטגוריה מתמלאת מראש רק אם היא כבר קטגוריה תקנית קיימת — טקסט חופשי ישן (למשל "קוצץ ירקות דיטו TRS 400V")
+  // לא מוצג, כדי לא לבלבל בין קטגוריה נקייה לתיאור מכשיר חופשי
   const openEditForGroup = (g) => {
-    setEditingModel(g.catalogModel || { id: null, name: g.model, device_type: g.category, images: [], draftBrand: g.brand });
+    const deviceTypes = state.settings?.fieldLists?.deviceTypes || [];
+    const cleanCategory = deviceTypes.includes(g.category) ? g.category : '';
+    setEditingModel(g.catalogModel || { id: null, name: g.model, device_type: cleanCategory, images: [], draftBrand: g.brand });
   };
 
   const filteredGroups = modelGroups

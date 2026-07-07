@@ -49,8 +49,20 @@ export default function ModelEditModal({ model, onClose }) {
 
   const removeImage = (idx) => setForm(f => ({ ...f, images: f.images.filter((_, i) => i !== idx) }));
 
+  // מעדכן את כל המכשירים הקיימים שמשויכים לדגם (לפי brand+model המקוריים) כשהשם/הקטגוריה משתנים,
+  // כדי שהקיבוץ במסך "מכשירים" והקטגוריה הנגזרת יישארו מסונכרנים אחרי עריכה/קיטלוג
+  const syncDevices = (manufacturerName, newName, newCategory) => {
+    const oldBrand = (manufacturerName || '').toLowerCase();
+    const oldModel = (model.name || '').toLowerCase();
+    state.devices
+      .filter(d => d.brand?.toLowerCase() === oldBrand && d.model?.toLowerCase() === oldModel)
+      .forEach(d => dispatch({ type: 'UPDATE_DEVICE', payload: { ...d, brand: manufacturerName, model: newName, type: newCategory } }));
+  };
+
   const handleSave = () => {
     if (!canSave) return;
+    const name = form.name.trim();
+    const category = form.device_type.trim();
     if (isNew) {
       let manufacturerId = state.manufacturers.find(
         m => m.name.toLowerCase() === (model.draftBrand || '').toLowerCase()
@@ -62,13 +74,16 @@ export default function ModelEditModal({ model, onClose }) {
       const id = generateModelId(state.models.map(m => m.id));
       dispatch({
         type: 'ADD_MODEL',
-        payload: { id, manufacturer_id: manufacturerId, name: form.name.trim(), device_type: form.device_type.trim(), images: form.images, main_image_index: 0 },
+        payload: { id, manufacturer_id: manufacturerId, name, device_type: category, images: form.images, main_image_index: 0 },
       });
+      syncDevices(model.draftBrand, name, category);
     } else {
+      const manufacturerName = state.manufacturers.find(m => m.id === model.manufacturer_id)?.name || '';
       dispatch({
         type: 'UPDATE_MODEL',
-        payload: { id: model.id, name: form.name.trim(), device_type: form.device_type.trim(), images: form.images },
+        payload: { id: model.id, name, device_type: category, images: form.images },
       });
+      syncDevices(manufacturerName, name, category);
     }
     onClose();
   };
@@ -104,7 +119,7 @@ export default function ModelEditModal({ model, onClose }) {
               disabled={!canSave}
               className="bg-orange-500 hover:bg-orange-600 disabled:bg-slate-300 text-white px-6 py-2 rounded-lg font-semibold"
             >
-              {isNew ? 'קטלג דגם' : 'שמור'}
+              שמור
             </button>
           </div>
         </div>
