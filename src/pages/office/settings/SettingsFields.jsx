@@ -153,6 +153,13 @@ function FieldSection({ fieldKey, label }) {
 export function SettingsFields() {
   return (
     <div className="space-y-4">
+      <div>
+        <h2 className="text-lg font-bold text-slate-900">ניהול קטגוריות מכשירים</h2>
+        <p className="text-sm text-slate-500">
+          זהו המקום היחיד להוספה/עריכה/מחיקה של קטגוריות מכשיר — הרשימה כאן מוזנת אוטומטית לכל
+          מסך שדורש בחירת קטגוריה (עריכת מכשיר, קליטה, הקמת דגם חדש בקטלוג).
+        </p>
+      </div>
       {FIELD_SECTIONS.map(s => (
         <FieldSection key={s.key} fieldKey={s.key} label={s.label} />
       ))}
