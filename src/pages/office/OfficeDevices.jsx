@@ -4,6 +4,7 @@ import { useStagger } from '../../hooks/useStagger';
 import PageHeader from '../../components/PageHeader';
 import SearchInput from '../../components/SearchInput';
 import EmptyState from '../../components/EmptyState';
+import DeviceThumbnail from '../../components/DeviceThumbnail';
 import DeviceCompatiblePartsModal from '../../components/DeviceCompatiblePartsModal';
 import ModelCardModal from '../../components/ModelCardModal';
 import ModelEditModal from '../../components/ModelEditModal';
@@ -33,11 +34,16 @@ function buildModelGroups(state) {
     );
     const deviceIds = new Set(g.devices.map(d => d.id));
     const repairsCount = state.repairs.filter(r => deviceIds.has(r.device_id)).length;
+    // קטגוריה גולמית ממכשיר (g.devices[0]?.type) מוצגת רק אם היא ערך קטגוריה תקני מהרשימה המנוהלת —
+    // אחרת מדובר בטקסט חופשי ישן שלרוב שווה לשם הדגם עצמו, מה שיוצר כפילות מטרידה בתצוגה.
+    const deviceTypes = state.settings?.fieldLists?.deviceTypes?.map(t => t.trim()) || [];
+    const rawType = (g.devices[0]?.type || '').trim();
+    const category = catalogModel?.device_type || (deviceTypes.includes(rawType) ? rawType : '');
     return {
       key: `${g.brand}||${g.model}`,
       brand: g.brand,
       model: g.model,
-      category: catalogModel?.device_type || g.devices[0]?.type || '',
+      category,
       catalogModel,
       devices: g.devices,
       repairsCount,
@@ -159,6 +165,7 @@ export default function OfficeDevices({ onNavigate }) {
                 >
                   <div className="flex justify-between items-start mb-1">
                     <div className="flex items-center gap-2 text-right flex-1 min-w-0">
+                      <DeviceThumbnail device={{ brand: g.brand, model: g.model, images: g.devices[0]?.images || [] }} size="sm" />
                       <span className="min-w-0">
                         <p className="font-semibold text-sm truncate">{g.model}</p>
                         <p className="text-xs text-slate-500 truncate">
@@ -216,6 +223,7 @@ export default function OfficeDevices({ onNavigate }) {
                     >
                       <td className="p-3">
                         <div className="flex items-center gap-2 text-right">
+                          <DeviceThumbnail device={{ brand: g.brand, model: g.model, images: g.devices[0]?.images || [] }} size="sm" />
                           <span className="font-semibold">{g.model}</span>
                         </div>
                       </td>
