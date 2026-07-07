@@ -46,10 +46,16 @@ export const buildCatalogFromExisting = (state) => {
   };
 
   // 1. ממכשירים קיימים — brand/model/type
+  // type מתקבל כקטגוריה רק אם הוא ערך קטגוריה תקני (לא טקסט חופשי) ושונה משם הדגם עצמו —
+  // אחרת נוצרת כפילות מטרידה בתצוגה (קטגוריה = שם הדגם).
+  const deviceTypes = (state.settings?.fieldLists?.deviceTypes || []).map(t => t.trim());
   (state.devices || []).forEach(d => {
     if (!d.brand) return;
     const mfg = getOrCreateManufacturer(d.brand);
-    if (d.model) getOrCreateModel(mfg, d.model, d.type);
+    if (!d.model) return;
+    const type = (d.type || '').trim();
+    const cleanType = deviceTypes.includes(type) && norm(type) !== norm(d.model) ? type : '';
+    getOrCreateModel(mfg, d.model, cleanType);
   });
 
   // 2. מ-compatible_devices של חלקים

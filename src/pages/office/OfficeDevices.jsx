@@ -4,7 +4,6 @@ import { useStagger } from '../../hooks/useStagger';
 import PageHeader from '../../components/PageHeader';
 import SearchInput from '../../components/SearchInput';
 import EmptyState from '../../components/EmptyState';
-import DeviceThumbnail from '../../components/DeviceThumbnail';
 import DeviceCompatiblePartsModal from '../../components/DeviceCompatiblePartsModal';
 import ModelCardModal from '../../components/ModelCardModal';
 import ModelEditModal from '../../components/ModelEditModal';
@@ -160,7 +159,6 @@ export default function OfficeDevices({ onNavigate }) {
                 >
                   <div className="flex justify-between items-start mb-1">
                     <div className="flex items-center gap-2 text-right flex-1 min-w-0">
-                      <DeviceThumbnail device={{ brand: g.brand, model: g.model, images: g.devices[0]?.images || [] }} size="sm" />
                       <span className="min-w-0">
                         <p className="font-semibold text-sm truncate">{g.model}</p>
                         <p className="text-xs text-slate-500 truncate">
@@ -218,7 +216,6 @@ export default function OfficeDevices({ onNavigate }) {
                     >
                       <td className="p-3">
                         <div className="flex items-center gap-2 text-right">
-                          <DeviceThumbnail device={{ brand: g.brand, model: g.model, images: g.devices[0]?.images || [] }} size="sm" />
                           <span className="font-semibold">{g.model}</span>
                         </div>
                       </td>
