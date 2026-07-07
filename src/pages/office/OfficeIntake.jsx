@@ -8,7 +8,6 @@ import { WARRANTY_TYPES, WARRANTY_LABELS } from '../../constants/warranty';
 import { formatDateTime, formatMoney } from '../../utils/formatters';
 import PageHeader from '../../components/PageHeader';
 import SearchInput from '../../components/SearchInput';
-import AutocompleteInput from '../../components/AutocompleteInput';
 import ManufacturerModelPicker from '../../components/ManufacturerModelPicker';
 import DeviceThumbnail from '../../components/DeviceThumbnail';
 import { User, Wrench, FileText, ShieldCheck, Camera, Check, Plus, Printer, LayoutDashboard, Dices } from 'lucide-react';
@@ -186,7 +185,7 @@ export default function OfficeIntake({ onNavigate }) {
 
   const canProceedFromStep2 = deviceMode === 'select'
     ? !!selectedDeviceId
-    : !!(newDevice.type && newDevice.brand);
+    : !!(newDevice.brand && newDevice.model);
 
   // תיבת האישור מופיעה תמיד — גם באחריות מלאה, כי אם יתגלה נזק בשימוש
   // הלקוח כבר אישר מראש את דמי הבדיקה
@@ -445,15 +444,12 @@ export default function OfficeIntake({ onNavigate }) {
                   onSelect={({ brand, model, type }) => setNewDevice(d => ({ ...d, brand, model, type: type || d.type }))}
                 />
               </div>
-              <AutocompleteInput
-                value={newDevice.type}
-                onChange={val => setNewDevice({ ...newDevice, type: val })}
-                onAddValue={val => dispatch({ type: 'ADD_FIELD_VALUE', payload: { field: 'deviceTypes', value: val } })}
-                suggestions={state.settings?.fieldLists?.deviceTypes || []}
-                placeholder="שם מכשיר * (תנור קומבי, קוצץ ירקות)"
-                allowNew
-                className="col-span-2"
-              />
+              {newDevice.type && (
+                <div className="col-span-2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 flex items-center justify-between">
+                  <span className="text-xs text-slate-500">קטגוריה (נגזרת מהדגם)</span>
+                  <span className="text-sm font-semibold text-slate-700">{newDevice.type}</span>
+                </div>
+              )}
               <div className="col-span-2 flex gap-1.5">
                 <input
                   type="text"

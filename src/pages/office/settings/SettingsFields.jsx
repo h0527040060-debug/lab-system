@@ -4,7 +4,7 @@ import { Pencil, Trash2, Check, X, Plus } from 'lucide-react';
 import ConfirmDialog from '../../../components/ConfirmDialog';
 
 const FIELD_SECTIONS = [
-  { key: 'deviceTypes', label: 'שמות מכשיר' },
+  { key: 'deviceTypes', label: 'קטגוריות מכשירים' },
 ];
 
 function FieldSection({ fieldKey, label }) {

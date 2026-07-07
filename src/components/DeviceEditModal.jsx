@@ -1,7 +1,6 @@
 import { useState, useRef } from 'react';
 import { useAppContext } from '../store/AppContext';
 import Modal from './Modal';
-import AutocompleteInput from './AutocompleteInput';
 import ManufacturerModelPicker from './ManufacturerModelPicker';
 import ImageGalleryModal from './ImageGalleryModal';
 import ConfirmDialog from './ConfirmDialog';
@@ -37,7 +36,6 @@ const readFile = (file) =>
 
 export function DeviceEditModal({ device, onClose }) {
   const { state, dispatch } = useAppContext();
-  const deviceTypes = state.settings?.fieldLists?.deviceTypes || [];
   const addInputRef = useRef(null);
   const replaceInputRef = useRef(null);
   const [replaceIndex, setReplaceIndex] = useState(null);
@@ -140,17 +138,12 @@ export function DeviceEditModal({ device, onClose }) {
           <PackageSearch size={15} />
           בחר חלקים תואמים למכשיר זה מהקטלוג
         </button>
-        <div>
-          <label className="block text-sm font-semibold text-slate-700 mb-1">שם מכשיר</label>
-          <AutocompleteInput
-            value={form.type}
-            onChange={val => set('type', val)}
-            onAddValue={val => dispatch({ type: 'ADD_FIELD_VALUE', payload: { field: 'deviceTypes', value: val } })}
-            suggestions={deviceTypes}
-            placeholder="-- בחר סוג --"
-            allowNew
-          />
-        </div>
+        {form.type && (
+          <div className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 flex items-center justify-between">
+            <span className="text-xs text-slate-500">קטגוריה (נגזרת מהדגם)</span>
+            <span className="text-sm font-semibold text-slate-700">{form.type}</span>
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-1">Serial יצרן</label>

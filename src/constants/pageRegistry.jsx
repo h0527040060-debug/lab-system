@@ -15,7 +15,6 @@ import PartsPage from '../pages/office/PartsPage';
 import OfficeWorkCatalog from '../pages/office/OfficeWorkCatalog';
 import OfficeGeneralExpenses from '../pages/office/OfficeGeneralExpenses';
 import OfficeReports from '../pages/office/OfficeReports';
-import LabHistory from '../pages/lab/LabHistory';
 import OfficeSettings from '../pages/office/OfficeSettings';
 import { OfficeUsers } from '../pages/office/OfficeUsers';
 import OfficeLogs from '../pages/office/OfficeLogs';
@@ -40,7 +39,6 @@ export const TAB_CATALOG = [
   { id: 'work-catalog',     label: 'קטלוג עבודות',       icon: '🛠️' },
   { id: 'general-expenses', label: 'רכש כללי',           icon: '💵' },
   { id: 'reports',          label: 'דוחות',              icon: '📈' },
-  { id: 'history',          label: 'היסטוריית מכשירים',  icon: '📜' },
   { id: 'settings',         label: 'הגדרות',             icon: '⚙️' },
   { id: 'users',            label: 'משתמשים',            icon: '👤' },
   { id: 'logs',             label: 'לוגים',              icon: '📜', adminOnly: true },
@@ -67,7 +65,6 @@ export const PAGE_COMPONENTS = {
   'work-catalog':   (props) => <OfficeWorkCatalog {...props} />,
   'general-expenses':(props) => <OfficeGeneralExpenses {...props} />,
   reports:          (props) => <OfficeReports {...props} />,
-  history:          (props) => <LabHistory {...props} />,
   settings:         (props) => <OfficeSettings {...props} />,
   users:            (props) => <OfficeUsers {...props} />,
   logs:             (props) => <OfficeLogs {...props} />,

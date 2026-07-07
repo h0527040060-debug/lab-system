@@ -6,7 +6,6 @@ import { loadFromStorage, storageKeys } from '../../store/storage';
 import { REPAIR_STATUSES } from '../../constants/statuses';
 import { formatDateTime } from '../../utils/formatters';
 import PageHeader from '../../components/PageHeader';
-import AutocompleteInput from '../../components/AutocompleteInput';
 import ManufacturerModelPicker from '../../components/ManufacturerModelPicker';
 import DeviceThumbnail from '../../components/DeviceThumbnail';
 import { Wrench, FileText, Check, Plus, Camera, LayoutDashboard, Dices } from 'lucide-react';
@@ -147,7 +146,7 @@ export default function OfficeIntakeInternal({ onNavigate }) {
 
   const canProceedFromStep1 = deviceMode === 'select'
     ? !!selectedDeviceId
-    : !!(newDevice.type && newDevice.brand);
+    : !!(newDevice.brand && newDevice.model);
 
   const canSave = !!complaint;
 
@@ -262,15 +261,12 @@ export default function OfficeIntakeInternal({ onNavigate }) {
                   onSelect={({ brand, model, type }) => setNewDevice(d => ({ ...d, brand, model, type: type || d.type }))}
                 />
               </div>
-              <AutocompleteInput
-                value={newDevice.type}
-                onChange={val => setNewDevice({ ...newDevice, type: val })}
-                onAddValue={val => dispatch({ type: 'ADD_FIELD_VALUE', payload: { field: 'deviceTypes', value: val } })}
-                suggestions={state.settings?.fieldLists?.deviceTypes || []}
-                placeholder="שם מכשיר * (תנור קומבי, מקרר)"
-                allowNew
-                className="col-span-2"
-              />
+              {newDevice.type && (
+                <div className="col-span-2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 flex items-center justify-between">
+                  <span className="text-xs text-slate-500">קטגוריה (נגזרת מהדגם)</span>
+                  <span className="text-sm font-semibold text-slate-700">{newDevice.type}</span>
+                </div>
+              )}
               <div className="col-span-2 flex gap-1.5">
                 <input
                   type="text"

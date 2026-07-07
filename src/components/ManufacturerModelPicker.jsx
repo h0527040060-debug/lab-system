@@ -100,7 +100,7 @@ export default function ManufacturerModelPicker({ initialBrand = '', initialMode
 
   const handleAddModel = () => {
     const name = newModelName.trim();
-    if (!name || !manufacturerId) return;
+    if (!name || !manufacturerId || !newModelType.trim()) return;
     const id = generateModelId(state.models.map(m => m.id));
     const payload = {
       id, manufacturer_id: manufacturerId, name,
@@ -193,13 +193,13 @@ export default function ManufacturerModelPicker({ initialBrand = '', initialMode
             </button>
           </div>
           <div>
-            <span className="text-[10px] text-slate-500 block mb-0.5">סוג מכשיר</span>
+            <span className="text-[10px] text-slate-500 block mb-0.5">קטגוריה *</span>
             <AutocompleteInput
               value={newModelType}
               onChange={setNewModelType}
               onAddValue={val => dispatch({ type: 'ADD_FIELD_VALUE', payload: { field: 'deviceTypes', value: val } })}
               suggestions={deviceTypes}
-              placeholder="-- בחר סוג מכשיר --"
+              placeholder="-- בחר קטגוריה --"
               allowNew
             />
           </div>
@@ -223,7 +223,7 @@ export default function ManufacturerModelPicker({ initialBrand = '', initialMode
               )}
             </div>
           </div>
-          <button type="button" onClick={handleAddModel} disabled={!newModelName.trim()}
+          <button type="button" onClick={handleAddModel} disabled={!newModelName.trim() || !newModelType.trim()}
             className="bg-orange-500 hover:bg-orange-600 disabled:bg-slate-300 text-white px-3 py-1.5 rounded-lg text-xs font-semibold w-full">
             הוסף דגם
           </button>

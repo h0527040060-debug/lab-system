@@ -5,6 +5,7 @@ import { compressImage } from '../../../utils/imageCompression';
 import { generateManufacturerId, generateModelId } from '../../../utils/idGenerators';
 import ConfirmDialog from '../../../components/ConfirmDialog';
 import AutocompleteInput from '../../../components/AutocompleteInput';
+import ModelEditModal from '../../../components/ModelEditModal';
 import { Plus, Edit2, Trash2, Check, X, Package } from 'lucide-react';
 
 export function ManufacturersModels() {
@@ -19,8 +20,7 @@ export function ManufacturersModels() {
 
   const [showAddModel, setShowAddModel] = useState(false);
   const [newModel, setNewModel] = useState({ name: '', device_type: '', images: [] });
-  const [editingModelId, setEditingModelId] = useState(null);
-  const [editModel, setEditModel] = useState({ name: '', device_type: '', images: [] });
+  const [editingModel, setEditingModel] = useState(null);
   const [confirmDeleteModel, setConfirmDeleteModel] = useState(null);
   const [uploadingImages, setUploadingImages] = useState(false);
 
@@ -70,7 +70,7 @@ export function ManufacturersModels() {
   };
 
   const addModel = () => {
-    if (!newModel.name.trim() || !selectedMfgId) return;
+    if (!newModel.name.trim() || !selectedMfgId || !newModel.device_type.trim()) return;
     const id = generateModelId(state.models.map(m => m.id));
     dispatch({
       type: 'ADD_MODEL',
@@ -78,16 +78,6 @@ export function ManufacturersModels() {
     });
     setNewModel({ name: '', device_type: '', images: [] });
     setShowAddModel(false);
-  };
-
-  const startEditModel = (m) => {
-    setEditingModelId(m.id);
-    setEditModel({ name: m.name, device_type: m.device_type || '', images: m.images || [] });
-  };
-  const saveEditModel = () => {
-    if (!editModel.name.trim()) return;
-    dispatch({ type: 'UPDATE_MODEL', payload: { id: editingModelId, name: editModel.name.trim(), device_type: editModel.device_type, images: editModel.images } });
-    setEditingModelId(null);
   };
 
   return (
@@ -168,7 +158,7 @@ export function ManufacturersModels() {
                 onChange={val => setNewModel(f => ({ ...f, device_type: val }))}
                 onAddValue={val => dispatch({ type: 'ADD_FIELD_VALUE', payload: { field: 'deviceTypes', value: val } })}
                 suggestions={deviceTypes}
-                placeholder="-- בחר סוג מכשיר --"
+                placeholder="-- בחר קטגוריה * --"
                 allowNew
               />
               <div className="flex flex-wrap gap-2">
@@ -190,7 +180,7 @@ export function ManufacturersModels() {
               <div className="flex justify-end gap-2">
                 <button onClick={() => { setShowAddModel(false); setNewModel({ name: '', device_type: '', images: [] }); }}
                   className="text-slate-500 hover:text-slate-700 p-1"><X size={15} /></button>
-                <button onClick={addModel} disabled={!newModel.name.trim()}
+                <button onClick={addModel} disabled={!newModel.name.trim() || !newModel.device_type.trim()}
                   className="bg-orange-500 hover:bg-orange-600 disabled:bg-slate-300 text-white px-4 py-1.5 rounded-lg font-semibold text-sm flex items-center gap-1">
                   <Check size={15} /> הוסף דגם
                 </button>
@@ -208,55 +198,17 @@ export function ManufacturersModels() {
               const isReal = mainImg && (mainImg.startsWith('data:image/') || mainImg.startsWith('http'));
               return (
                 <div key={m.id} className="border-b border-slate-100 p-3">
-                  {editingModelId === m.id ? (
-                    <div className="space-y-2">
-                      <input value={editModel.name} onChange={e => setEditModel(f => ({ ...f, name: e.target.value }))}
-                        className="w-full border border-slate-300 rounded-lg px-2 py-1.5 text-sm" />
-                      <AutocompleteInput
-                        value={editModel.device_type}
-                        onChange={val => setEditModel(f => ({ ...f, device_type: val }))}
-                        onAddValue={val => dispatch({ type: 'ADD_FIELD_VALUE', payload: { field: 'deviceTypes', value: val } })}
-                        suggestions={deviceTypes}
-                        placeholder="-- בחר סוג מכשיר --"
-                        allowNew
-                      />
-                      <div className="flex flex-wrap gap-2">
-                        {editModel.images.map((img, idx) => (
-                          <div key={idx} className="relative w-14 h-14 rounded border border-slate-200 overflow-hidden bg-white">
-                            <img src={img} alt="" className="w-full h-full object-contain" />
-                            <button onClick={() => setEditModel(f => ({ ...f, images: f.images.filter((_, i) => i !== idx) }))}
-                              className="absolute -top-1 -left-1 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center"><X size={9} /></button>
-                          </div>
-                        ))}
-                        {editModel.images.length < 4 && (
-                          <label className="w-14 h-14 border-2 border-dashed border-slate-300 rounded flex items-center justify-center text-slate-400 hover:border-orange-400 cursor-pointer text-xs">
-                            {uploadingImages ? '...' : <Plus size={18} />}
-                            <input type="file" accept="image/*" multiple className="hidden" disabled={uploadingImages}
-                              onChange={e => { uploadModelImages(Array.from(e.target.files), editModel.images, setEditModel); e.target.value = ''; }} />
-                          </label>
-                        )}
-                      </div>
-                      <div className="flex justify-end gap-2">
-                        <button onClick={() => setEditingModelId(null)} className="text-slate-500 hover:text-slate-700 p-1"><X size={15} /></button>
-                        <button onClick={saveEditModel} disabled={!editModel.name.trim()}
-                          className="bg-orange-500 hover:bg-orange-600 disabled:bg-slate-300 text-white px-3 py-1 rounded font-semibold text-sm flex items-center gap-1">
-                          <Check size={14} /> שמור
-                        </button>
-                      </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-slate-100 rounded border border-slate-200 overflow-hidden flex items-center justify-center shrink-0">
+                      {isReal ? <img src={mainImg} alt="" className="w-full h-full object-contain" /> : <Package size={18} className="text-slate-300" />}
                     </div>
-                  ) : (
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-slate-100 rounded border border-slate-200 overflow-hidden flex items-center justify-center shrink-0">
-                        {isReal ? <img src={mainImg} alt="" className="w-full h-full object-contain" /> : <Package size={18} className="text-slate-300" />}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-sm">{m.name}</p>
-                        {m.device_type && <p className="text-xs text-slate-500">{m.device_type}</p>}
-                      </div>
-                      <button onClick={() => startEditModel(m)} className="text-slate-400 hover:text-orange-600 p-1 shrink-0"><Edit2 size={14} /></button>
-                      <button onClick={() => setConfirmDeleteModel(m)} className="text-slate-400 hover:text-red-600 p-1 shrink-0"><Trash2 size={14} /></button>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm">{m.name}</p>
+                      {m.device_type && <p className="text-xs text-slate-500">{m.device_type}</p>}
                     </div>
-                  )}
+                    <button onClick={() => setEditingModel(m)} className="text-slate-400 hover:text-orange-600 p-1 shrink-0"><Edit2 size={14} /></button>
+                    <button onClick={() => setConfirmDeleteModel(m)} className="text-slate-400 hover:text-red-600 p-1 shrink-0"><Trash2 size={14} /></button>
+                  </div>
                 </div>
               );
             })}
@@ -288,6 +240,8 @@ export function ManufacturersModels() {
         onConfirm={() => { dispatch({ type: 'DELETE_MODEL', payload: confirmDeleteModel.id }); setConfirmDeleteModel(null); }}
         onCancel={() => setConfirmDeleteModel(null)}
       />
+
+      {editingModel && <ModelEditModal model={editingModel} onClose={() => setEditingModel(null)} />}
     </div>
   );
 }

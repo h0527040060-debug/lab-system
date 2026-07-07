@@ -27,7 +27,7 @@ export const DEFAULT_ROLE_CONFIG = {
   },
   lab: {
     visible_statuses: ['yellow_ready_to_work','in_work','pending_release_docs'],
-    visible_tabs: ['kanban','lab-dashboard','search','history'],
+    visible_tabs: ['kanban','lab-dashboard','search','devices'],
   },
 };
 
@@ -248,13 +248,17 @@ const appReducer = (state, action) => {
       const lists = state.settings.fieldLists || {};
       const current = lists[field] || [];
       const updatedList = current.map(v => v === oldValue ? newValue : v);
-      // עדכון היסטוריה במכשירים
+      // עדכון היסטוריה במכשירים ובקטלוג הדגמים (הקטגוריה נגזרת מהדגם)
       const updatedDevices = field === 'deviceTypes'
         ? state.devices.map(d => d.type === oldValue ? { ...d, type: newValue } : d)
         : state.devices;
+      const updatedModels = field === 'deviceTypes'
+        ? state.models.map(m => m.device_type === oldValue ? { ...m, device_type: newValue } : m)
+        : state.models;
       return {
         ...state,
         devices: updatedDevices,
+        models: updatedModels,
         settings: { ...state.settings, fieldLists: { ...lists, [field]: updatedList } },
       };
     }
