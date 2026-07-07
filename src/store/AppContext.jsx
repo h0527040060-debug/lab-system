@@ -126,6 +126,8 @@ const appReducer = (state, action) => {
       return { ...state, devices: [...state.devices, action.payload] };
     case 'UPDATE_DEVICE':
       return { ...state, devices: state.devices.map(d => d.id === action.payload.id ? { ...d, ...action.payload } : d) };
+    case 'DELETE_DEVICE':
+      return { ...state, devices: state.devices.filter(d => d.id !== action.payload) };
 
     // --- תיקונים ---
     case 'ADD_REPAIR':
@@ -398,6 +400,7 @@ const ACTION_META = {
   DELETE_CUSTOMER:      { entity: 'customer',  desc: (p) => `מחק לקוח: ${p}` },
   ADD_DEVICE:           { entity: 'device',    desc: (p) => `הוסיף מכשיר: ${p.id}` },
   UPDATE_DEVICE:        { entity: 'device',    desc: (p) => `עדכן מכשיר: ${p.id}` },
+  DELETE_DEVICE:        { entity: 'device',    desc: (p) => `מחק מכשיר: ${p}` },
   ADD_PART:             { entity: 'part',      desc: (p) => `הוסיף חלק: ${p.name || p.id}` },
   UPDATE_PART:          { entity: 'part',      desc: (p) => `עדכן חלק: ${p.id}` },
   DELETE_PART:          { entity: 'part',      desc: (p) => `מחק חלק: ${p}` },
@@ -473,6 +476,7 @@ const TOAST_MESSAGES = {
   DELETE_CUSTOMER:         ()  => ({ msg: 'לקוח נמחק', type: 'success' }),
   ADD_DEVICE:              (p) => ({ msg: `מכשיר ${p.id} נרשם בהצלחה`, type: 'success' }),
   UPDATE_DEVICE:           ()  => ({ msg: 'פרטי מכשיר עודכנו', type: 'success' }),
+  DELETE_DEVICE:           ()  => ({ msg: 'מכשיר נמחק', type: 'success' }),
   ADD_PART:                (p) => ({ msg: `חלק "${p.name || p.id}" נוסף למלאי`, type: 'success' }),
   UPDATE_PART:             ()  => ({ msg: 'חלק עודכן בהצלחה', type: 'success' }),
   DELETE_PART:             ()  => ({ msg: 'חלק נמחק', type: 'success' }),
@@ -519,6 +523,7 @@ const ACTION_TO_STORAGE_KEY = {
   DELETE_REPAIR: storageKeys.REPAIRS,           ADD_CUSTOMER: storageKeys.CUSTOMERS,
   UPDATE_CUSTOMER: storageKeys.CUSTOMERS,       DELETE_CUSTOMER: storageKeys.CUSTOMERS,
   ADD_DEVICE: storageKeys.DEVICES,              UPDATE_DEVICE: storageKeys.DEVICES,
+  DELETE_DEVICE: storageKeys.DEVICES,
   ADD_PART: storageKeys.PARTS,                  UPDATE_PART: storageKeys.PARTS,
   DELETE_PART: storageKeys.PARTS,               ADD_STOCK_BATCH: storageKeys.STOCK_BATCHES,
   UPDATE_STOCK_BATCH: storageKeys.STOCK_BATCHES, UPDATE_STOCK_BATCHES_BULK: storageKeys.STOCK_BATCHES,

@@ -5,7 +5,7 @@ import ManufacturerModelPicker from './ManufacturerModelPicker';
 import ImageGalleryModal from './ImageGalleryModal';
 import ConfirmDialog from './ConfirmDialog';
 import DeviceCompatiblePartsModal from './DeviceCompatiblePartsModal';
-import { X, RefreshCw, Camera, Dices, PackageSearch } from 'lucide-react';
+import { X, RefreshCw, Camera, Dices, PackageSearch, Trash2 } from 'lucide-react';
 import { uploadToStorage } from '../store/supabaseStorage';
 import { generateEngravingNumber } from '../utils/idGenerators';
 
@@ -42,6 +42,9 @@ export function DeviceEditModal({ device, onClose }) {
   const [galleryIndex, setGalleryIndex] = useState(null);
   const [confirmDeleteImg, setConfirmDeleteImg] = useState(null);
   const [showPartsEditor, setShowPartsEditor] = useState(false);
+  const [confirmDeleteDevice, setConfirmDeleteDevice] = useState(false);
+
+  const repairsCount = state.repairs.filter(r => r.device_id === device.id).length;
 
   const [form, setForm] = useState({
     brand: device.brand || '',
@@ -64,6 +67,12 @@ export function DeviceEditModal({ device, onClose }) {
       ? form
       : { ...form, manufacturer_serial: generateEngravingNumber(state.devices) };
     dispatch({ type: 'UPDATE_DEVICE', payload: { ...device, ...finalForm } });
+    onClose();
+  };
+
+  const handleDeleteDevice = () => {
+    dispatch({ type: 'DELETE_DEVICE', payload: device.id });
+    setConfirmDeleteDevice(false);
     onClose();
   };
 
@@ -111,15 +120,25 @@ export function DeviceEditModal({ device, onClose }) {
       subtitle={device.id}
       maxWidth="max-w-lg"
       footer={
-        <div className="flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 border border-slate-300 rounded-lg text-sm">ביטול</button>
+        <div className="flex justify-between items-center">
           <button
-            onClick={handleSave}
-            disabled={!canSave}
-            className="bg-orange-500 hover:bg-orange-600 disabled:bg-slate-300 text-white px-6 py-2 rounded-lg font-semibold text-sm"
+            onClick={() => setConfirmDeleteDevice(true)}
+            disabled={repairsCount > 0}
+            title={repairsCount > 0 ? 'לא ניתן למחוק מכשיר עם היסטוריית תיקונים' : undefined}
+            className="flex items-center gap-1.5 text-sm text-red-600 hover:text-red-700 disabled:text-slate-300 disabled:cursor-not-allowed font-semibold"
           >
-            שמור
+            <Trash2 size={15} /> מחק מכשיר
           </button>
+          <div className="flex gap-2">
+            <button onClick={onClose} className="px-4 py-2 border border-slate-300 rounded-lg text-sm">ביטול</button>
+            <button
+              onClick={handleSave}
+              disabled={!canSave}
+              className="bg-orange-500 hover:bg-orange-600 disabled:bg-slate-300 text-white px-6 py-2 rounded-lg font-semibold text-sm"
+            >
+              שמור
+            </button>
+          </div>
         </div>
       }
     >
@@ -288,6 +307,15 @@ export function DeviceEditModal({ device, onClose }) {
       variant="danger"
       onConfirm={() => { handleDeleteImage(confirmDeleteImg); setConfirmDeleteImg(null); }}
       onCancel={() => setConfirmDeleteImg(null)}
+    />
+    <ConfirmDialog
+      open={confirmDeleteDevice}
+      title="מחיקת מכשיר"
+      message={`האם למחוק את המכשיר ${device.id} (${device.model || ''})? הפעולה אינה הפיכה.`}
+      confirmLabel="מחק"
+      variant="danger"
+      onConfirm={handleDeleteDevice}
+      onCancel={() => setConfirmDeleteDevice(false)}
     />
     {showPartsEditor && (
       <DeviceCompatiblePartsModal
