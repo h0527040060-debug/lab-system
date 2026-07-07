@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAppContext } from '../store/AppContext';
 import { getTotalStock } from '../utils/fifo';
-import { filterPartsForDevice } from '../utils/deviceCompat';
+import { isPartAssignedToDevice } from '../utils/deviceCompat';
 import Modal from './Modal';
 import SearchInput from './SearchInput';
 import PartThumbnail from './PartThumbnail';
@@ -9,7 +9,7 @@ import PartQuickModal from './PartQuickModal';
 import EmptyState from './EmptyState';
 import { Package, Edit2, CheckSquare, Square } from 'lucide-react';
 
-// רשימת חלקים תואמים למכשיר ספציפי (כולל חלקים כלליים) — נפתח מכרטיס מכשיר.
+// רשימת חלקים ששויכו במפורש למכשיר ספציפי (לא כולל חלקים כלליים — אלה מיועדים לאבחון/עבודה בלבד) — נפתח מכרטיס מכשיר.
 // startInEditMode: פותח ישר במצב עריכה (למשל מתוך עריכת מכשיר).
 export default function DeviceCompatiblePartsModal({ device, onClose, startInEditMode = false }) {
   const { state, dispatch } = useAppContext();
@@ -17,12 +17,8 @@ export default function DeviceCompatiblePartsModal({ device, onClose, startInEdi
   const [editMode, setEditMode] = useState(startInEditMode);
   const [search, setSearch] = useState('');
 
-  const compatibleParts = filterPartsForDevice(state.parts, device);
-
-  const isAssignedToThisDevice = (part) =>
-    (part.compatible_devices || []).some(
-      d => d.brand?.toLowerCase() === device.brand?.toLowerCase() && d.model?.toLowerCase() === device.model?.toLowerCase()
-    );
+  const compatibleParts = state.parts.filter(p => isPartAssignedToDevice(p, device));
+  const isAssignedToThisDevice = (part) => isPartAssignedToDevice(part, device);
 
   const togglePartForDevice = (part) => {
     const cd = part.compatible_devices || [];
@@ -64,8 +60,8 @@ export default function DeviceCompatiblePartsModal({ device, onClose, startInEdi
         {editMode ? (
           <div>
             <p className="text-xs text-slate-500 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 mb-3">
-              סמן חלקים ששייכים למכשיר זה. חלק שאין לו סימון על אף מכשיר נחשב "כללי" ומתאים לכולם.
-              סימון חלק כללי כאן יגביל אותו למכשירים שתסמן בלבד.
+              סמן חלקים ששייכים למכשיר זה. חלק "כללי" (ללא שיוך לאף מכשיר) משמש באבחון ובעבודה
+              בלבד, ולא מוצג כאן אוטומטית — סימון אותו כאן משייך אותו במפורש למכשיר זה.
             </p>
             <SearchInput value={search} onChange={setSearch} placeholder="חיפוש חלק..." />
             <div className="space-y-1 mt-2 max-h-96 overflow-y-auto">
@@ -93,7 +89,7 @@ export default function DeviceCompatiblePartsModal({ device, onClose, startInEdi
             </div>
           </div>
         ) : compatibleParts.length === 0 ? (
-          <EmptyState icon={Package} title="לא נמצאו חלקים תואמים" description="אין חלקים משויכים למכשיר זה במלאי" />
+          <EmptyState icon={Package} title="לא נמצאו חלקים משויכים" description="אין חלקים ששויכו במפורש למכשיר זה — לחצו 'ערוך רשימת חלקים' כדי לשייך" />
         ) : (
           <div className="space-y-1.5">
             {compatibleParts.map(p => {

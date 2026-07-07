@@ -3,7 +3,7 @@ import { useAppContext as useApp } from '../../../store/AppContext';
 import { formatMoney } from '../../../utils/formatters';
 import { getTotalStock } from '../../../utils/fifo';
 import { getDefaultSupplier, isPartLowStock, calculateWeightedAvgCost } from '../../../utils/inventory';
-import { isPartCompatibleWithDevice } from '../../../utils/deviceCompat';
+import { isPartAssignedToDevice } from '../../../utils/deviceCompat';
 import SearchInput from '../../../components/SearchInput';
 import EmptyState from '../../../components/EmptyState';
 import ConfirmDialog from '../../../components/ConfirmDialog';
@@ -47,9 +47,10 @@ export default function PartsCatalog() {
   const filteredParts = state.parts
     .filter(p => {
       if (showLowStockOnly && !isPartLowStock(p, state.stockBatches)) return false;
-      if (categoryFilter && p.category !== categoryFilter) return false;
+      if (categoryFilter === '__general__' && (p.compatible_devices || []).length > 0) return false;
+      if (categoryFilter && categoryFilter !== '__general__' && p.category !== categoryFilter) return false;
       if (supplierFilter && !(p.suppliers || []).some(s => s.supplier_name === supplierFilter)) return false;
-      if (modelFilter && !isPartCompatibleWithDevice(p, { brand: modelFilter.manufacturerName, model: modelFilter.name })) return false;
+      if (modelFilter && !isPartAssignedToDevice(p, { brand: modelFilter.manufacturerName, model: modelFilter.name })) return false;
       if (!search) return true;
       const s = search.toLowerCase();
       return (
@@ -160,6 +161,7 @@ export default function PartsCatalog() {
       <div className="bg-white rounded-xl border border-slate-200 p-3 mb-4 flex gap-2 items-center flex-wrap">
         <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} className="border border-slate-300 rounded-lg px-2 py-1.5 text-sm">
           <option value="">כל הקטגוריות</option>
+          <option value="__general__">כללי (ללא שיוך מכשיר)</option>
           {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
         </select>
         <select value={supplierFilter} onChange={e => setSupplierFilter(e.target.value)} className="border border-slate-300 rounded-lg px-2 py-1.5 text-sm">
@@ -221,6 +223,14 @@ export default function PartsCatalog() {
                             <div>
                               <button onClick={() => setQuickViewPart(part)} className="font-semibold hover:text-orange-600 hover:underline text-right block">{part.name}</button>
                               <p className="text-xs text-slate-500">{part.manufacturer} • {part.manufacturer_sku}</p>
+                              <div className="flex items-center gap-1 mt-1">
+                                <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-full">
+                                  {CATEGORIES.find(c => c.value === part.category)?.label || part.category || 'ללא קטגוריה'}
+                                </span>
+                                {!(part.compatible_devices || []).length && (
+                                  <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full">כללי</span>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </td>
@@ -277,6 +287,14 @@ export default function PartsCatalog() {
                           <button onClick={() => setQuickViewPart(part)} className="font-semibold text-slate-900 truncate hover:text-orange-600 hover:underline text-right block w-full">{part.name}</button>
                           <p className="text-xs text-slate-500 truncate">{part.manufacturer} • {part.manufacturer_sku}</p>
                           {part.internal_barcode && <p className="font-mono text-xs text-slate-400">{part.internal_barcode}</p>}
+                          <div className="flex items-center gap-1 mt-1">
+                            <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-full">
+                              {CATEGORIES.find(c => c.value === part.category)?.label || part.category || 'ללא קטגוריה'}
+                            </span>
+                            {!(part.compatible_devices || []).length && (
+                              <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full">כללי</span>
+                            )}
+                          </div>
                         </div>
                       </div>
                       <div className="flex gap-1 flex-shrink-0">

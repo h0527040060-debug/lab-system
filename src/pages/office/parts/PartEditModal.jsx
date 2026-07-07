@@ -291,15 +291,28 @@ export default function PartEditModal({ part, onSave, onClose }) {
       title={part ? `עריכת ${part.name}` : 'חלק חדש'}
       maxWidth="max-w-3xl"
       footer={
-        <div className="flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-100">ביטול</button>
-          <button
-            onClick={handleSave}
-            disabled={!form.name}
-            className="bg-orange-500 hover:bg-orange-600 disabled:bg-slate-300 text-white px-6 py-2 rounded-lg font-semibold"
-          >
-            {part ? 'עדכן' : 'הוסף'}
-          </button>
+        <div className="flex justify-between items-center">
+          {part?.id ? (
+            <button
+              onClick={() => setConfirmDelete({
+                action: () => { dispatch({ type: 'DELETE_PART', payload: part.id }); onClose(); },
+                message: `האם למחוק את "${part.name}"? כל האצוות שלו יימחקו גם.`,
+              })}
+              className="flex items-center gap-1.5 text-sm text-red-600 hover:text-red-700 font-semibold"
+            >
+              <Trash2 size={15} /> מחק חלק
+            </button>
+          ) : <span />}
+          <div className="flex gap-2">
+            <button onClick={onClose} className="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-100">ביטול</button>
+            <button
+              onClick={handleSave}
+              disabled={!form.name}
+              className="bg-orange-500 hover:bg-orange-600 disabled:bg-slate-300 text-white px-6 py-2 rounded-lg font-semibold"
+            >
+              {part ? 'עדכן' : 'הוסף'}
+            </button>
+          </div>
         </div>
       }
     >
