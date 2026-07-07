@@ -266,7 +266,19 @@ const appReducer = (state, action) => {
       const { field, value } = action.payload;
       const lists = state.settings.fieldLists || {};
       const current = lists[field] || [];
-      return { ...state, settings: { ...state.settings, fieldLists: { ...lists, [field]: current.filter(v => v !== value) } } };
+      // מחיקת קטגוריית מכשיר — מנקה גם ממכשירים וגם מדגמים בקטלוג שהשתמשו בה
+      const updatedDevices = field === 'deviceTypes'
+        ? state.devices.map(d => d.type === value ? { ...d, type: '' } : d)
+        : state.devices;
+      const updatedModels = field === 'deviceTypes'
+        ? state.models.map(m => m.device_type === value ? { ...m, device_type: '' } : m)
+        : state.models;
+      return {
+        ...state,
+        devices: updatedDevices,
+        models: updatedModels,
+        settings: { ...state.settings, fieldLists: { ...lists, [field]: current.filter(v => v !== value) } },
+      };
     }
 
     // --- רשימת משתמשים ---

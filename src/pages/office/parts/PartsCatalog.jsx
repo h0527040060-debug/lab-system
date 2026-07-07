@@ -1,40 +1,76 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useAppContext as useApp } from '../../../store/AppContext';
 import { formatMoney } from '../../../utils/formatters';
 import { getTotalStock } from '../../../utils/fifo';
 import { getDefaultSupplier, isPartLowStock, calculateWeightedAvgCost } from '../../../utils/inventory';
+import { isPartCompatibleWithDevice } from '../../../utils/deviceCompat';
 import SearchInput from '../../../components/SearchInput';
 import EmptyState from '../../../components/EmptyState';
 import ConfirmDialog from '../../../components/ConfirmDialog';
 import PartThumbnail from '../../../components/PartThumbnail';
-import PartEditModal from './PartEditModal';
+import PartEditModal, { CATEGORIES } from './PartEditModal';
 import Modal from '../../../components/Modal';
-import { Package, Plus, Edit2, Trash2, AlertTriangle, MapPin, BookOpen } from 'lucide-react';
+import { Package, Plus, Edit2, Trash2, AlertTriangle, MapPin, BookOpen, ArrowUp, ArrowDown } from 'lucide-react';
 import AssemblyInstructionsViewer from '../../../components/AssemblyInstructionsViewer';
 import PartQuickModal from '../../../components/PartQuickModal';
+
+const SORT_OPTIONS = [
+  { value: 'name', label: 'שם' },
+  { value: 'manufacturer', label: 'יצרן' },
+  { value: 'category', label: 'קטגוריה' },
+  { value: 'stock', label: 'כמות במלאי' },
+];
 
 export default function PartsCatalog() {
   const { state, dispatch } = useApp();
   const [search, setSearch] = useState('');
   const [showLowStockOnly, setShowLowStockOnly] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const [supplierFilter, setSupplierFilter] = useState('');
+  const [modelFilterId, setModelFilterId] = useState('');
+  const [sortBy, setSortBy] = useState('name');
+  const [sortDir, setSortDir] = useState('asc');
   const [editingPart, setEditingPart] = useState(null);
   const [viewingBatches, setViewingBatches] = useState(null);
   const [deletingPart, setDeletingPart] = useState(null);
   const [viewingAssembly, setViewingAssembly] = useState(null);
   const [quickViewPart, setQuickViewPart] = useState(null);
 
-  const filteredParts = state.parts.filter(p => {
-    if (showLowStockOnly && !isPartLowStock(p, state.stockBatches)) return false;
-    if (!search) return true;
-    const s = search.toLowerCase();
-    return (
-      p.name?.toLowerCase().includes(s) ||
-      p.manufacturer?.toLowerCase().includes(s) ||
-      p.manufacturer_sku?.toLowerCase().includes(s) ||
-      p.internal_barcode?.toLowerCase().includes(s) ||
-      p.category?.toLowerCase().includes(s)
-    );
-  });
+  const sortedModelsForFilter = useMemo(
+    () => [...state.models].sort((a, b) => a.name.localeCompare(b.name, 'he')).map(m => ({
+      ...m, manufacturerName: state.manufacturers.find(mf => mf.id === m.manufacturer_id)?.name || '',
+    })),
+    [state.models, state.manufacturers]
+  );
+  const modelFilter = modelFilterId ? sortedModelsForFilter.find(m => m.id === modelFilterId) : null;
+
+  const filteredParts = state.parts
+    .filter(p => {
+      if (showLowStockOnly && !isPartLowStock(p, state.stockBatches)) return false;
+      if (categoryFilter && p.category !== categoryFilter) return false;
+      if (supplierFilter && !(p.suppliers || []).some(s => s.supplier_name === supplierFilter)) return false;
+      if (modelFilter && !isPartCompatibleWithDevice(p, { brand: modelFilter.manufacturerName, model: modelFilter.name })) return false;
+      if (!search) return true;
+      const s = search.toLowerCase();
+      return (
+        p.name?.toLowerCase().includes(s) ||
+        p.manufacturer?.toLowerCase().includes(s) ||
+        p.manufacturer_sku?.toLowerCase().includes(s) ||
+        p.internal_barcode?.toLowerCase().includes(s) ||
+        p.category?.toLowerCase().includes(s)
+      );
+    })
+    .sort((a, b) => {
+      let va, vb;
+      if (sortBy === 'manufacturer') { va = (a.manufacturer || '').toLowerCase(); vb = (b.manufacturer || '').toLowerCase(); }
+      else if (sortBy === 'category') {
+        va = (CATEGORIES.find(c => c.value === a.category)?.label || a.category || '').toLowerCase();
+        vb = (CATEGORIES.find(c => c.value === b.category)?.label || b.category || '').toLowerCase();
+      } else if (sortBy === 'stock') { va = getTotalStock(a.id, state.stockBatches); vb = getTotalStock(b.id, state.stockBatches); }
+      else { va = (a.name || '').toLowerCase(); vb = (b.name || '').toLowerCase(); }
+      const cmp = typeof va === 'number' ? va - vb : va.localeCompare(vb, 'he');
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
 
   // סנכרון מלאי קיים לאצוות: תוספת = אצווה חדשה, הפחתה = ניכוי FIFO מהאצוות
   const reconcileStock = (partId, current, target) => {
@@ -115,10 +151,38 @@ export default function PartsCatalog() {
 
       <div className="bg-white rounded-xl border border-slate-200 p-3 mb-4 flex gap-3 items-center flex-wrap">
         <SearchInput value={search} onChange={setSearch} placeholder="חיפוש לפי שם, יצרן, מק״ט..." className="flex-1 min-w-48" />
-        <label className="flex items-center gap-2 text-sm cursor-pointer">
+        <label className="flex items-center gap-2 text-sm cursor-pointer shrink-0">
           <input type="checkbox" checked={showLowStockOnly} onChange={e => setShowLowStockOnly(e.target.checked)} className="w-4 h-4" />
           <span>רק חוסרים ({lowStockCount})</span>
         </label>
+      </div>
+
+      <div className="bg-white rounded-xl border border-slate-200 p-3 mb-4 flex gap-2 items-center flex-wrap">
+        <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} className="border border-slate-300 rounded-lg px-2 py-1.5 text-sm">
+          <option value="">כל הקטגוריות</option>
+          {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+        </select>
+        <select value={supplierFilter} onChange={e => setSupplierFilter(e.target.value)} className="border border-slate-300 rounded-lg px-2 py-1.5 text-sm">
+          <option value="">כל הספקים</option>
+          {state.suppliers.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+        </select>
+        <select value={modelFilterId} onChange={e => setModelFilterId(e.target.value)} className="border border-slate-300 rounded-lg px-2 py-1.5 text-sm">
+          <option value="">כל הדגמים</option>
+          {sortedModelsForFilter.map(m => <option key={m.id} value={m.id}>{m.manufacturerName} {m.name}</option>)}
+        </select>
+        <div className="flex items-center gap-1 mr-auto">
+          <span className="text-xs text-slate-500">מיין לפי:</span>
+          <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="border border-slate-300 rounded-lg px-2 py-1.5 text-sm">
+            {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+          <button
+            onClick={() => setSortDir(d => d === 'asc' ? 'desc' : 'asc')}
+            className="p-1.5 border border-slate-300 rounded-lg text-slate-500 hover:text-orange-600 hover:border-orange-400"
+            title={sortDir === 'asc' ? 'עולה' : 'יורד'}
+          >
+            {sortDir === 'asc' ? <ArrowUp size={15} /> : <ArrowDown size={15} />}
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">

@@ -58,15 +58,13 @@ export default function ModelCardModal({ brand, model, onClose, onNavigate }) {
               >
                 <PackageSearch size={16} />
               </button>
-              {catalogModel && (
-                <button
-                  onClick={() => setEditingModel(true)}
-                  className="p-1.5 hover:bg-orange-100 rounded-lg text-slate-400 hover:text-orange-600"
-                  title="ערוך דגם"
-                >
-                  <Edit2 size={16} />
-                </button>
-              )}
+              <button
+                onClick={() => setEditingModel(true)}
+                className="p-1.5 hover:bg-orange-100 rounded-lg text-slate-400 hover:text-orange-600"
+                title="ערוך דגם"
+              >
+                <Edit2 size={16} />
+              </button>
               <button onClick={onClose} aria-label="סגור" className="p-1 hover:bg-slate-100 rounded-lg text-slate-500">
                 <X size={18} />
               </button>
@@ -119,7 +117,12 @@ export default function ModelCardModal({ brand, model, onClose, onNavigate }) {
       </div>
 
       {showParts && <DeviceCompatiblePartsModal device={syntheticDevice} onClose={() => setShowParts(false)} />}
-      {editingModel && catalogModel && <ModelEditModal model={catalogModel} onClose={() => setEditingModel(false)} />}
+      {editingModel && (
+        <ModelEditModal
+          model={catalogModel || { id: null, name: model, device_type: category, images: [], draftBrand: brand }}
+          onClose={() => setEditingModel(false)}
+        />
+      )}
       {detailRepair && (
         <RepairDetailModal
           repair={detailRepair}

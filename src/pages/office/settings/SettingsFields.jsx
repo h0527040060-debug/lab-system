@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAppContext } from '../../../store/AppContext';
-import { Pencil, Trash2, Check, X, Plus } from 'lucide-react';
+import { Pencil, Trash2, Check, X, Plus, ChevronDown, ChevronUp, Package } from 'lucide-react';
 import ConfirmDialog from '../../../components/ConfirmDialog';
 
 const FIELD_SECTIONS = [
@@ -10,11 +10,15 @@ const FIELD_SECTIONS = [
 function FieldSection({ fieldKey, label }) {
   const { state, dispatch } = useAppContext();
   const values = state.settings?.fieldLists?.[fieldKey] || [];
+  const isDeviceCategories = fieldKey === 'deviceTypes';
 
   const [editingIndex, setEditingIndex] = useState(null);
   const [editValue, setEditValue] = useState('');
   const [newValue, setNewValue] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [expandedValue, setExpandedValue] = useState(null);
+
+  const modelsForCategory = (val) => state.models.filter(m => m.device_type === val);
 
   const startEdit = (idx) => {
     setEditingIndex(idx);
@@ -34,11 +38,10 @@ function FieldSection({ fieldKey, label }) {
   };
 
   const handleDelete = (val) => {
-    const count = fieldKey === 'deviceTypes'
-      ? state.devices.filter(d => d.type === val).length
-      : 0;
-    const msg = count > 0
-      ? `קיימים ${count} מכשירים עם השם "${val}". מחיקה תשאיר אותם ללא שם מכשיר. האם להמשיך?`
+    const modelCount = isDeviceCategories ? modelsForCategory(val).length : 0;
+    const deviceCount = isDeviceCategories ? state.devices.filter(d => d.type === val).length : 0;
+    const msg = modelCount > 0 || deviceCount > 0
+      ? `"${val}" בשימוש ב-${modelCount} דגמים ו-${deviceCount} מכשירים. מחיקה תשאיר אותם ללא קטגוריה. האם להמשיך?`
       : `האם אתה בטוח שאתה רוצה למחוק את "${val}"?`;
     setConfirmDelete({ val, msg });
   };
@@ -63,29 +66,66 @@ function FieldSection({ fieldKey, label }) {
       />
       <h3 className="font-semibold text-slate-800 mb-3">{label}</h3>
       <div className="divide-y divide-slate-100">
-        {values.map((val, idx) => (
-          <div key={idx} className="flex items-center gap-2 py-2">
-            {editingIndex === idx ? (
-              <>
-                <input
-                  autoFocus
-                  value={editValue}
-                  onChange={e => setEditValue(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') cancelEdit(); }}
-                  className="flex-1 border border-orange-400 rounded-lg px-3 py-1.5 text-sm focus:outline-none"
-                />
-                <button onClick={saveEdit} className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg"><Check size={15} /></button>
-                <button onClick={cancelEdit} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-lg"><X size={15} /></button>
-              </>
-            ) : (
-              <>
-                <span className="flex-1 text-sm text-slate-700">{val}</span>
-                <button onClick={() => startEdit(idx)} className="p-1.5 text-slate-400 hover:text-orange-500 hover:bg-orange-50 rounded-lg"><Pencil size={14} /></button>
-                <button onClick={() => handleDelete(val)} className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={14} /></button>
-              </>
-            )}
-          </div>
-        ))}
+        {values.map((val, idx) => {
+          const models = isDeviceCategories ? modelsForCategory(val) : [];
+          const isExpanded = expandedValue === val;
+          return (
+            <div key={idx}>
+              <div className="flex items-center gap-2 py-2">
+                {editingIndex === idx ? (
+                  <>
+                    <input
+                      autoFocus
+                      value={editValue}
+                      onChange={e => setEditValue(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') cancelEdit(); }}
+                      className="flex-1 border border-orange-400 rounded-lg px-3 py-1.5 text-sm focus:outline-none"
+                    />
+                    <button onClick={saveEdit} className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg"><Check size={15} /></button>
+                    <button onClick={cancelEdit} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-lg"><X size={15} /></button>
+                  </>
+                ) : (
+                  <>
+                    {isDeviceCategories ? (
+                      <button
+                        onClick={() => setExpandedValue(isExpanded ? null : val)}
+                        className="flex-1 flex items-center gap-2 text-right text-sm text-slate-700 hover:text-orange-600"
+                      >
+                        {isExpanded ? <ChevronUp size={14} className="text-slate-400" /> : <ChevronDown size={14} className="text-slate-400" />}
+                        <span>{val}</span>
+                        <span className="text-xs text-slate-400">({models.length} דגמים)</span>
+                      </button>
+                    ) : (
+                      <span className="flex-1 text-sm text-slate-700">{val}</span>
+                    )}
+                    <button onClick={() => startEdit(idx)} className="p-1.5 text-slate-400 hover:text-orange-500 hover:bg-orange-50 rounded-lg"><Pencil size={14} /></button>
+                    <button onClick={() => handleDelete(val)} className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={14} /></button>
+                  </>
+                )}
+              </div>
+              {isExpanded && (
+                <div className="bg-slate-50 rounded-lg p-2 mb-2 mr-6">
+                  {models.length === 0 ? (
+                    <p className="text-xs text-slate-400 text-center py-2">אין דגמים בקטגוריה זו</p>
+                  ) : (
+                    <div className="space-y-1">
+                      {models.map(m => {
+                        const mfg = state.manufacturers.find(mf => mf.id === m.manufacturer_id);
+                        return (
+                          <div key={m.id} className="flex items-center gap-2 text-xs text-slate-600 px-2 py-1">
+                            <Package size={12} className="text-slate-400 shrink-0" />
+                            <span className="font-medium">{m.name}</span>
+                            <span className="text-slate-400">{mfg?.name}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {/* הוספת ערך חדש */}

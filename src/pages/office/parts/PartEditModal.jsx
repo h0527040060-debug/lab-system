@@ -10,7 +10,7 @@ import { getTotalStock } from '../../../utils/fifo';
 import { getDefaultSupplier, addPartToManualOrder } from '../../../utils/inventory';
 import { MapPin, Building2, Plus, Trash2, ImagePlus, FileText, BookOpen, PlayCircle, X, Package, ShoppingCart, Check } from 'lucide-react';
 
-const CATEGORIES = [
+export const CATEGORIES = [
   { value: 'sensor', label: 'חיישן' },
   { value: 'heating', label: 'חימום' },
   { value: 'control', label: 'בקרה' },

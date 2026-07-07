@@ -2,19 +2,25 @@ import { useState } from 'react';
 import { useAppContext } from '../store/AppContext';
 import { uploadToStorage } from '../store/supabaseStorage';
 import { compressImage } from '../utils/imageCompression';
+import { generateManufacturerId, generateModelId } from '../utils/idGenerators';
 import Modal from './Modal';
+import ConfirmDialog from './ConfirmDialog';
 import AutocompleteInput from './AutocompleteInput';
-import { Plus, X } from 'lucide-react';
+import { Plus, X, Trash2 } from 'lucide-react';
 
-// עריכת דגם קיים בקטלוג — שם, קטגוריה (חובה) ותמונות. נפתח מכרטיס הדגם ומניהול יצרנים/דגמים.
+// עריכת דגם — שם, קטגוריה (חובה) ותמונות. נפתח מכרטיס הדגם, ממסך המכשירים ומניהול יצרנים/דגמים.
+// אם model.id ריק (טרם מקוטלג — למשל מכשיר ישן שהמיגרציה פספסה) — השמירה יוצרת דגם חדש בקטלוג,
+// כולל יצירת היצרן אם עדיין אין (model.draftBrand מכיל את שם היצרן לשימוש הזה).
 export default function ModelEditModal({ model, onClose }) {
   const { state, dispatch } = useAppContext();
+  const isNew = !model.id;
   const [form, setForm] = useState({
     name: model.name || '',
     device_type: model.device_type || '',
     images: model.images || [],
   });
   const [uploadingImages, setUploadingImages] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const deviceTypes = state.settings?.fieldLists?.deviceTypes || [];
   const canSave = form.name.trim() && form.device_type.trim();
@@ -45,29 +51,62 @@ export default function ModelEditModal({ model, onClose }) {
 
   const handleSave = () => {
     if (!canSave) return;
-    dispatch({
-      type: 'UPDATE_MODEL',
-      payload: { id: model.id, name: form.name.trim(), device_type: form.device_type.trim(), images: form.images },
-    });
+    if (isNew) {
+      let manufacturerId = state.manufacturers.find(
+        m => m.name.toLowerCase() === (model.draftBrand || '').toLowerCase()
+      )?.id;
+      if (!manufacturerId) {
+        manufacturerId = generateManufacturerId(state.manufacturers.map(m => m.id));
+        dispatch({ type: 'ADD_MANUFACTURER', payload: { id: manufacturerId, name: model.draftBrand } });
+      }
+      const id = generateModelId(state.models.map(m => m.id));
+      dispatch({
+        type: 'ADD_MODEL',
+        payload: { id, manufacturer_id: manufacturerId, name: form.name.trim(), device_type: form.device_type.trim(), images: form.images, main_image_index: 0 },
+      });
+    } else {
+      dispatch({
+        type: 'UPDATE_MODEL',
+        payload: { id: model.id, name: form.name.trim(), device_type: form.device_type.trim(), images: form.images },
+      });
+    }
+    onClose();
+  };
+
+  const handleDelete = () => {
+    dispatch({ type: 'DELETE_MODEL', payload: model.id });
+    setConfirmDelete(false);
     onClose();
   };
 
   return (
+    <>
     <Modal
       open={true}
       onClose={onClose}
-      title={`עריכת דגם ${model.name}`}
+      title={isNew ? `קטלוג דגם — ${model.draftBrand}` : `עריכת דגם ${model.name}`}
+      subtitle={isNew ? 'המכשיר הזה עדיין לא מקוטלג — מלא את הפרטים כדי לקטלג אותו' : undefined}
       maxWidth="max-w-lg"
       footer={
-        <div className="flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-100">ביטול</button>
-          <button
-            onClick={handleSave}
-            disabled={!canSave}
-            className="bg-orange-500 hover:bg-orange-600 disabled:bg-slate-300 text-white px-6 py-2 rounded-lg font-semibold"
-          >
-            שמור
-          </button>
+        <div className="flex justify-between items-center">
+          {!isNew ? (
+            <button
+              onClick={() => setConfirmDelete(true)}
+              className="flex items-center gap-1.5 text-sm text-red-600 hover:text-red-700 font-semibold"
+            >
+              <Trash2 size={15} /> מחק דגם
+            </button>
+          ) : <span />}
+          <div className="flex gap-2">
+            <button onClick={onClose} className="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-100">ביטול</button>
+            <button
+              onClick={handleSave}
+              disabled={!canSave}
+              className="bg-orange-500 hover:bg-orange-600 disabled:bg-slate-300 text-white px-6 py-2 rounded-lg font-semibold"
+            >
+              {isNew ? 'קטלג דגם' : 'שמור'}
+            </button>
+          </div>
         </div>
       }
     >
@@ -113,5 +152,15 @@ export default function ModelEditModal({ model, onClose }) {
         </div>
       </div>
     </Modal>
+    <ConfirmDialog
+      open={confirmDelete}
+      title="מחיקת דגם"
+      message={`האם למחוק את "${model.name}" מהקטלוג? מכשירים קיימים מהדגם הזה יישארו במערכת, אך יאבדו את שיוך הקטגוריה/תמונה עד שיקוטלגו מחדש.`}
+      confirmLabel="מחק"
+      variant="danger"
+      onConfirm={handleDelete}
+      onCancel={() => setConfirmDelete(false)}
+    />
+    </>
   );
 }

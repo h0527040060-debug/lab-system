@@ -49,6 +49,11 @@ export default function OfficeDevices({ onNavigate }) {
 
   const modelGroups = useMemo(() => buildModelGroups(state), [state]);
 
+  // עריכת דגם זמינה תמיד — אם עדיין אין רשומת קטלוג (מכשיר שהמיגרציה פספסה), פותח במצב "קטלג עכשיו"
+  const openEditForGroup = (g) => {
+    setEditingModel(g.catalogModel || { id: null, name: g.model, device_type: g.category, images: [], draftBrand: g.brand });
+  };
+
   const filteredGroups = modelGroups
     .filter(g => {
       if (!search) return true;
@@ -120,10 +125,9 @@ export default function OfficeDevices({ onNavigate }) {
                       <PackageSearch size={14} />
                     </button>
                     <button
-                      onClick={(e) => { e.stopPropagation(); if (g.catalogModel) setEditingModel(g.catalogModel); }}
-                      className="p-2 hover:bg-orange-100 rounded-lg text-slate-400 hover:text-orange-600 mr-1 shrink-0 disabled:opacity-30"
+                      onClick={(e) => { e.stopPropagation(); openEditForGroup(g); }}
+                      className="p-2 hover:bg-orange-100 rounded-lg text-slate-400 hover:text-orange-600 mr-1 shrink-0"
                       title="ערוך דגם"
-                      disabled={!g.catalogModel}
                     >
                       <Edit2 size={14} />
                     </button>
@@ -191,10 +195,9 @@ export default function OfficeDevices({ onNavigate }) {
                             <PackageSearch size={14} />
                           </button>
                           <button
-                            onClick={(e) => { e.stopPropagation(); if (g.catalogModel) setEditingModel(g.catalogModel); }}
-                            className="p-2 hover:bg-orange-100 rounded-lg text-slate-400 hover:text-orange-600 disabled:opacity-30"
+                            onClick={(e) => { e.stopPropagation(); openEditForGroup(g); }}
+                            className="p-2 hover:bg-orange-100 rounded-lg text-slate-400 hover:text-orange-600"
                             title="ערוך דגם"
-                            disabled={!g.catalogModel}
                           >
                             <Edit2 size={14} />
                           </button>
