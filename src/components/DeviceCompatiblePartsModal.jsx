@@ -34,7 +34,7 @@ export default function DeviceCompatiblePartsModal({ device, onClose, startInEdi
   const editList = state.parts.filter(p => {
     if (!search) return true;
     const s = search.toLowerCase();
-    return p.name?.toLowerCase().includes(s) || p.manufacturer?.toLowerCase().includes(s);
+    return p.name?.toLowerCase().includes(s);
   });
 
   return (
@@ -78,7 +78,6 @@ export default function DeviceCompatiblePartsModal({ device, onClose, startInEdi
                     <PartThumbnail part={p} size="sm" />
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-sm truncate">{p.name}</p>
-                      <p className="text-xs text-slate-500">{p.manufacturer}</p>
                     </div>
                     {isGeneral && !assigned && (
                       <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full shrink-0">כללי</span>
@@ -103,7 +102,6 @@ export default function DeviceCompatiblePartsModal({ device, onClose, startInEdi
                   <PartThumbnail part={p} size="sm" />
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-sm truncate">{p.name}</p>
-                    <p className="text-xs text-slate-500">{p.manufacturer}</p>
                   </div>
                   <span className={`text-xs font-bold shrink-0 ${stock === 0 ? 'text-red-600' : 'text-green-600'}`}>
                     מלאי: {stock}

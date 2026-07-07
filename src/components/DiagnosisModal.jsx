@@ -112,7 +112,6 @@ export default function DiagnosisModal({ repair, onClose }) {
     const s = partSearch.toLowerCase();
     return (
       p.name?.toLowerCase().includes(s) ||
-      p.manufacturer?.toLowerCase().includes(s) ||
       p.internal_barcode?.toLowerCase().includes(s) ||
       p.category?.toLowerCase().includes(s)
     );
@@ -515,7 +514,7 @@ export default function DiagnosisModal({ repair, onClose }) {
                         <div className="flex-1 min-w-0">
                           <p className="font-semibold text-sm">{p.name}</p>
                           <p className="text-xs text-slate-500">
-                            {p.manufacturer} • מלאי: {totalStock} • {formatMoney(getPartSellingPrice(p))} ללקוח
+                            מלאי: {totalStock} • {formatMoney(getPartSellingPrice(p))} ללקוח
                           </p>
                         </div>
                         {p.assembly_instructions?.text || p.assembly_instructions?.images?.length > 0 ? (

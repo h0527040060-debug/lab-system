@@ -16,7 +16,6 @@ import PartQuickModal from '../../../components/PartQuickModal';
 
 const SORT_OPTIONS = [
   { value: 'name', label: 'שם' },
-  { value: 'manufacturer', label: 'יצרן' },
   { value: 'category', label: 'קטגוריה' },
   { value: 'stock', label: 'כמות במלאי' },
 ];
@@ -55,7 +54,6 @@ export default function PartsCatalog() {
       const s = search.toLowerCase();
       return (
         p.name?.toLowerCase().includes(s) ||
-        p.manufacturer?.toLowerCase().includes(s) ||
         p.manufacturer_sku?.toLowerCase().includes(s) ||
         p.internal_barcode?.toLowerCase().includes(s) ||
         p.category?.toLowerCase().includes(s)
@@ -63,8 +61,7 @@ export default function PartsCatalog() {
     })
     .sort((a, b) => {
       let va, vb;
-      if (sortBy === 'manufacturer') { va = (a.manufacturer || '').toLowerCase(); vb = (b.manufacturer || '').toLowerCase(); }
-      else if (sortBy === 'category') {
+      if (sortBy === 'category') {
         va = (CATEGORIES.find(c => c.value === a.category)?.label || a.category || '').toLowerCase();
         vb = (CATEGORIES.find(c => c.value === b.category)?.label || b.category || '').toLowerCase();
       } else if (sortBy === 'stock') { va = getTotalStock(a.id, state.stockBatches); vb = getTotalStock(b.id, state.stockBatches); }
@@ -222,7 +219,7 @@ export default function PartsCatalog() {
                             <PartThumbnail part={part} size="sm" onClick={() => setQuickViewPart(part)} />
                             <div>
                               <button onClick={() => setQuickViewPart(part)} className="font-semibold hover:text-orange-600 hover:underline text-right block">{part.name}</button>
-                              <p className="text-xs text-slate-500">{part.manufacturer} • {part.manufacturer_sku}</p>
+                              <p className="text-xs text-slate-500">{part.manufacturer_sku}</p>
                               <div className="flex items-center gap-1 mt-1">
                                 <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-full">
                                   {CATEGORIES.find(c => c.value === part.category)?.label || part.category || 'ללא קטגוריה'}
@@ -285,7 +282,7 @@ export default function PartsCatalog() {
                         </div>
                         <div className="min-w-0">
                           <button onClick={() => setQuickViewPart(part)} className="font-semibold text-slate-900 truncate hover:text-orange-600 hover:underline text-right block w-full">{part.name}</button>
-                          <p className="text-xs text-slate-500 truncate">{part.manufacturer} • {part.manufacturer_sku}</p>
+                          <p className="text-xs text-slate-500 truncate">{part.manufacturer_sku}</p>
                           {part.internal_barcode && <p className="font-mono text-xs text-slate-400">{part.internal_barcode}</p>}
                           <div className="flex items-center gap-1 mt-1">
                             <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-full">

@@ -22,7 +22,7 @@ export const CATEGORIES = [
 ];
 
 const buildDefault = () => ({
-  name: '', manufacturer: '', manufacturer_sku: '', internal_barcode: '',
+  name: '', manufacturer_sku: '', internal_barcode: '',
   category: 'other',
   images: [], main_image_index: 0,
   technical_docs: [],
@@ -336,15 +336,10 @@ export default function PartEditModal({ part, onSave, onClose }) {
       {/* ——— פרטים ——— */}
       {activeTab === 'basic' && (
         <div className="space-y-4">
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-semibold block mb-1">שם החלק *</label>
               <input type="text" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" />
-            </div>
-            <div>
-              <label className="text-xs font-semibold block mb-1">יצרן</label>
-              <input type="text" value={form.manufacturer} onChange={e => setForm(f => ({ ...f, manufacturer: e.target.value }))}
                 className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" />
             </div>
             <div>
@@ -443,6 +438,7 @@ export default function PartEditModal({ part, onSave, onClose }) {
                 <ManufacturerModelPicker
                   initialBrand={deviceBrand}
                   initialModel={deviceModel}
+                  allowAdd={false}
                   onSelect={({ brand, model }) => { setDeviceBrand(brand); setDeviceModel(model); }}
                 />
               </div>

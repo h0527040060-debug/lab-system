@@ -32,7 +32,7 @@ export default function PartQuickModal({ part, onClose }) {
           <div className="flex items-center justify-between p-4 border-b border-slate-200">
             <div className="min-w-0">
               <h2 className="font-bold text-lg text-slate-800 truncate">{part.name}</h2>
-              <p className="text-xs text-slate-500 truncate">{part.manufacturer} {part.manufacturer_sku && `• ${part.manufacturer_sku}`}</p>
+              {part.manufacturer_sku && <p className="text-xs text-slate-500 truncate">{part.manufacturer_sku}</p>}
             </div>
             <button onClick={onClose} aria-label="סגור" className="p-1 hover:bg-slate-100 rounded-lg text-slate-500 flex-shrink-0">
               <X size={18} />

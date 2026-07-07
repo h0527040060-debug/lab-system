@@ -9,7 +9,7 @@ export function PartEditModal({ part, onSave, onClose }) {
   const { state } = useApp();
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [form, setForm] = useState(part || {
-    name: '', manufacturer: '', manufacturer_sku: '', internal_barcode: '',
+    name: '', manufacturer_sku: '', internal_barcode: '',
     category: 'other', images: ['📦'],
     shelf: '', bin: '', zone: '',
     suppliers: [],
@@ -90,22 +90,13 @@ export function PartEditModal({ part, onSave, onClose }) {
       }
     >
       <div className="space-y-4">
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="text-xs font-semibold block mb-1">שם החלק *</label>
             <input
               type="text"
               value={form.name}
               onChange={(e) => setForm({...form, name: e.target.value})}
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
-            />
-          </div>
-          <div>
-            <label className="text-xs font-semibold block mb-1">יצרן</label>
-            <input
-              type="text"
-              value={form.manufacturer}
-              onChange={(e) => setForm({...form, manufacturer: e.target.value})}
               className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
             />
           </div>
@@ -216,6 +207,7 @@ export function PartEditModal({ part, onSave, onClose }) {
               <ManufacturerModelPicker
                 initialBrand={deviceBrand}
                 initialModel={deviceModel}
+                allowAdd={false}
                 onSelect={({ brand, model }) => { setDeviceBrand(brand); setDeviceModel(model); }}
               />
             </div>

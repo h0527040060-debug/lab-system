@@ -26,7 +26,6 @@ export default function OfficeInventory() {
     const s = search.toLowerCase();
     return (
       p.name?.toLowerCase().includes(s) ||
-      p.manufacturer?.toLowerCase().includes(s) ||
       p.manufacturer_sku?.toLowerCase().includes(s) ||
       p.internal_barcode?.toLowerCase().includes(s) ||
       p.category?.toLowerCase().includes(s)
@@ -126,7 +125,7 @@ export default function OfficeInventory() {
                             <span className="text-2xl">{part.images?.[0] || '📦'}</span>
                             <div>
                               <p className="font-semibold">{part.name}</p>
-                              <p className="text-xs text-slate-500">{part.manufacturer} • {part.manufacturer_sku}</p>
+                              <p className="text-xs text-slate-500">{part.manufacturer_sku}</p>
                             </div>
                           </div>
                         </td>
@@ -176,7 +175,7 @@ export default function OfficeInventory() {
                         <span className="text-2xl flex-shrink-0">{part.images?.[0] || '📦'}</span>
                         <div className="min-w-0">
                           <p className="font-semibold text-slate-900 truncate">{part.name}</p>
-                          <p className="text-xs text-slate-500 truncate">{part.manufacturer} • {part.manufacturer_sku}</p>
+                          <p className="text-xs text-slate-500 truncate">{part.manufacturer_sku}</p>
                           {part.internal_barcode && <p className="font-mono text-xs text-slate-400">{part.internal_barcode}</p>}
                         </div>
                       </div>

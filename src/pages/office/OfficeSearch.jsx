@@ -81,8 +81,7 @@ export default function OfficeSearch({ onNavigate }) {
   const matchedParts = state.parts.filter(p =>
     p.name?.toLowerCase().includes(q) ||
     p.internal_barcode?.toLowerCase().includes(q) ||
-    p.manufacturer_sku?.toLowerCase().includes(q) ||
-    p.manufacturer?.toLowerCase().includes(q)
+    p.manufacturer_sku?.toLowerCase().includes(q)
   );
 
   const totalResults = matchedCustomers.length + matchedRepairs.length + matchedDevices.length + matchedParts.length;
@@ -250,7 +249,7 @@ export default function OfficeSearch({ onNavigate }) {
                             <p className="font-semibold text-sm">{p.name}</p>
                             <span className="font-mono text-xs text-slate-500">{p.internal_barcode}</span>
                           </div>
-                          <p className="text-xs text-slate-500">{p.manufacturer} • {p.manufacturer_sku}</p>
+                          <p className="text-xs text-slate-500">{p.manufacturer_sku}</p>
                           {p.shelf && <p className="text-xs text-slate-500">📍 מדף {p.shelf}, תא {p.bin}</p>}
                         </div>
                         <span className={`font-bold text-sm ${totalStock === 0 ? 'text-red-600' : 'text-green-600'}`}>

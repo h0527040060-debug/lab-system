@@ -24,7 +24,6 @@ export default function PartsStock() {
       const s = search.toLowerCase();
       return (
         p.name?.toLowerCase().includes(s) ||
-        p.manufacturer?.toLowerCase().includes(s) ||
         p.manufacturer_sku?.toLowerCase().includes(s) ||
         p.internal_barcode?.toLowerCase().includes(s) ||
         p.category?.toLowerCase().includes(s)

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useAppContext } from '../../../store/AppContext';
 import { Pencil, Trash2, Check, X, Plus, ChevronDown, ChevronUp, Package } from 'lucide-react';
 import ConfirmDialog from '../../../components/ConfirmDialog';
+import { ManufacturersModels } from './ManufacturersModels';
 
 const FIELD_SECTIONS = [
   { key: 'deviceTypes', label: 'קטגוריות מכשירים' },
@@ -152,7 +153,16 @@ function FieldSection({ fieldKey, label }) {
 
 export function SettingsFields() {
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-lg font-bold text-slate-900">ניהול שדות ורשימות</h2>
+        <p className="text-sm text-slate-500">
+          ניהול מרכזי של קטלוג המכשירים (יצרנים ודגמים) והרשימות המנוהלות במערכת.
+        </p>
+      </div>
+
+      <ManufacturersModels />
+
       <div>
         <h2 className="text-lg font-bold text-slate-900">ניהול קטגוריות מכשירים</h2>
         <p className="text-sm text-slate-500">

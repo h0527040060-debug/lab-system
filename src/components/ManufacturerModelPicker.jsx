@@ -9,8 +9,9 @@ import { Plus, X } from 'lucide-react';
 // בחירת יצרן+דגם מתוך הקטלוג המובנה בלבד — לא הקלדה חופשית.
 // initialBrand/initialModel: מחרוזות קיימות (נתונים ישנים) — לאיתור בחירה ראשונית בקטלוג.
 // allowEmptyModel: מאפשר לבחור "כל הדגמים" של יצרן (למשל עבודה כללית ליצרן).
+// allowAdd: מאפשר הוספת יצרן/דגם חדש ישירות מהבורר (ברירת מחדל: כן). false = בחירה בלבד מהקטלוג הקיים.
 // onSelect({ brand, model, type }) — נקרא בכל שינוי בחירה, עם מחרוזות מוכנות לטפסים קיימים.
-export default function ManufacturerModelPicker({ initialBrand = '', initialModel = '', allowEmptyModel = false, onSelect }) {
+export default function ManufacturerModelPicker({ initialBrand = '', initialModel = '', allowEmptyModel = false, allowAdd = true, onSelect }) {
   const { state, dispatch } = useAppContext();
 
   const findManufacturerByName = (name) =>
@@ -130,14 +131,16 @@ export default function ManufacturerModelPicker({ initialBrand = '', initialMode
               <option value="">-- בחר יצרן --</option>
               {sortedManufacturers.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
             </select>
-            <button
-              type="button"
-              onClick={() => setShowAddMfg(v => !v)}
-              className="shrink-0 px-2 border border-slate-300 rounded-lg text-slate-500 hover:text-orange-600 hover:border-orange-400"
-              title="הוסף יצרן חדש"
-            >
-              <Plus size={16} />
-            </button>
+            {allowAdd && (
+              <button
+                type="button"
+                onClick={() => setShowAddMfg(v => !v)}
+                className="shrink-0 px-2 border border-slate-300 rounded-lg text-slate-500 hover:text-orange-600 hover:border-orange-400"
+                title="הוסף יצרן חדש"
+              >
+                <Plus size={16} />
+              </button>
+            )}
           </div>
         </div>
         <div>
@@ -152,20 +155,22 @@ export default function ManufacturerModelPicker({ initialBrand = '', initialMode
               <option value="">{allowEmptyModel ? 'כל הדגמים' : '-- בחר דגם --'}</option>
               {modelsForManufacturer.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
             </select>
-            <button
-              type="button"
-              onClick={() => setShowAddModel(v => !v)}
-              disabled={!manufacturerId}
-              className="shrink-0 px-2 border border-slate-300 rounded-lg text-slate-500 hover:text-orange-600 hover:border-orange-400 disabled:opacity-40"
-              title="הוסף דגם חדש"
-            >
-              <Plus size={16} />
-            </button>
+            {allowAdd && (
+              <button
+                type="button"
+                onClick={() => setShowAddModel(v => !v)}
+                disabled={!manufacturerId}
+                className="shrink-0 px-2 border border-slate-300 rounded-lg text-slate-500 hover:text-orange-600 hover:border-orange-400 disabled:opacity-40"
+                title="הוסף דגם חדש"
+              >
+                <Plus size={16} />
+              </button>
+            )}
           </div>
         </div>
       </div>
 
-      {showAddMfg && (
+      {allowAdd && showAddMfg && (
         <div className="bg-orange-50 border border-orange-200 rounded-lg p-2 flex items-center gap-2">
           <input
             type="text" value={newMfgName} onChange={e => setNewMfgName(e.target.value)}
@@ -181,7 +186,7 @@ export default function ManufacturerModelPicker({ initialBrand = '', initialMode
         </div>
       )}
 
-      {showAddModel && (
+      {allowAdd && showAddModel && (
         <div className="bg-orange-50 border border-orange-200 rounded-lg p-2 space-y-2">
           <div className="flex items-center gap-2">
             <input

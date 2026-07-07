@@ -33,7 +33,7 @@ export const SEED_SERVICES = [
 // חלקים לדוגמה
 export const SEED_PARTS = [
   {
-    id: 1, name: 'NTC Thermistor 5K', manufacturer: 'Ozti', manufacturer_sku: 'NTC-5K',
+    id: 1, name: 'NTC Thermistor 5K', manufacturer_sku: 'NTC-5K',
     internal_barcode: 'BR-SENS-001', category: 'sensor',
     shelf: 'A3', bin: 'B2', zone: 'אלקטרוניקה',
     suppliers: [
@@ -45,7 +45,7 @@ export const SEED_PARTS = [
     compatible_devices: [],
   },
   {
-    id: 2, name: 'Heating Element 3000W', manufacturer: 'Ozti', manufacturer_sku: 'HE-3000',
+    id: 2, name: 'Heating Element 3000W', manufacturer_sku: 'HE-3000',
     internal_barcode: 'BR-HEAT-001', category: 'heating',
     shelf: 'B1', bin: 'A4', zone: 'גופי חימום',
     suppliers: [

@@ -422,7 +422,7 @@ export default function WorkSessionModal({ repair, onClose, onReturnToDiagnosis 
                     {isNew && <span className="text-xs bg-orange-200 text-orange-800 px-2 py-0.5 rounded font-bold mr-2">חדש!</span>}
                   </p>
                   <p className={`text-xs ${lowStock ? 'text-amber-700 font-semibold' : 'text-slate-500'}`}>
-                    {part.manufacturer} • מלאי זמין: {totalStock}
+                    מלאי זמין: {totalStock}
                     {lowStock && ' ⚠ מלאי חסר'}
                   </p>
                 </div>

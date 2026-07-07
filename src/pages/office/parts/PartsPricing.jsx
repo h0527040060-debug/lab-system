@@ -21,7 +21,6 @@ export default function PartsPricing() {
     const s = search.toLowerCase();
     return (
       p.name?.toLowerCase().includes(s) ||
-      p.manufacturer?.toLowerCase().includes(s) ||
       p.manufacturer_sku?.toLowerCase().includes(s) ||
       p.internal_barcode?.toLowerCase().includes(s) ||
       p.category?.toLowerCase().includes(s)
@@ -119,7 +118,6 @@ export default function PartsPricing() {
                         <PartThumbnail part={part} size="sm" onClick={() => setViewingPart(part)} />
                         <button onClick={() => setViewingPart(part)} className="text-right hover:text-blue-600 group">
                           <p className="font-semibold group-hover:underline">{part.name}</p>
-                          <p className="text-xs text-slate-500">{part.manufacturer}</p>
                         </button>
                       </div>
                     </td>

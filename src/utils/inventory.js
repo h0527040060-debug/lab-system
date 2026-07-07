@@ -41,7 +41,7 @@ export const groupShortagesBySupplier = (parts, stockBatches) => {
 export const addPartToManualOrder = (state, dispatch, part, quantity) => {
   const qty = Math.max(1, parseInt(quantity) || 1);
   const supplier = getDefaultSupplier(part);
-  const supplierName = supplier?.supplier_name || part.manufacturer || 'לא צוין ספק';
+  const supplierName = supplier?.supplier_name || 'לא צוין ספק';
   const unitCost = supplier?.price || 0;
 
   const existingOrder = state.purchaseOrders.find(

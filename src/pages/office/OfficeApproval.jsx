@@ -302,7 +302,6 @@ function EditQuoteModal({ repair, onClose }) {
     const s = partSearch.toLowerCase();
     return (
       p.name?.toLowerCase().includes(s) ||
-      p.manufacturer?.toLowerCase().includes(s) ||
       p.manufacturer_sku?.toLowerCase().includes(s) ||
       p.internal_barcode?.toLowerCase().includes(s)
     );

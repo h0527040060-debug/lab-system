@@ -23,7 +23,6 @@ export default function AssemblyInstructions() {
     const s = search.toLowerCase();
     return (
       p.name?.toLowerCase().includes(s) ||
-      p.manufacturer?.toLowerCase().includes(s) ||
       p.manufacturer_sku?.toLowerCase().includes(s) ||
       p.internal_barcode?.toLowerCase().includes(s) ||
       p.category?.toLowerCase().includes(s)
@@ -78,7 +77,6 @@ export default function AssemblyInstructions() {
                           <PartThumbnail part={part} size="sm" />
                           <div>
                             <p className="font-semibold">{part.name}</p>
-                            <p className="text-xs text-slate-500">{part.manufacturer}</p>
                           </div>
                         </div>
                       </td>
@@ -131,7 +129,6 @@ export default function AssemblyInstructions() {
                         <PartThumbnail part={part} size="sm" />
                         <div>
                           <p className="font-medium">{part.name}</p>
-                          <p className="text-xs text-slate-500">{part.manufacturer}</p>
                         </div>
                       </div>
                     </td>

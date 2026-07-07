@@ -30,7 +30,6 @@ export const calculateQuoteBreakdown = (repair, state) => {
     return {
       id: part.id,
       name: part.name,
-      manufacturer: part.manufacturer,
       quantity,
       unit_price: unitPrice,
       total: unitPrice * quantity,
