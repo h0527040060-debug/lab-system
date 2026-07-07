@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { X, User, Smartphone, FileText, Wrench, Camera, Stethoscope, Clock, Package, Edit2, Plus, Trash2, AlertTriangle } from 'lucide-react';
+import { X, User, Smartphone, FileText, Wrench, Camera, Stethoscope, Clock, Package, Edit2, Plus, Trash2, AlertTriangle, DollarSign, Receipt, CheckCircle2 } from 'lucide-react';
 import { uploadToStorage } from '../store/supabaseStorage';
 import ConfirmDialog from './ConfirmDialog';
 import { useAppContext } from '../store/AppContext';
@@ -87,6 +87,10 @@ export default function RepairDetailModal({ repair, customer, device, onClose, o
   const canDiagnosis = ['red_intake', 'yellow_diagnosis', 'yellow_appeal'].includes(repair.status);
   const canWork = ['yellow_ready_to_work', 'in_work'].includes(repair.status);
   const canDocs = repair.status === 'pending_release_docs';
+  // אישור מחיר / גביה / מסירה — פעולות משרד בלבד, לא רלוונטיות למעבדה
+  const canApproval = !isLabUser && repair.status === 'yellow_waiting_approval';
+  const canPayment = !isLabUser && repair.status === 'pending_payment';
+  const canPickup = !isLabUser && repair.status === 'paid_waiting_pickup';
 
   // תמונות מכשיר — מקור האמת הוא device.images, עם fallback לתמונות קליטה ישנות
   const deviceImages = device?.images?.length > 0 ? device.images : (repair.intake_photos || []);
@@ -427,6 +431,14 @@ export default function RepairDetailModal({ repair, customer, device, onClose, o
                   <Stethoscope size={12} /> ערוך אבחון
                 </button>
               )}
+              {canApproval && (
+                <button
+                  onClick={() => { onAction(repair.id, 'approval'); onClose(); }}
+                  className="flex items-center gap-1.5 text-xs bg-emerald-100 hover:bg-emerald-200 text-emerald-800 px-3 py-1.5 rounded-lg font-semibold"
+                >
+                  <DollarSign size={12} /> אישור מחיר
+                </button>
+              )}
               {canWork && (
                 <button
                   onClick={() => { onAction(repair.id, 'work'); onClose(); }}
@@ -441,6 +453,22 @@ export default function RepairDetailModal({ repair, customer, device, onClose, o
                   className="flex items-center gap-1.5 text-xs bg-purple-100 hover:bg-purple-200 text-purple-800 px-3 py-1.5 rounded-lg font-semibold"
                 >
                   <Camera size={12} /> תיעוד
+                </button>
+              )}
+              {canPayment && (
+                <button
+                  onClick={() => { onAction(repair.id, 'payment'); onClose(); }}
+                  className="flex items-center gap-1.5 text-xs bg-orange-100 hover:bg-orange-200 text-orange-800 px-3 py-1.5 rounded-lg font-semibold"
+                >
+                  <Receipt size={12} /> גביה
+                </button>
+              )}
+              {canPickup && (
+                <button
+                  onClick={() => { onAction(repair.id, 'pickup'); onClose(); }}
+                  className="flex items-center gap-1.5 text-xs bg-green-100 hover:bg-green-200 text-green-800 px-3 py-1.5 rounded-lg font-semibold"
+                >
+                  <CheckCircle2 size={12} /> נאסף / הושלם
                 </button>
               )}
             </div>

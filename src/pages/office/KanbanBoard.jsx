@@ -27,11 +27,14 @@ import WhatsAppButton from '../../components/WhatsAppButton';
 import DiagnosisModal from '../../components/DiagnosisModal';
 import WorkSessionModal from '../../components/WorkSessionModal';
 import ReleaseDocsModal from '../../components/ReleaseDocsModal';
+import ApprovalModal from '../../components/ApprovalModal';
+import PaymentModal from '../../components/PaymentModal';
 import RepairDetailModal from '../../components/RepairDetailModal';
 import FloatingScrollbar from '../../components/FloatingScrollbar';
 import {
   Stethoscope, Wrench, Camera, RotateCcw, Search,
   ChevronLeft, ChevronRight, GripVertical, MoreVertical,
+  DollarSign, Receipt, CheckCircle2,
 } from 'lucide-react';
 
 const DEFAULT_COLUMNS = {
@@ -64,10 +67,14 @@ const SORT_OPTIONS = [
 const getActionForStatus = (status) => {
   if ([REPAIR_STATUSES.RED_INTAKE, REPAIR_STATUSES.YELLOW_DIAGNOSIS, REPAIR_STATUSES.YELLOW_APPEAL].includes(status))
     return 'diagnosis';
+  if (status === REPAIR_STATUSES.YELLOW_WAITING_APPROVAL)
+    return 'approval';
   if ([REPAIR_STATUSES.YELLOW_READY_TO_WORK, REPAIR_STATUSES.IN_WORK].includes(status))
     return 'work';
   if (status === REPAIR_STATUSES.PENDING_RELEASE_DOCS)
     return 'docs';
+  if (status === REPAIR_STATUSES.PENDING_PAYMENT)
+    return 'payment';
   if (status === REPAIR_STATUSES.PAID_WAITING_PICKUP)
     return 'pickup';
   return null;
@@ -129,6 +136,14 @@ function CardMenu({ repair, customer, device, onAction, onOpenDetail }) {
               <Stethoscope size={11} /> אבחון
             </button>
           )}
+          {!needsPhoto && action === 'approval' && (
+            <button
+              className="w-full px-3 py-2 text-xs text-emerald-800 hover:bg-emerald-50 text-right flex items-center gap-2"
+              onClick={() => { setOpen(false); onAction(repair.id, 'approval'); }}
+            >
+              <DollarSign size={11} /> אישור מחיר
+            </button>
+          )}
           {!needsPhoto && action === 'work' && (
             <button
               className="w-full px-3 py-2 text-xs text-blue-800 hover:bg-blue-50 text-right flex items-center gap-2"
@@ -143,6 +158,14 @@ function CardMenu({ repair, customer, device, onAction, onOpenDetail }) {
               onClick={() => { setOpen(false); onAction(repair.id, 'docs'); }}
             >
               <Camera size={11} /> תיעוד
+            </button>
+          )}
+          {!needsPhoto && action === 'payment' && (
+            <button
+              className="w-full px-3 py-2 text-xs text-orange-800 hover:bg-orange-50 text-right flex items-center gap-2"
+              onClick={() => { setOpen(false); onAction(repair.id, 'payment'); }}
+            >
+              <Receipt size={11} /> גביה
             </button>
           )}
           {!needsPhoto && action === 'pickup' && (
@@ -213,6 +236,14 @@ function KanbanCard({ repair, customer, device, isDragging, onAction, onOpenDeta
                   <Stethoscope size={11} /> אבחון
                 </button>
               )}
+              {action === 'approval' && (
+                <button
+                  onClick={() => onAction(repair.id, 'approval')}
+                  className="flex items-center gap-1 text-xs bg-emerald-100 hover:bg-emerald-200 text-emerald-800 px-2 py-1 rounded-lg font-semibold"
+                >
+                  <DollarSign size={11} /> אישור מחיר
+                </button>
+              )}
               {action === 'work' && (
                 <button
                   onClick={() => onAction(repair.id, 'work')}
@@ -227,6 +258,22 @@ function KanbanCard({ repair, customer, device, isDragging, onAction, onOpenDeta
                   className="flex items-center gap-1 text-xs bg-purple-100 hover:bg-purple-200 text-purple-800 px-2 py-1 rounded-lg font-semibold"
                 >
                   <Camera size={11} /> תיעוד
+                </button>
+              )}
+              {action === 'payment' && (
+                <button
+                  onClick={() => onAction(repair.id, 'payment')}
+                  className="flex items-center gap-1 text-xs bg-orange-100 hover:bg-orange-200 text-orange-800 px-2 py-1 rounded-lg font-semibold"
+                >
+                  <Receipt size={11} /> גביה
+                </button>
+              )}
+              {action === 'pickup' && (
+                <button
+                  onClick={() => onAction(repair.id, 'pickup')}
+                  className="flex items-center gap-1 text-xs bg-green-100 hover:bg-green-200 text-green-800 px-2 py-1 rounded-lg font-semibold"
+                >
+                  <CheckCircle2 size={11} /> נאסף / הושלם
                 </button>
               )}
             </>
@@ -609,6 +656,12 @@ export default function KanbanBoard({ role = 'office', onNavigate, openRepairId 
       )}
       {activeRepair && activeModal === 'docs' && (
         <ReleaseDocsModal repair={activeRepair} onClose={() => { setActiveRepairId(null); setActiveModal(null); }} />
+      )}
+      {activeRepair && activeModal === 'approval' && (
+        <ApprovalModal repair={activeRepair} onClose={() => { setActiveRepairId(null); setActiveModal(null); }} />
+      )}
+      {activeRepair && activeModal === 'payment' && (
+        <PaymentModal repair={activeRepair} onClose={() => { setActiveRepairId(null); setActiveModal(null); }} />
       )}
       {detailRepair && (
         <RepairDetailModal

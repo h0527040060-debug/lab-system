@@ -9,12 +9,14 @@ import StatusBadge from '../../components/StatusBadge';
 import DiagnosisModal from '../../components/DiagnosisModal';
 import WorkSessionModal from '../../components/WorkSessionModal';
 import ReleaseDocsModal from '../../components/ReleaseDocsModal';
+import ApprovalModal from '../../components/ApprovalModal';
+import PaymentModal from '../../components/PaymentModal';
 import PrintStickerModal from '../../components/PrintStickerModal';
 import CustomerQuickModal from '../../components/CustomerQuickModal';
 import DeviceQuickModal from '../../components/DeviceQuickModal';
 import StatusPickerPopover from '../../components/StatusPickerPopover';
 import WhatsAppButton from '../../components/WhatsAppButton';
-import { Stethoscope, Wrench, Camera, Printer, Edit2, MoreVertical, Trash2 } from 'lucide-react';
+import { Stethoscope, Wrench, Camera, Printer, Edit2, MoreVertical, Trash2, DollarSign, Receipt, CheckCircle2 } from 'lucide-react';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { RepairEditModal } from '../../components/RepairEditModal';
 import DataTable from '../../components/DataTable';
@@ -23,10 +25,16 @@ import RepairDetailModal from '../../components/RepairDetailModal';
 const getActionForStatus = (status) => {
   if ([REPAIR_STATUSES.RED_INTAKE, REPAIR_STATUSES.YELLOW_DIAGNOSIS, REPAIR_STATUSES.YELLOW_APPEAL].includes(status))
     return 'diagnosis';
+  if (status === REPAIR_STATUSES.YELLOW_WAITING_APPROVAL)
+    return 'approval';
   if ([REPAIR_STATUSES.YELLOW_READY_TO_WORK, REPAIR_STATUSES.IN_WORK].includes(status))
     return 'work';
   if (status === REPAIR_STATUSES.PENDING_RELEASE_DOCS)
     return 'docs';
+  if (status === REPAIR_STATUSES.PENDING_PAYMENT)
+    return 'payment';
+  if (status === REPAIR_STATUSES.PAID_WAITING_PICKUP)
+    return 'pickup';
   return null;
 };
 
@@ -60,6 +68,10 @@ export default function OfficeRepairsList({ onNavigate }) {
   const detailDevice = detailRepair ? state.devices.find(d => d.id === detailRepair.device_id) : null;
 
   const openModal = (repairId, modal) => {
+    if (modal === 'pickup') {
+      dispatch({ type: 'UPDATE_REPAIR', payload: { id: repairId, status: REPAIR_STATUSES.GREEN_COMPLETE, released_at: new Date().toISOString() } });
+      return;
+    }
     setActiveRepairId(repairId);
     setActiveModal(modal);
   };
@@ -190,6 +202,11 @@ export default function OfficeRepairsList({ onNavigate }) {
                     <Stethoscope size={13} /> אבחון
                   </button>
                 )}
+                {getActionForStatus(r.status) === 'approval' && (
+                  <button onClick={() => { openModal(r.id, 'approval'); setOpenMenuId(null); }} className="flex items-center gap-2 w-full px-3 py-1.5 text-xs hover:bg-emerald-50 text-emerald-800">
+                    <DollarSign size={13} /> אישור מחיר
+                  </button>
+                )}
                 {getActionForStatus(r.status) === 'work' && (
                   <button onClick={() => { openModal(r.id, 'work'); setOpenMenuId(null); }} className="flex items-center gap-2 w-full px-3 py-1.5 text-xs hover:bg-blue-50 text-blue-800">
                     <Wrench size={13} /> ביצוע
@@ -198,6 +215,16 @@ export default function OfficeRepairsList({ onNavigate }) {
                 {getActionForStatus(r.status) === 'docs' && (
                   <button onClick={() => { openModal(r.id, 'docs'); setOpenMenuId(null); }} className="flex items-center gap-2 w-full px-3 py-1.5 text-xs hover:bg-purple-50 text-purple-800">
                     <Camera size={13} /> תיעוד
+                  </button>
+                )}
+                {getActionForStatus(r.status) === 'payment' && (
+                  <button onClick={() => { openModal(r.id, 'payment'); setOpenMenuId(null); }} className="flex items-center gap-2 w-full px-3 py-1.5 text-xs hover:bg-orange-50 text-orange-800">
+                    <Receipt size={13} /> גביה
+                  </button>
+                )}
+                {getActionForStatus(r.status) === 'pickup' && (
+                  <button onClick={() => { openModal(r.id, 'pickup'); setOpenMenuId(null); }} className="flex items-center gap-2 w-full px-3 py-1.5 text-xs hover:bg-green-50 text-green-800">
+                    <CheckCircle2 size={13} /> נאסף / הושלם
                   </button>
                 )}
                 <div className="border-t border-slate-100 mt-1 pt-1">
@@ -276,6 +303,8 @@ export default function OfficeRepairsList({ onNavigate }) {
       {activeRepair && activeModal === 'diagnosis' && <DiagnosisModal repair={activeRepair} onClose={closeModal} />}
       {activeRepair && activeModal === 'work' && <WorkSessionModal repair={activeRepair} onClose={closeModal} />}
       {activeRepair && activeModal === 'docs' && <ReleaseDocsModal repair={activeRepair} onClose={closeModal} />}
+      {activeRepair && activeModal === 'approval' && <ApprovalModal repair={activeRepair} onClose={closeModal} />}
+      {activeRepair && activeModal === 'payment' && <PaymentModal repair={activeRepair} onClose={closeModal} />}
       {printRepair && (
         <PrintStickerModal repair={printRepair.repair} customer={printRepair.customer} device={printRepair.device} onClose={() => setPrintRepair(null)} />
       )}
