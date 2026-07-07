@@ -5,6 +5,7 @@ import DeviceThumbnail from './DeviceThumbnail';
 import DeviceCompatiblePartsModal from './DeviceCompatiblePartsModal';
 import ModelEditModal from './ModelEditModal';
 import RepairDetailModal from './RepairDetailModal';
+import DeviceQuickModal from './DeviceQuickModal';
 import StatusBadge from './StatusBadge';
 import { Edit2, PackageSearch, X } from 'lucide-react';
 
@@ -15,6 +16,7 @@ export default function ModelCardModal({ brand, model, onClose, onNavigate }) {
   const [showParts, setShowParts] = useState(false);
   const [editingModel, setEditingModel] = useState(false);
   const [detailRepairId, setDetailRepairId] = useState(null);
+  const [viewingDeviceId, setViewingDeviceId] = useState(null);
 
   const devices = state.devices.filter(
     d => d.brand?.toLowerCase() === brand.toLowerCase() && d.model?.toLowerCase() === model.toLowerCase()
@@ -37,6 +39,9 @@ export default function ModelCardModal({ brand, model, onClose, onNavigate }) {
   const detailRepair = detailRepairId ? state.repairs.find(r => r.id === detailRepairId) : null;
   const detailCustomer = detailRepair ? state.customers.find(c => c.id === detailRepair.customer_id) : null;
   const detailDevice = detailRepair ? state.devices.find(d => d.id === detailRepair.device_id) : null;
+
+  const viewingDevice = viewingDeviceId ? devices.find(d => d.id === viewingDeviceId) : null;
+  const viewingDeviceCustomer = viewingDevice ? state.customers.find(c => c.id === viewingDevice.owner_customer_id) : null;
 
   return (
     <>
@@ -87,6 +92,28 @@ export default function ModelCardModal({ brand, model, onClose, onNavigate }) {
             </div>
 
             <div>
+              <h3 className="font-semibold text-sm text-slate-600 mb-2">מכשירים שנקלטו ({devices.length})</h3>
+              <div className="space-y-1.5">
+                {devices.map(d => {
+                  const owner = state.customers.find(c => c.id === d.owner_customer_id);
+                  return (
+                    <button
+                      key={d.id}
+                      onClick={() => setViewingDeviceId(d.id)}
+                      className="w-full text-right bg-slate-50 hover:bg-slate-100 rounded-lg px-3 py-2 text-xs flex items-center justify-between"
+                    >
+                      <span className="font-mono font-bold text-slate-700">{d.id}</span>
+                      <span className="text-slate-500">
+                        {owner?.name || '—'}
+                        {d.manufacturer_serial && ` • Serial: ${d.manufacturer_serial}`}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div>
               <h3 className="font-semibold text-sm text-slate-600 mb-2">היסטוריית תיקונים</h3>
               {repairs.length === 0 ? (
                 <p className="text-center text-sm text-slate-400 py-3">אין תיקונים קודמים</p>
@@ -133,6 +160,14 @@ export default function ModelCardModal({ brand, model, onClose, onNavigate }) {
           device={detailDevice}
           onClose={() => setDetailRepairId(null)}
           onAction={() => { setDetailRepairId(null); onNavigate?.('kanban'); }}
+        />
+      )}
+      {viewingDevice && (
+        <DeviceQuickModal
+          device={viewingDevice}
+          customer={viewingDeviceCustomer}
+          repairs={state.repairs}
+          onClose={() => setViewingDeviceId(null)}
         />
       )}
     </>
