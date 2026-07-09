@@ -292,7 +292,6 @@ function EditQuoteModal({ repair, onClose }) {
 
   const [workCodes, setWorkCodes] = useState(repair.diagnosed_work_codes || []);
   const [parts, setParts] = useState(repair.diagnosed_parts || []);
-  const [services, setServices] = useState(repair.diagnosed_services || []);
   const [partSearch, setPartSearch] = useState('');
 
   const device = state.devices.find(d => d.id === repair.device_id);
@@ -314,13 +313,12 @@ function EditQuoteModal({ repair, onClose }) {
         id: repair.id,
         diagnosed_work_codes: workCodes,
         diagnosed_parts: parts,
-        diagnosed_services: services,
       },
     });
     onClose();
   };
 
-  const tempRepair = { ...repair, diagnosed_work_codes: workCodes, diagnosed_parts: parts, diagnosed_services: services };
+  const tempRepair = { ...repair, diagnosed_work_codes: workCodes, diagnosed_parts: parts };
   const breakdown = calculateQuoteBreakdown(tempRepair, state);
 
   const addWork = (workId) => setWorkCodes(prev => prev.includes(workId) ? prev : [...prev, workId]);
@@ -336,9 +334,6 @@ function EditQuoteModal({ repair, onClose }) {
   const updatePartQty = (partId, qty) => setParts(prev =>
     prev.map(p => p.part_id === partId ? { ...p, quantity: Math.max(1, parseInt(qty) || 1) } : p)
   );
-
-  const addService = (svcId) => setServices(prev => prev.includes(svcId) ? prev : [...prev, svcId]);
-  const removeService = (svcId) => setServices(prev => prev.filter(s => s !== svcId));
 
   return (
     <Modal
@@ -367,9 +362,9 @@ function EditQuoteModal({ repair, onClose }) {
                     onClick={() => isSelected ? removeWork(w.id) : addWork(w.id)}
                     className={`w-full text-right p-2 border-b last:border-0 text-sm ${isSelected ? 'bg-orange-50' : 'hover:bg-slate-50'}`}
                   >
-                    <div className="flex justify-between">
-                      <span>{w.work_name} - {w.model}</span>
-                      <span className="font-bold">{formatMoney(w.price)}</span>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="truncate min-w-0 flex-1">{w.work_name} - {w.model}</span>
+                      <span className="font-bold flex-shrink-0">{formatMoney(w.price)}</span>
                     </div>
                   </button>
                 );
@@ -415,26 +410,6 @@ function EditQuoteModal({ repair, onClose }) {
             </div>
           </div>
 
-          <div>
-            <h4 className="font-bold text-sm mb-2">✨ שירותים גנריים</h4>
-            <div className="border border-slate-200 rounded-lg max-h-32 overflow-y-auto">
-              {state.services.map(s => {
-                const isSelected = services.includes(s.id);
-                return (
-                  <button
-                    key={s.id}
-                    onClick={() => isSelected ? removeService(s.id) : addService(s.id)}
-                    className={`w-full text-right p-2 border-b last:border-0 text-sm ${isSelected ? 'bg-orange-50' : 'hover:bg-slate-50'}`}
-                  >
-                    <div className="flex justify-between">
-                      <span>{s.name}</span>
-                      <span className="font-bold">{formatMoney(s.base_price)}</span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
         </div>
 
         <div>

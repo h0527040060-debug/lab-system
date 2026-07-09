@@ -21,14 +21,12 @@ export default function EditInvoiceModal({ repair, onClose }) {
 
   const initialBreakdown = useMemo(() => {
     if (repair.invoice_items) {
-      const { works = [], parts = [], services = [] } = repair.invoice_items;
+      const { works = [], parts = [] } = repair.invoice_items;
       return {
         works,
         parts: parts.map(p => ({ ...p, total: p.unit_price * p.quantity })),
-        services,
         worksTotal: works.reduce((s, w) => s + w.price, 0),
         partsTotal: parts.reduce((s, p) => s + p.unit_price * p.quantity, 0),
-        servicesTotal: services.reduce((s, sv) => s + sv.price, 0),
         grandTotal: 0,
       };
     }
@@ -42,20 +40,13 @@ export default function EditInvoiceModal({ repair, onClose }) {
     quantity: p.quantity,
     unit_price: p.unit_price,
   })));
-  const [services, setServices] = useState(initialBreakdown.services.map(s => ({
-    id: s.id,
-    name: s.name,
-    price: s.price,
-  })));
 
   const [showAddWork, setShowAddWork] = useState(false);
   const [showAddPart, setShowAddPart] = useState(false);
-  const [showAddService, setShowAddService] = useState(false);
   const [editingWork, setEditingWork] = useState(null);
   const [editingPart, setEditingPart] = useState(null);
-  const [editingService, setEditingService] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
-  const isDirty = useDirtyForm({ works, parts, services });
+  const isDirty = useDirtyForm({ works, parts });
   const { requestClose, confirmDialog } = useUnsavedGuard(isDirty, onClose);
 
   const device = state.devices.find(d => d.id === repair.device_id);
@@ -63,24 +54,21 @@ export default function EditInvoiceModal({ repair, onClose }) {
   const liveBreakdown = useMemo(() => {
     const worksTotal = works.reduce((s, w) => s + (w.price || 0), 0);
     const partsTotal = parts.reduce((s, p) => s + (p.unit_price || 0) * (p.quantity || 1), 0);
-    const servicesTotal = services.reduce((s, sv) => s + (sv.price || 0), 0);
     return {
       works,
       worksTotal,
       parts: parts.map(p => ({ ...p, id: p.part_id, total: p.unit_price * p.quantity })),
       partsTotal,
-      services,
-      servicesTotal,
-      grandTotal: worksTotal + partsTotal + servicesTotal,
+      grandTotal: worksTotal + partsTotal,
     };
-  }, [works, parts, services]);
+  }, [works, parts]);
 
   const handleSave = () => {
     dispatch({
       type: 'UPDATE_REPAIR',
       payload: {
         id: repair.id,
-        invoice_items: { works, parts, services },
+        invoice_items: { works, parts },
       },
     });
     onClose();
@@ -119,25 +107,11 @@ export default function EditInvoiceModal({ repair, onClose }) {
     if (field === 'unit_price') setEditingPart(null);
   };
 
-  // שירותים
-  const addService = (s) => {
-    if (!services.find(x => x.id === s.id)) {
-      setServices(prev => [...prev, { id: s.id, name: s.name, price: s.base_price }]);
-    }
-    setShowAddService(false);
-  };
-  const removeService = (id) => setServices(prev => prev.filter(s => s.id !== id));
-  const updateServicePrice = (id, price) => {
-    setServices(prev => prev.map(s => s.id === id ? { ...s, price: Math.max(0, parseFloat(price) || 0) } : s));
-    setEditingService(null);
-  };
-
   const availableWorks = state.workCatalog.filter(w =>
     !works.find(x => x.id === w.id) &&
     (w.brand === device?.brand || w.brand === 'כל היצרנים' || w.brand === '(חופשי)')
   );
   const availableParts = state.parts.filter(p => !parts.find(x => x.part_id === p.id));
-  const availableServices = state.services.filter(s => !services.find(x => x.id === s.id));
 
   return (
     <>
@@ -257,50 +231,6 @@ export default function EditInvoiceModal({ repair, onClose }) {
                 </div>
               ))}
               {parts.length === 0 && <p className="text-xs text-slate-400 text-center py-2 border border-dashed rounded-lg">אין חלקים</p>}
-            </div>
-          </div>
-
-          {/* שירותים */}
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <h4 className="font-bold text-sm">✨ שירותים ({services.length})</h4>
-              <button onClick={() => setShowAddService(!showAddService)} className="text-xs text-orange-600 hover:text-orange-700 font-semibold flex items-center gap-1">
-                <Plus size={14} /> הוסף שירות
-              </button>
-            </div>
-            {showAddService && (
-              <div className="bg-orange-50 border border-orange-200 rounded-lg p-2 mb-2 max-h-28 overflow-y-auto">
-                {availableServices.length === 0
-                  ? <p className="text-xs text-slate-500 text-center py-2">אין שירותים נוספים</p>
-                  : availableServices.map(s => (
-                    <button key={s.id} onClick={() => addService(s)} className="w-full text-right p-1.5 hover:bg-white rounded text-xs flex justify-between">
-                      <span>{s.name}</span>
-                      <span className="font-bold">{formatMoney(s.base_price)}</span>
-                    </button>
-                  ))
-                }
-              </div>
-            )}
-            <div className="space-y-1">
-              {services.map(s => (
-                <div key={s.id} className="flex items-center gap-2 p-2 bg-slate-50 border border-slate-200 rounded-lg text-sm">
-                  <div className="flex-1"><p className="font-semibold">{s.name}</p></div>
-                  {editingService === s.id ? (
-                    <EditablePrice
-                      value={s.price}
-                      onSave={(v) => updateServicePrice(s.id, v)}
-                      onCancel={() => setEditingService(null)}
-                    />
-                  ) : (
-                    <>
-                      <span className="font-bold">{formatMoney(s.price)}</span>
-                      <button onClick={() => setEditingService(s.id)} className="text-slate-400 hover:text-orange-600"><Pencil size={13} /></button>
-                    </>
-                  )}
-                  <button onClick={() => setConfirmDelete({ action: () => removeService(s.id), message: `האם אתה בטוח שאתה רוצה להסיר את השירות "${s.name}"?` })} className="text-slate-400 hover:text-red-600"><Trash2 size={14} /></button>
-                </div>
-              ))}
-              {services.length === 0 && <p className="text-xs text-slate-400 text-center py-2 border border-dashed rounded-lg">אין שירותים</p>}
             </div>
           </div>
 
