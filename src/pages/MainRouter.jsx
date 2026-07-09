@@ -3,6 +3,7 @@ import { useAppContext } from '../store/AppContext';
 import Layout from '../components/Layout';
 import { TAB_CATALOG, PAGE_COMPONENTS } from '../constants/pageRegistry';
 import { DEFAULT_ROLE_CONFIG } from '../store/AppContext';
+import { loadFromStorage, saveToStorage, storageKeys } from '../store/storage';
 
 export default function MainRouter() {
   const { state } = useAppContext();
@@ -30,7 +31,9 @@ export default function MainRouter() {
   const visibleTabs = getVisibleTabs();
   const defaultTab = visibleTabs[0]?.id ?? 'kanban';
 
-  const [currentTab, setCurrentTab] = useState(defaultTab);
+  // נטען מהטאב האחרון שנשמר (per-device) כדי שהאפליקציה תיפתח באותו מקום שבו המשתמש עזב,
+  // ולא תמיד תתאפס לטאב ברירת המחדל. אם אין ערך שמור, או שהוא לא תקין יותר — ה-guard למטה יתקן.
+  const [currentTab, setCurrentTab] = useState(() => loadFromStorage(storageKeys.LAST_TAB, null) || defaultTab);
   const [openRepairId, setOpenRepairId] = useState(null);
 
   // guard: אם הטאב הנוכחי הוסר מהרשאות — חזרה לטאב ראשון
@@ -40,6 +43,11 @@ export default function MainRouter() {
       setCurrentTab(defaultTab);
     }
   }, [visibleTabs, currentTab, defaultTab]);
+
+  // שמירת הטאב הנוכחי בכל שינוי, כדי לשחזר אותו בטעינה הבאה של האפליקציה
+  useEffect(() => {
+    saveToStorage(storageKeys.LAST_TAB, currentTab);
+  }, [currentTab]);
 
   const handleNavigate = (page, repairId = null) => {
     setCurrentTab(page);

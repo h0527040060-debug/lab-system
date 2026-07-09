@@ -21,6 +21,7 @@ export const storageKeys = {
   USERS: 'users',
   STATUS_CONFIG: 'status_config',
   ROLE_CONFIG: 'role_config',
+  LAST_TAB: 'last_tab',
 };
 
 // טעינה
