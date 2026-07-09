@@ -27,6 +27,7 @@ export const GRANULAR_ENTITIES = {
   manufacturers:   'mfg__',
   models:          'model__',
   users:           'user__',   // כל משתמש בשורה נפרדת — מונע מחיקת משתמשים חדשים
+  actionLogs:      'log__',    // יומן פעולות משותף לכל המשתמשים (ראה AppContext: ADD_LOG_ENTRY)
 };
 
 // מיפוי הפוך: prefix → stateKey (לשימוש ב-LOAD_ONE וב-Realtime)

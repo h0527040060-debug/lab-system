@@ -1,5 +1,5 @@
 import { createContext, useContext, useReducer, useEffect, useCallback, useRef, useState } from 'react';
-import { storageKeys, loadFromStorage, saveToStorage, appendLog } from './storage';
+import { storageKeys, loadFromStorage, saveToStorage } from './storage';
 import { supabase, isSupabaseConfigured, loadAllFromDB, saveAllToDB, STATE_TO_DB_KEY, DB_TO_STATE_KEY, GRANULAR_ENTITIES, PREFIX_TO_STATE_KEY } from './supabase';
 import {
   SEED_TECHNICIANS, SEED_SUPPLIERS, SEED_WORK_CATALOG,
@@ -105,6 +105,7 @@ const buildInitialState = () => {
     users,
     statusConfig:     loadFromStorage(storageKeys.STATUS_CONFIG, DEFAULT_STATUS_CONFIG),
     roleConfig:       loadFromStorage(storageKeys.ROLE_CONFIG, DEFAULT_ROLE_CONFIG),
+    actionLogs:       loadFromStorage(storageKeys.ACTION_LOGS, []),
   };
 };
 
@@ -316,6 +317,14 @@ const appReducer = (state, action) => {
     case 'LOGOUT':
       return { ...state, currentUser: null };
 
+    // --- יומן פעולות (משותף לכל המשתמשים, ראה GRANULAR_ENTITIES.actionLogs) ---
+    case 'ADD_LOG_ENTRY': {
+      const capped = [action.payload, ...state.actionLogs].slice(0, 2000);
+      return { ...state, actionLogs: capped };
+    }
+    case 'CLEAR_LOGS':
+      return { ...state, actionLogs: [] };
+
     // --- עדכון entity בודד מ-Realtime (הוספה/עדכון) ---
     case 'LOAD_ONE': {
       const { key, data } = action.payload;
@@ -379,6 +388,7 @@ const appReducer = (state, action) => {
         users,
         statusConfig:    p.statusConfig    ?? state.statusConfig,
         roleConfig:      p.roleConfig      ?? state.roleConfig,
+        actionLogs:      p.actionLogs      ?? state.actionLogs,
         currentUser,
       };
     }
@@ -438,6 +448,7 @@ const ACTION_META = {
   DELETE_STATUS:        { entity: 'status',    desc: (p) => `מחק סטטוס: ${p}` },
   SET_CURRENT_USER:     { entity: 'auth',      desc: (p) => `התחבר למערכת: ${p?.name || ''}` },
   LOGOUT:               { entity: 'auth',      desc: () => 'התנתק מהמערכת' },
+  CLEAR_LOGS:           { entity: 'settings',  desc: () => 'ניקה את יומן הפעולות' },
 };
 
 const buildLogEntry = (action, currentUser, state) => {
@@ -515,6 +526,7 @@ const TOAST_MESSAGES = {
   DELETE_STATUS:           ()  => ({ msg: 'סטטוס נמחק', type: 'success' }),
   SET_CURRENT_USER:        (p) => ({ msg: `ברוך הבא, ${p?.name || ''}`, type: 'success' }),
   LOGOUT:                  ()  => ({ msg: 'התנתקת מהמערכת', type: 'info' }),
+  CLEAR_LOGS:              ()  => ({ msg: 'יומן הפעולות נוקה', type: 'success' }),
 };
 
 // מיפוי: action → מפתח ה-storage שנשמר אחריו (לאימות שמירה אמיתי)
@@ -856,11 +868,13 @@ export const AppProvider = ({ children }) => {
   useEffect(() => { scheduleSave(storageKeys.USERS, state.users, null); scheduleGranularSave('users', state.users); }, [state.users, scheduleSave, scheduleGranularSave]);
   useEffect(() => { scheduleSave(storageKeys.STATUS_CONFIG, state.statusConfig, STATE_TO_DB_KEY.statusConfig); }, [state.statusConfig, scheduleSave]);
   useEffect(() => { scheduleSave(storageKeys.ROLE_CONFIG, state.roleConfig, STATE_TO_DB_KEY.roleConfig); }, [state.roleConfig, scheduleSave]);
+  useEffect(() => { scheduleSave(storageKeys.ACTION_LOGS, state.actionLogs, null); scheduleGranularSave('actionLogs', state.actionLogs); }, [state.actionLogs, scheduleSave, scheduleGranularSave]);
 
   const loggedDispatch = useCallback((action) => {
     dispatch(action);
     const entry = buildLogEntry(action, state.currentUser, state);
-    if (entry) appendLog(entry);
+    // dispatch גולמי (לא loggedDispatch) — כדי לא ליצור רקורסיה של רישום-לוג-של-רישום-לוג
+    if (entry) dispatch({ type: 'ADD_LOG_ENTRY', payload: entry });
 
     // הכן טוסט — יופיע לאחר אימות שמירה ב-localStorage
     const toastFn = TOAST_MESSAGES[action.type];
