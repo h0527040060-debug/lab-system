@@ -8,6 +8,8 @@ import DeviceCompatiblePartsModal from './DeviceCompatiblePartsModal';
 import { X, RefreshCw, Camera, Dices, PackageSearch, Trash2 } from 'lucide-react';
 import { uploadToStorage } from '../store/supabaseStorage';
 import { generateEngravingNumber } from '../utils/idGenerators';
+import { useDirtyForm } from '../hooks/useDirtyForm';
+import { useUnsavedGuard } from '../hooks/useUnsavedGuard';
 
 const MAX_IMAGES = 4;
 const IMG_MAX_PX = 800;
@@ -56,6 +58,8 @@ export function DeviceEditModal({ device, onClose }) {
     notes: device.notes || '',
     images: device.images || [],
   });
+  const isDirty = useDirtyForm(form);
+  const { requestClose, confirmDialog } = useUnsavedGuard(isDirty, onClose);
 
   const set = (field, val) => setForm(f => ({ ...f, [field]: val }));
   const canSave = form.brand.trim() && form.model.trim();
@@ -114,7 +118,7 @@ export function DeviceEditModal({ device, onClose }) {
     <>
     <Modal
       open
-      onClose={onClose}
+      onClose={requestClose}
       sheet
       title="עריכת מכשיר"
       subtitle={device.id}
@@ -130,7 +134,7 @@ export function DeviceEditModal({ device, onClose }) {
             <Trash2 size={15} /> מחק מכשיר
           </button>
           <div className="flex gap-2">
-            <button onClick={onClose} className="px-4 py-2 border border-slate-300 rounded-lg text-sm">ביטול</button>
+            <button onClick={requestClose} className="px-4 py-2 border border-slate-300 rounded-lg text-sm">ביטול</button>
             <button
               onClick={handleSave}
               disabled={!canSave}
@@ -324,6 +328,7 @@ export function DeviceEditModal({ device, onClose }) {
         onClose={() => setShowPartsEditor(false)}
       />
     )}
+    {confirmDialog}
     </>
   );
 }

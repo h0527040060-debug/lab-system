@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useAppContext } from '../store/AppContext';
 import Modal from './Modal';
+import { useDirtyForm } from '../hooks/useDirtyForm';
+import { useUnsavedGuard } from '../hooks/useUnsavedGuard';
 
 export function CustomerEditModal({ customer, onClose }) {
   const { dispatch } = useAppContext();
@@ -12,6 +14,8 @@ export function CustomerEditModal({ customer, onClose }) {
     address: customer.address || '',
     notes: customer.notes || '',
   });
+  const isDirty = useDirtyForm(form);
+  const { requestClose, confirmDialog } = useUnsavedGuard(isDirty, onClose);
 
   const set = (field, val) => setForm(f => ({ ...f, [field]: val }));
   const canSave = form.name.trim() && form.phone.trim();
@@ -22,16 +26,17 @@ export function CustomerEditModal({ customer, onClose }) {
   };
 
   return (
+    <>
     <Modal
       open
-      onClose={onClose}
+      onClose={requestClose}
       sheet
       title="עריכת לקוח"
       subtitle={customer.id}
       maxWidth="max-w-lg"
       footer={
         <div className="flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 border border-slate-300 rounded-lg text-sm">ביטול</button>
+          <button onClick={requestClose} className="px-4 py-2 border border-slate-300 rounded-lg text-sm">ביטול</button>
           <button
             onClick={handleSave}
             disabled={!canSave}
@@ -105,5 +110,7 @@ export function CustomerEditModal({ customer, onClose }) {
         </div>
       </div>
     </Modal>
+    {confirmDialog}
+    </>
   );
 }

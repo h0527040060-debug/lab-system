@@ -9,6 +9,8 @@ import ManufacturerModelPicker from '../../../components/ManufacturerModelPicker
 import { getTotalStock } from '../../../utils/fifo';
 import { getDefaultSupplier, addPartToManualOrder } from '../../../utils/inventory';
 import { MapPin, Building2, Plus, Trash2, ImagePlus, FileText, BookOpen, PlayCircle, X, Package, ShoppingCart, Check } from 'lucide-react';
+import { useDirtyForm } from '../../../hooks/useDirtyForm';
+import { useUnsavedGuard } from '../../../hooks/useUnsavedGuard';
 
 export const CATEGORIES = [
   { value: 'sensor', label: 'חיישן' },
@@ -57,6 +59,8 @@ export default function PartEditModal({ part, onSave, onClose }) {
     [part, state.stockBatches]
   );
   const [stockQty, setStockQty] = useState(initialStock);
+  const isDirty = useDirtyForm({ ...form, stockQty });
+  const { requestClose, confirmDialog } = useUnsavedGuard(isDirty, onClose);
 
   // הזמנה ידנית מהירה — ללא תלות במלאי מינימום/קיים
   const [orderQty, setOrderQty] = useState(1);
@@ -285,9 +289,10 @@ export default function PartEditModal({ part, onSave, onClose }) {
   const assemblyImages = (form.assembly_instructions.images || []).filter(isValidImage);
 
   return (
+    <>
     <Modal
       open={true}
-      onClose={onClose}
+      onClose={requestClose}
       title={part ? `עריכת ${part.name}` : 'חלק חדש'}
       maxWidth="max-w-3xl"
       footer={
@@ -304,7 +309,7 @@ export default function PartEditModal({ part, onSave, onClose }) {
             </button>
           ) : <span />}
           <div className="flex gap-2">
-            <button onClick={onClose} className="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-100">ביטול</button>
+            <button onClick={requestClose} className="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-100">ביטול</button>
             <button
               onClick={handleSave}
               disabled={!form.name}
@@ -762,5 +767,7 @@ export default function PartEditModal({ part, onSave, onClose }) {
         onCancel={() => setConfirmDelete(null)}
       />
     </Modal>
+    {confirmDialog}
+    </>
   );
 }

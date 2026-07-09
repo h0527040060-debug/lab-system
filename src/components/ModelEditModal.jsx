@@ -7,6 +7,8 @@ import Modal from './Modal';
 import ConfirmDialog from './ConfirmDialog';
 import AutocompleteInput from './AutocompleteInput';
 import { Plus, X, Trash2 } from 'lucide-react';
+import { useDirtyForm } from '../hooks/useDirtyForm';
+import { useUnsavedGuard } from '../hooks/useUnsavedGuard';
 
 // עריכת דגם — שם, קטגוריה (חובה) ותמונות. נפתח מכרטיס הדגם, ממסך המכשירים ומניהול יצרנים/דגמים.
 // אם model.id ריק (טרם מקוטלג — למשל מכשיר ישן שהמיגרציה פספסה) — השמירה יוצרת דגם חדש בקטלוג,
@@ -21,6 +23,8 @@ export default function ModelEditModal({ model, onClose }) {
   });
   const [uploadingImages, setUploadingImages] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const isDirty = useDirtyForm(form);
+  const { requestClose, confirmDialog } = useUnsavedGuard(isDirty, onClose);
 
   const deviceTypes = state.settings?.fieldLists?.deviceTypes || [];
   const canSave = form.name.trim() && form.device_type.trim();
@@ -98,7 +102,7 @@ export default function ModelEditModal({ model, onClose }) {
     <>
     <Modal
       open={true}
-      onClose={onClose}
+      onClose={requestClose}
       title={isNew ? `קטלוג דגם — ${model.draftBrand}` : `עריכת דגם ${model.name}`}
       subtitle={isNew ? 'המכשיר הזה עדיין לא מקוטלג — מלא את הפרטים כדי לקטלג אותו' : undefined}
       maxWidth="max-w-lg"
@@ -113,7 +117,7 @@ export default function ModelEditModal({ model, onClose }) {
             <Trash2 size={15} /> מחק דגם
           </button>
           <div className="flex gap-2">
-            <button onClick={onClose} className="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-100">ביטול</button>
+            <button onClick={requestClose} className="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-100">ביטול</button>
             <button
               onClick={handleSave}
               disabled={!canSave}
@@ -176,6 +180,7 @@ export default function ModelEditModal({ model, onClose }) {
       onConfirm={handleDelete}
       onCancel={() => setConfirmDelete(false)}
     />
+    {confirmDialog}
     </>
   );
 }

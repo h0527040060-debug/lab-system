@@ -4,6 +4,8 @@ import Modal from './Modal';
 import ConfirmDialog from './ConfirmDialog';
 import ManufacturerModelPicker from './ManufacturerModelPicker';
 import { Plus, Trash2, MapPin, Building2, X } from 'lucide-react';
+import { useDirtyForm } from '../hooks/useDirtyForm';
+import { useUnsavedGuard } from '../hooks/useUnsavedGuard';
 
 export function PartEditModal({ part, onSave, onClose }) {
   const { state } = useApp();
@@ -18,6 +20,8 @@ export function PartEditModal({ part, onSave, onClose }) {
   });
   const [deviceBrand, setDeviceBrand] = useState('');
   const [deviceModel, setDeviceModel] = useState('');
+  const isDirty = useDirtyForm(form);
+  const { requestClose, confirmDialog } = useUnsavedGuard(isDirty, onClose);
 
   const addCompatibleDevice = () => {
     const b = deviceBrand.trim();
@@ -71,14 +75,15 @@ export function PartEditModal({ part, onSave, onClose }) {
   const canSave = !!form.name;
 
   return (
+    <>
     <Modal
       open={true}
-      onClose={onClose}
+      onClose={requestClose}
       title={part ? `עריכת ${part.name}` : 'חלק חדש'}
       maxWidth="max-w-3xl"
       footer={
         <div className="flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-100">ביטול</button>
+          <button onClick={requestClose} className="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-100">ביטול</button>
           <button
             onClick={() => onSave(form)}
             disabled={!canSave}
@@ -308,5 +313,7 @@ export function PartEditModal({ part, onSave, onClose }) {
         onCancel={() => setConfirmDelete(null)}
       />
     </Modal>
+    {confirmDialog}
+    </>
   );
 }

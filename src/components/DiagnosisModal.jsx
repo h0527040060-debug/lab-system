@@ -17,6 +17,8 @@ import PartThumbnail from './PartThumbnail';
 import AssemblyInstructionsViewer from './AssemblyInstructionsViewer';
 import { WorkCatalogEditModal } from './WorkCatalogEditModal';
 import { PartEditModal } from './PartEditModal';
+import { useDirtyForm } from '../hooks/useDirtyForm';
+import { useUnsavedGuard } from '../hooks/useUnsavedGuard';
 
 const IMG_MAX_PX = 800;
 const IMG_QUALITY = 0.7;
@@ -91,6 +93,9 @@ export default function DiagnosisModal({ repair, onClose }) {
   const [showInquiryForm, setShowInquiryForm] = useState(false);
   const [inquiryForm, setInquiryForm] = useState({ description: '', images: [], supplier_ids: [] });
   const inquiryImgRef = useRef(null);
+
+  const isDirty = useDirtyForm({ diagnosis, selectedWorks, selectedParts, inquiryParts, appealReason, appealEvidence });
+  const { requestClose, confirmDialog } = useUnsavedGuard(isDirty, onClose);
 
   const allFilteredWorks = state.workCatalog.filter(w => {
     if (!workSearch) return true;
@@ -274,7 +279,7 @@ export default function DiagnosisModal({ repair, onClose }) {
     )}
     <Modal
       open={true}
-      onClose={onClose}
+      onClose={requestClose}
       sheet
       title={`אבחון: ${repair.id}`}
       subtitle={`${customer?.name} • ${device?.type || `${device?.brand} ${device?.model}`}`}
@@ -292,7 +297,7 @@ export default function DiagnosisModal({ repair, onClose }) {
               </button>
             )}
             <div className="flex gap-2 mr-auto">
-              <button onClick={onClose} className="px-4 py-2 rounded-lg border border-slate-300 hover:bg-slate-100">סגור</button>
+              <button onClick={requestClose} className="px-4 py-2 rounded-lg border border-slate-300 hover:bg-slate-100">סגור</button>
               <button
                 onClick={handleSubmitDiagnosis}
                 disabled={!diagnosis}
@@ -751,6 +756,7 @@ export default function DiagnosisModal({ repair, onClose }) {
         onClose={() => setAddingPart(false)}
       />
     )}
+    {confirmDialog}
     </>
   );
 }

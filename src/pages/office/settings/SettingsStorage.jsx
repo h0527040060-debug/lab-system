@@ -8,7 +8,7 @@ import {
   storageKeys,
 } from '../../../store/storage';
 import ConfirmDialog from '../../../components/ConfirmDialog';
-import { HardDrive, Trash2, Image, FileText, RefreshCw } from 'lucide-react';
+import { HardDrive, Trash2, Image, FileText, RefreshCw, RotateCcw } from 'lucide-react';
 
 const LABEL_MAP = {
   customers: 'לקוחות',
@@ -44,7 +44,27 @@ const COMPLETED_STATUSES = new Set(['green_complete', 'red_cancelled']);
 export function SettingsStorage() {
   const { state } = useAppContext();
   const [confirm, setConfirm] = useState(null); // { type, title, message, action }
+  const [confirmClearCache, setConfirmClearCache] = useState(false);
+  const [clearingCache, setClearingCache] = useState(false);
   const [, forceUpdate] = useState(0);
+
+  // מוצא "תקוע" על גרסה ישנה / מסך לבן — מנקה Service Worker + caches וטוען מחדש מהשרת.
+  // לא נוגע בנתוני המערכת (localStorage / Supabase) — רק במטמון הטכני של הדפדפן.
+  const handleClearCache = async () => {
+    setClearingCache(true);
+    try {
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(r => r.unregister()));
+      }
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map(k => caches.delete(k)));
+      }
+    } finally {
+      window.location.reload();
+    }
+  };
 
   const refresh = useCallback(() => forceUpdate(n => n + 1), []);
 
@@ -180,6 +200,23 @@ export function SettingsStorage() {
         </div>
       </div>
 
+      {/* תקוע על גרסה ישנה / מסך לבן */}
+      <div className="bg-white rounded-xl shadow-sm p-6">
+        <h2 className="font-bold text-slate-800 mb-1">האפליקציה תקועה או מתנהגת מוזר?</h2>
+        <p className="text-sm text-slate-500 mb-3">
+          מנקה את המטמון הטכני של הדפדפן (Service Worker) וטוען את האפליקציה מחדש מהשרת.
+          <strong> לא מוחק נתונים</strong> — לקוחות, תיקונים וכל השאר שמורים בענן.
+        </p>
+        <button
+          onClick={() => setConfirmClearCache(true)}
+          disabled={clearingCache}
+          className="w-full flex items-center justify-center gap-2 p-3 rounded-lg border border-blue-200 bg-blue-50 text-blue-800 hover:bg-blue-100 transition-colors disabled:opacity-60 font-semibold text-sm"
+        >
+          <RotateCcw size={16} className={clearingCache ? 'animate-spin' : ''} />
+          {clearingCache ? 'מנקה...' : 'נקה מטמון וטען מחדש'}
+        </button>
+      </div>
+
       {/* כפתורי ניקוי */}
       <div className="bg-white rounded-xl shadow-sm p-6">
         <h2 className="font-bold text-slate-800 mb-3">פינוי מקום</h2>
@@ -214,6 +251,14 @@ export function SettingsStorage() {
           onCancel={() => setConfirm(null)}
         />
       )}
+      <ConfirmDialog
+        open={confirmClearCache}
+        title="ניקוי מטמון וטעינה מחדש"
+        message="הפעולה תנקה את המטמון הטכני של האפליקציה ותטען אותה מחדש מהשרת. הנתונים שלך לא יימחקו."
+        confirmLabel="כן, נקה וטען מחדש"
+        onConfirm={() => { setConfirmClearCache(false); handleClearCache(); }}
+        onCancel={() => setConfirmClearCache(false)}
+      />
     </div>
   );
 }

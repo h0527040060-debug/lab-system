@@ -12,6 +12,8 @@ import ConfirmDialog from './ConfirmDialog';
 import { Play, Square, User, Wrench, Package, AlertTriangle, Plus, CheckCircle2, Trash2, Clock, BookOpen, Stethoscope, Timer } from 'lucide-react';
 import PartThumbnail from './PartThumbnail';
 import AssemblyInstructionsViewer from './AssemblyInstructionsViewer';
+import { useDirtyForm } from '../hooks/useDirtyForm';
+import { useUnsavedGuard } from '../hooks/useUnsavedGuard';
 
 // onReturnToDiagnosis — callback אופציונלי לפתיחת אבחון מהפרנט
 export default function WorkSessionModal({ repair, onClose, onReturnToDiagnosis }) {
@@ -44,6 +46,11 @@ export default function WorkSessionModal({ repair, onClose, onReturnToDiagnosis 
   const hasNewWorks = completedWorks.some(w => !originalWorks.includes(w));
   const hasNewParts = partsToUse.some(p => !originalParts.find(op => op.part_id === p.part_id));
   const hasChanges = hasNewWorks || hasNewParts;
+
+  // isDirty לצורך אישור-יציאה שונה מ-hasChanges: hasChanges מזהה רק *תוספות* מול האבחון
+  // (לצורך סימון "דרוש אישור משרד"), בעוד isDirty צריך לתפוס גם הסרות ושינויי כמות.
+  const isDirty = useDirtyForm({ completedWorks, partsToUse });
+  const { requestClose, confirmDialog } = useUnsavedGuard(isDirty, onClose);
 
   const handleStart = () => {
     dispatch({
@@ -164,7 +171,7 @@ export default function WorkSessionModal({ repair, onClose, onReturnToDiagnosis 
     <>
     <Modal
       open={true}
-      onClose={onClose}
+      onClose={requestClose}
       sheet
       title={`ביצוע תיקון: ${repair.id}`}
       subtitle={`${customer?.name} • ${device?.type || `${device?.brand} ${device?.model}`}`}
@@ -180,7 +187,7 @@ export default function WorkSessionModal({ repair, onClose, onReturnToDiagnosis 
             )}
           </div>
           <div className="flex gap-2 items-center">
-            <button onClick={onClose} className="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-100">סגור</button>
+            <button onClick={requestClose} className="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-100">סגור</button>
             {!isRunning && timeMode === 'stopwatch' && (
               <button
                 onClick={handleStart}
@@ -472,6 +479,7 @@ export default function WorkSessionModal({ repair, onClose, onReturnToDiagnosis 
       />
     </Modal>
     {assemblyPart && <AssemblyInstructionsViewer part={assemblyPart} onClose={() => setAssemblyPart(null)} />}
+    {confirmDialog}
     </>
   );
 }

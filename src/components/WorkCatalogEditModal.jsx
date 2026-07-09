@@ -3,6 +3,8 @@ import Modal from './Modal';
 import ManufacturerModelPicker from './ManufacturerModelPicker';
 import { getWorkCompatibleDevices } from '../utils/workCatalog';
 import { X } from 'lucide-react';
+import { useDirtyForm } from '../hooks/useDirtyForm';
+import { useUnsavedGuard } from '../hooks/useUnsavedGuard';
 
 export function WorkCatalogEditModal({ item, onSave, onClose }) {
   const [form, setForm] = useState(item ? {
@@ -13,6 +15,8 @@ export function WorkCatalogEditModal({ item, onSave, onClose }) {
   });
   const [deviceBrand, setDeviceBrand] = useState('');
   const [deviceModel, setDeviceModel] = useState('');
+  const isDirty = useDirtyForm(form);
+  const { requestClose, confirmDialog } = useUnsavedGuard(isDirty, onClose);
 
   const addCompatibleDevice = () => {
     const b = deviceBrand.trim();
@@ -40,15 +44,16 @@ export function WorkCatalogEditModal({ item, onSave, onClose }) {
   };
 
   return (
+    <>
     <Modal
       open={true}
-      onClose={onClose}
+      onClose={requestClose}
       title={item ? `עריכת ${item.id}` : 'הוספת עבודה חדשה'}
       subtitle="הגדרת מחיר עבודה והמכשירים שהיא מתאימה להם"
       maxWidth="max-w-xl"
       footer={
         <div className="flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 rounded-lg border border-slate-300 hover:bg-slate-100">ביטול</button>
+          <button onClick={requestClose} className="px-4 py-2 rounded-lg border border-slate-300 hover:bg-slate-100">ביטול</button>
           <button
             onClick={handleSave}
             disabled={!canSave}
@@ -148,5 +153,7 @@ export function WorkCatalogEditModal({ item, onSave, onClose }) {
         </div>
       </div>
     </Modal>
+    {confirmDialog}
+    </>
   );
 }

@@ -7,9 +7,13 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      // Service Worker משמיד-עצמו — מנקה cache תקוע אצל כל המשתמשים ומבטל SW ישן
-      selfDestroying: true,
-      registerType: 'autoUpdate',
+      // registerType: 'prompt' — ה-SW החדש נכנס למצב "waiting" ולא מפעיל את עצמו אוטומטית.
+      // updateController.js (src/pwa) שולט מתי בדיוק להחיל עדכון — כדי לא לקטוע משתמש
+      // שנמצא באמצע טופס פתוח עם שינויים לא-שמורים (ראה src/pwa/dirtyTracker.js).
+      // injectRegister: false — הרישום נעשה ידנית דרך virtual:pwa-register ב-updateController.js,
+      // כדי שיהיה לנו callback (onNeedRefresh) ולא סקריפט רישום אוטומטי כפול.
+      registerType: 'prompt',
+      injectRegister: false,
       manifest: {
         name: 'מעבדת הורוביץ',
         short_name: 'הורוביץ',
@@ -42,8 +46,9 @@ export default defineConfig({
         ],
       },
       workbox: {
-        skipWaiting: true,
-        clientsClaim: true,
+        // מחליף את התפקיד של selfDestroying בניקוי precache ישן/יתום בכל activate —
+        // בלי לכפות reload גורף על כל הטאבים הפתוחים.
+        cleanupOutdatedCaches: true,
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         navigateFallback: '/lab-system/index.html',
         runtimeCaching: [

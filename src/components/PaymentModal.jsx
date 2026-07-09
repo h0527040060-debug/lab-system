@@ -11,6 +11,8 @@ import ConfirmDialog from './ConfirmDialog';
 import PriceBreakdown from './PriceBreakdown';
 import ImageGalleryModal from './ImageGalleryModal';
 import { User, Wrench, Camera, Check, FileText } from 'lucide-react';
+import { useDirtyForm } from '../hooks/useDirtyForm';
+import { useUnsavedGuard } from '../hooks/useUnsavedGuard';
 
 // מסך גביה ושחרור לתיקון בודד — נפתח מעמוד "גביה ושחרור" וגם מתצוגת הלוח
 export default function PaymentModal({ repair, onClose }) {
@@ -32,6 +34,8 @@ export default function PaymentModal({ repair, onClose }) {
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [confirmAction, setConfirmAction] = useState(null);
   const [lightbox, setLightbox] = useState(null);
+  const isDirty = useDirtyForm({ signature, feeWaived, waiverNote, paymentMethod });
+  const { requestClose, confirmDialog } = useUnsavedGuard(isDirty, onClose);
 
   const chargedAmount = isRefused
     ? (feeWaived ? 0 : diagnosticFee)
@@ -60,15 +64,16 @@ export default function PaymentModal({ repair, onClose }) {
   };
 
   return (
+    <>
     <Modal
       open={true}
-      onClose={onClose}
+      onClose={requestClose}
       title={`גביה ושחרור - ${repair.id}`}
       subtitle={`${customer?.name} • ${device?.type || `${device?.brand} ${device?.model}`}`}
       maxWidth="max-w-4xl"
       footer={
         <div className="flex justify-between">
-          <button onClick={onClose} className="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-100">
+          <button onClick={requestClose} className="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-100">
             סגור
           </button>
           <button
@@ -241,5 +246,7 @@ export default function PaymentModal({ repair, onClose }) {
         <ImageGalleryModal images={[lightbox]} altText="תיעוד תקינות" onClose={() => setLightbox(null)} />
       )}
     </Modal>
+    {confirmDialog}
+    </>
   );
 }

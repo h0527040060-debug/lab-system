@@ -6,6 +6,8 @@ import Modal from './Modal';
 import PriceBreakdown from './PriceBreakdown';
 import ConfirmDialog from './ConfirmDialog';
 import { Plus, Trash2, Pencil, Check, X } from 'lucide-react';
+import { useDirtyForm } from '../hooks/useDirtyForm';
+import { useUnsavedGuard } from '../hooks/useUnsavedGuard';
 
 // המרת breakdown לפורמט invoice_items
 const breakdownToInvoiceItems = (breakdown) => ({
@@ -53,6 +55,8 @@ export default function EditInvoiceModal({ repair, onClose }) {
   const [editingPart, setEditingPart] = useState(null);
   const [editingService, setEditingService] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const isDirty = useDirtyForm({ works, parts, services });
+  const { requestClose, confirmDialog } = useUnsavedGuard(isDirty, onClose);
 
   const device = state.devices.find(d => d.id === repair.device_id);
 
@@ -136,15 +140,16 @@ export default function EditInvoiceModal({ repair, onClose }) {
   const availableServices = state.services.filter(s => !services.find(x => x.id === s.id));
 
   return (
+    <>
     <Modal
       open={true}
-      onClose={onClose}
+      onClose={requestClose}
       title={`עריכת חשבון - ${repair.id}`}
       subtitle="ערוך חלקים, עבודות ושירותים לפני גביה"
       maxWidth="max-w-5xl"
       footer={
         <div className="flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-100">ביטול</button>
+          <button onClick={requestClose} className="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-100">ביטול</button>
           <button onClick={handleSave} className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-lg font-semibold">
             שמור חשבון
           </button>
@@ -317,6 +322,8 @@ export default function EditInvoiceModal({ repair, onClose }) {
         onCancel={() => setConfirmDelete(null)}
       />
     </Modal>
+    {confirmDialog}
+    </>
   );
 }
 

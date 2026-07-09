@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useAppContext } from '../store/AppContext';
 import Modal from './Modal';
 import { WARRANTY_TYPES, WARRANTY_LABELS } from '../constants/warranty';
+import { useDirtyForm } from '../hooks/useDirtyForm';
+import { useUnsavedGuard } from '../hooks/useUnsavedGuard';
 
 export function RepairEditModal({ repair, onClose }) {
   const { dispatch } = useAppContext();
@@ -10,6 +12,8 @@ export function RepairEditModal({ repair, onClose }) {
     warranty_type: repair.warranty_type || 'paid',
     intake_notes: repair.intake_notes || '',
   });
+  const isDirty = useDirtyForm(form);
+  const { requestClose, confirmDialog } = useUnsavedGuard(isDirty, onClose);
 
   const set = (field, val) => setForm(f => ({ ...f, [field]: val }));
 
@@ -19,16 +23,17 @@ export function RepairEditModal({ repair, onClose }) {
   };
 
   return (
+    <>
     <Modal
       open
-      onClose={onClose}
+      onClose={requestClose}
       sheet
       title="עריכת פרטי תיקון"
       subtitle={repair.id}
       maxWidth="max-w-lg"
       footer={
         <div className="flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 border border-slate-300 rounded-lg text-sm">ביטול</button>
+          <button onClick={requestClose} className="px-4 py-2 border border-slate-300 rounded-lg text-sm">ביטול</button>
           <button
             onClick={handleSave}
             className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-lg font-semibold text-sm"
@@ -73,5 +78,7 @@ export function RepairEditModal({ repair, onClose }) {
         </div>
       </div>
     </Modal>
+    {confirmDialog}
+    </>
   );
 }

@@ -7,6 +7,7 @@ import { REPAIR_STATUSES } from '../constants/statuses';
 import Modal from './Modal';
 import ConfirmDialog from './ConfirmDialog';
 import { Camera, Video, Upload, X, Check, AlertTriangle } from 'lucide-react';
+import { useUnsavedGuard } from '../hooks/useUnsavedGuard';
 
 export default function ReleaseDocsModal({ repair, onClose }) {
   const { state, dispatch } = useAppContext();
@@ -18,6 +19,8 @@ export default function ReleaseDocsModal({ repair, onClose }) {
   const [media, setMedia] = useState([]);
   const [notes, setNotes] = useState('');
   const [confirmDeleteMedia, setConfirmDeleteMedia] = useState(null);
+  const isDirty = media.length > 0 || notes.trim() !== '';
+  const { requestClose, confirmDialog } = useUnsavedGuard(isDirty, onClose);
 
   const handleMediaUpload = (e) => {
     const files = Array.from(e.target.files);
@@ -65,16 +68,17 @@ export default function ReleaseDocsModal({ repair, onClose }) {
   };
 
   return (
+    <>
     <Modal
       open={true}
-      onClose={onClose}
+      onClose={requestClose}
       sheet
       title={`תיעוד תקינות - ${repair.id}`}
       subtitle={`${customer?.name} • ${device?.type || `${device?.brand} ${device?.model}`}`}
       maxWidth="max-w-2xl"
       footer={
         <div className="flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-100">
+          <button onClick={requestClose} className="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-100">
             ביטול
           </button>
           <button
@@ -174,5 +178,7 @@ export default function ReleaseDocsModal({ repair, onClose }) {
         onCancel={() => setConfirmDeleteMedia(null)}
       />
     </Modal>
+    {confirmDialog}
+    </>
   );
 }

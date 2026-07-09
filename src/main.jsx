@@ -4,6 +4,7 @@ import './index.css'
 import App from './App.jsx'
 import { AppProvider } from './store/AppContext.jsx'
 import { ToastProvider } from './store/ToastContext.jsx'
+import { initPwaUpdate } from './pwa/updateController.js'
 
 class ErrorBoundary extends Component {
   constructor(props) {
@@ -39,3 +40,5 @@ createRoot(document.getElementById('root')).render(
     </ErrorBoundary>
   </StrictMode>,
 )
+
+initPwaUpdate()
