@@ -11,6 +11,7 @@ import OfflineBanner from '../components/OfflineBanner';
 import { enqueueSync, dequeueSync, getSyncQueue, hasPendingSync, syncQueueSize } from './syncQueue';
 import { hasPendingBase64, migratePendingImages } from './imageMigration';
 import { buildCatalogFromExisting } from './catalogMigration';
+import { mergeDeviceIntoCatalog } from '../utils/catalogSync';
 
 export const DEFAULT_ROLE_CONFIG = {
   office: {
@@ -123,10 +124,23 @@ const appReducer = (state, action) => {
       return { ...state, customers: state.customers.filter(c => c.id !== action.payload) };
 
     // --- מכשירים ---
-    case 'ADD_DEVICE':
-      return { ...state, devices: [...state.devices, action.payload] };
-    case 'UPDATE_DEVICE':
-      return { ...state, devices: state.devices.map(d => d.id === action.payload.id ? { ...d, ...action.payload } : d) };
+    // ADD/UPDATE ממזגים אוטומטית את היצרן+דגם של המכשיר לקטלוג (state.manufacturers/models) —
+    // כך שכל מכשיר שנקלט/מתעדכן מזין את הקטלוג בעצמו, בלי צורך בקיטלוג ידני או מיגרציה חוזרת.
+    case 'ADD_DEVICE': {
+      const devices = [...state.devices, action.payload];
+      const { manufacturers, models } = mergeDeviceIntoCatalog(
+        state.manufacturers, state.models, state.settings?.fieldLists?.deviceTypes, action.payload
+      );
+      return { ...state, devices, manufacturers, models };
+    }
+    case 'UPDATE_DEVICE': {
+      const devices = state.devices.map(d => d.id === action.payload.id ? { ...d, ...action.payload } : d);
+      const merged = devices.find(d => d.id === action.payload.id);
+      const { manufacturers, models } = mergeDeviceIntoCatalog(
+        state.manufacturers, state.models, state.settings?.fieldLists?.deviceTypes, merged
+      );
+      return { ...state, devices, manufacturers, models };
+    }
     case 'DELETE_DEVICE':
       return { ...state, devices: state.devices.filter(d => d.id !== action.payload) };
 
@@ -193,6 +207,19 @@ const appReducer = (state, action) => {
         models: action.payload.models,
         settings: { ...state.settings, catalogMigrated: true },
       };
+
+    // --- השלמה חד-פעמית של הקטלוג ממכשירים קיימים (merge, לא דריסה) ---
+    // בניגוד ל-RUN_CATALOG_MIGRATION (שדורס הכל, ורץ רק כשהקטלוג ריק לגמרי), זה משלים
+    // רק את מה שחסר — כדי לתפוס יצרנים/דגמים ממכשירים שנוצרו לפני שהסנכרון התמידי הופעל.
+    case 'SYNC_DEVICE_CATALOG_BACKFILL': {
+      let manufacturers = state.manufacturers;
+      let models = state.models;
+      const deviceTypes = state.settings?.fieldLists?.deviceTypes;
+      for (const d of state.devices) {
+        ({ manufacturers, models } = mergeDeviceIntoCatalog(manufacturers, models, deviceTypes, d));
+      }
+      return { ...state, manufacturers, models, settings: { ...state.settings, catalogDeviceSyncBackfilled: true } };
+    }
 
     // --- הזמנות רכש ---
     case 'ADD_PURCHASE_ORDER':
@@ -583,6 +610,7 @@ export const AppProvider = ({ children }) => {
   stateRef.current = state;
   const migratingImagesRef = useRef(false);
   const catalogMigrationRanRef = useRef(false);
+  const deviceCatalogSyncRanRef = useRef(false);
   const { showToast } = useToast();
 
   // מיגרציה חד-פעמית: בונה קטלוג יצרנים/דגמים מנתונים קיימים (ראה catalogMigration.js)
@@ -596,6 +624,16 @@ export const AppProvider = ({ children }) => {
     catalogMigrationRanRef.current = true;
     const { manufacturers, models } = buildCatalogFromExisting(current);
     dispatch({ type: 'RUN_CATALOG_MIGRATION', payload: { manufacturers, models } });
+  }, [dispatch]);
+
+  // השלמה חד-פעמית (merge) של הקטלוג ממכשירים קיימים — למקרה שהמיגרציה למעלה כבר
+  // רצה בעבר (או שהקטלוג לא היה ריק) ולכן פספסה יצרנים/דגמים. רצה פעם אחת בלבד
+  // (מסומן ב-settings.catalogDeviceSyncBackfilled), ומשלימה רק את החסר — לא דורסת.
+  const runDeviceCatalogSync = useCallback(() => {
+    if (deviceCatalogSyncRanRef.current) return;
+    if (stateRef.current.settings?.catalogDeviceSyncBackfilled) return;
+    deviceCatalogSyncRanRef.current = true;
+    dispatch({ type: 'SYNC_DEVICE_CATALOG_BACKFILL' });
   }, [dispatch]);
 
   // רענון ספירת הפריטים הממתינים לסנכרון (לחיווי בהדר)
@@ -722,12 +760,14 @@ export const AppProvider = ({ children }) => {
       setTimeout(() => runImageMigration(), 2000);
       // מיגרציית קטלוג יצרנים/דגמים — רק אחרי שידוע אם יש כבר נתונים בענן (מונע כפילויות בין מכשירים)
       runCatalogMigration();
+      runDeviceCatalogSync();
     }).catch(() => {
       // אין חיבור לשרת בטעינה — נשארים עם הנתונים המקומיים (גיבוי localStorage) ומסמנים אופליין
       setIsOffline(true);
       initializedRef.current = true;
       setDbLoading(false);
       runCatalogMigration();
+      runDeviceCatalogSync();
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -736,6 +776,7 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     if (isSupabaseConfigured()) return;
     runCatalogMigration();
+    runDeviceCatalogSync();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
