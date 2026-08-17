@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useAppContext } from '../store/AppContext';
-import { formatDateTime, formatMoney, formatDate } from '../utils/formatters';
+import { formatDateTime, formatMoney, formatDate, toDateInputValue } from '../utils/formatters';
 import {
   QUICK_STATUS_FLOW, QUICK_STATUS_LABELS, QUICK_STATUS_STYLES, QUICK_CLOSED_STATUSES,
   SERVICE_LOCATIONS, SERVICE_LOCATION_LABELS,
   TIMELINE_ACTIONS, TIMELINE_ACTION_LABELS, appendTimeline,
+  isAtExternalProvider, isExternalOverdue,
 } from '../constants/quickRepair';
 import { PAYMENT_METHOD_LABELS } from '../constants/payment';
 import { REPAIR_STATUSES } from '../constants/statuses';
@@ -13,9 +14,21 @@ import WorkNotes from './WorkNotes';
 import NextActionsList, { NextActionSummary } from './NextActionsList';
 import QuickCloseModal from './QuickCloseModal';
 import {
-  ChevronDown, ChevronUp, MapPin, Home, Phone, History,
-  CheckCircle2, Banknote, Zap,
+  ChevronDown, ChevronUp, MapPin, Home, Building2, Phone, History,
+  CheckCircle2, Banknote, Zap, PackageCheck,
 } from 'lucide-react';
+
+const LOCATION_ICONS = {
+  [SERVICE_LOCATIONS.LAB]: Home,
+  [SERVICE_LOCATIONS.ONSITE]: MapPin,
+  [SERVICE_LOCATIONS.EXTERNAL]: Building2,
+};
+
+const LOCATION_BADGE_STYLES = {
+  [SERVICE_LOCATIONS.LAB]: 'bg-slate-50 text-slate-600 border-slate-200',
+  [SERVICE_LOCATIONS.ONSITE]: 'bg-purple-50 text-purple-700 border-purple-200',
+  [SERVICE_LOCATIONS.EXTERNAL]: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+};
 
 // QuickRepairCard — שורת תיקון מהיר: סטטוסים בסיסיים, עדכונים, רשימת פעולות וסגירה.
 export default function QuickRepairCard({ repair, defaultOpen = false }) {
@@ -28,9 +41,14 @@ export default function QuickRepairCard({ repair, defaultOpen = false }) {
   const deviceLabel = device ? (device.type ? `${device.type} · ${device.brand} ${device.model}` : `${device.brand} ${device.model}`) : '—';
 
   const isOnsite = repair.service_location === SERVICE_LOCATIONS.ONSITE;
+  const isExternal = repair.service_location === SERVICE_LOCATIONS.EXTERNAL;
   const isClosed = QUICK_CLOSED_STATUSES.includes(repair.status);
   const awaitingPayment = repair.status === REPAIR_STATUSES.PENDING_PAYMENT;
   const inQuickFlow = QUICK_STATUS_FLOW.includes(repair.status);
+
+  const atProvider = isAtExternalProvider(repair);
+  const externalOverdue = isExternalOverdue(repair, toDateInputValue());
+  const LocationIcon = LOCATION_ICONS[repair.service_location] || Home;
 
   const changeStatus = (status) => {
     if (status === repair.status) return;
@@ -40,6 +58,20 @@ export default function QuickRepairCard({ repair, defaultOpen = false }) {
         id: repair.id,
         status,
         timeline: appendTimeline(repair, TIMELINE_ACTIONS.STATUS, state.currentUser, QUICK_STATUS_LABELS[status]),
+      },
+    });
+  };
+
+  // סימון שהמכשיר חזר ממעבדת החוץ — חותם את תאריך החזרה ומתעד ביומן התיקון
+  const markReturned = () => {
+    dispatch({
+      type: 'UPDATE_REPAIR',
+      payload: {
+        id: repair.id,
+        external_returned_at: new Date().toISOString(),
+        timeline: appendTimeline(
+          repair, TIMELINE_ACTIONS.RETURNED_EXTERNAL, state.currentUser, repair.external_provider_name || ''
+        ),
       },
     });
   };
@@ -75,9 +107,9 @@ export default function QuickRepairCard({ repair, defaultOpen = false }) {
           {/* מיקום ביצוע */}
           <div className="flex items-center gap-2 flex-wrap mb-2 text-xs">
             <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-semibold border ${
-              isOnsite ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-slate-50 text-slate-600 border-slate-200'
+              LOCATION_BADGE_STYLES[repair.service_location] || LOCATION_BADGE_STYLES[SERVICE_LOCATIONS.LAB]
             }`}>
-              {isOnsite ? <MapPin size={11} /> : <Home size={11} />}
+              <LocationIcon size={11} />
               {SERVICE_LOCATION_LABELS[repair.service_location] || SERVICE_LOCATION_LABELS[SERVICE_LOCATIONS.LAB]}
             </span>
             {isOnsite && repair.onsite_contact_name && (
@@ -87,6 +119,26 @@ export default function QuickRepairCard({ repair, defaultOpen = false }) {
             )}
             {isOnsite && repair.onsite_address && (
               <span className="text-slate-500 truncate">{repair.onsite_address}</span>
+            )}
+
+            {isExternal && repair.external_provider_name && (
+              <span className="font-semibold text-indigo-700 truncate">{repair.external_provider_name}</span>
+            )}
+            {isExternal && repair.external_contact && (
+              <span className="inline-flex items-center gap-1 text-slate-500">
+                <Phone size={11} /> {repair.external_contact}
+              </span>
+            )}
+            {isExternal && repair.external_returned_at ? (
+              <span className="inline-flex items-center gap-1 text-green-700 font-semibold">
+                <PackageCheck size={11} /> חזר {formatDate(repair.external_returned_at)}
+              </span>
+            ) : atProvider && (
+              <span className={`inline-flex items-center gap-1 font-semibold ${externalOverdue ? 'text-red-600' : 'text-slate-500'}`}>
+                נשלח {formatDate(repair.external_sent_at)}
+                {repair.external_expected_return && ` · צפוי ${formatDate(repair.external_expected_return)}`}
+                {externalOverdue && ' · באיחור'}
+              </span>
             )}
           </div>
 
@@ -137,6 +189,17 @@ export default function QuickRepairCard({ repair, defaultOpen = false }) {
                 {repair.parts_note && (
                   <div><span className="text-xs font-bold text-slate-500">חלקים: </span><span className="text-slate-700">{repair.parts_note}</span></div>
                 )}
+                {repair.external_cost != null && repair.external_cost > 0 && (
+                  <div className="text-xs text-slate-600">
+                    <span className="font-bold text-slate-500">עלות מעבדת חוץ: </span>
+                    {formatMoney(repair.external_cost)}
+                    {repair.final_price != null && (
+                      <span className="text-slate-400">
+                        {' · '}רווח: {formatMoney(repair.final_price - repair.external_cost)}
+                      </span>
+                    )}
+                  </div>
+                )}
                 {repair.payment_method && (
                   <div className="text-xs text-slate-500">
                     שולם ב{PAYMENT_METHOD_LABELS[repair.payment_method]}
@@ -178,6 +241,15 @@ export default function QuickRepairCard({ repair, defaultOpen = false }) {
 
             {/* פעולות */}
             <div className="flex gap-2 flex-wrap pt-1">
+              {atProvider && (
+                <button
+                  onClick={markReturned}
+                  className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-sm font-semibold"
+                >
+                  <PackageCheck size={15} />
+                  חזר ממעבדת החוץ
+                </button>
+              )}
               <button
                 onClick={() => setCloseMode('close')}
                 className="flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg text-sm font-semibold"

@@ -16,7 +16,7 @@ import { buildMisuseConversionPayload, getWarrantyStatus } from '../utils/warran
 import { TERMINAL_STATUSES } from '../constants/statuses';
 import WorkNotes from './WorkNotes';
 import NextActionsList from './NextActionsList';
-import { TIMELINE_ACTION_LABELS, SERVICE_LOCATION_LABELS } from '../constants/quickRepair';
+import { TIMELINE_ACTION_LABELS, SERVICE_LOCATION_LABELS, SERVICE_LOCATIONS } from '../constants/quickRepair';
 import { PAYMENT_METHOD_LABELS } from '../constants/payment';
 
 const WARRANTY_LABELS = {
@@ -381,6 +381,31 @@ export default function RepairDetailModal({ repair, customer, device, onClose, o
                     </div>
                   )}
                 </div>
+              </div>
+            )}
+
+            {/* מעבדת חוץ — היכן המכשיר נמצא ומתי יצא/חזר */}
+            {repair.service_location === SERVICE_LOCATIONS.EXTERNAL && (
+              <div className="bg-indigo-50 rounded-xl p-3 border border-indigo-200 space-y-1">
+                <p className="text-xs font-bold text-indigo-900">
+                  {SERVICE_LOCATION_LABELS[SERVICE_LOCATIONS.EXTERNAL]}
+                  {repair.external_provider_name && ` — ${repair.external_provider_name}`}
+                </p>
+                {repair.external_contact && (
+                  <p className="text-xs text-indigo-800">איש קשר: {repair.external_contact}</p>
+                )}
+                <p className="text-xs text-indigo-800">
+                  {repair.external_sent_at && `נשלח ${formatDateTime(repair.external_sent_at).slice(0, 10)}`}
+                  {repair.external_expected_return && ` · צפוי לחזור ${formatDateTime(repair.external_expected_return).slice(0, 10)}`}
+                </p>
+                <p className="text-xs font-semibold text-indigo-900">
+                  {repair.external_returned_at
+                    ? `חזר ${formatDateTime(repair.external_returned_at)}`
+                    : 'טרם חזר — המכשיר נמצא אצל הגורם החיצוני'}
+                </p>
+                {repair.external_cost != null && repair.external_cost > 0 && (
+                  <p className="text-xs text-indigo-800">עלות מעבדת החוץ: {repair.external_cost}₪</p>
+                )}
               </div>
             )}
 

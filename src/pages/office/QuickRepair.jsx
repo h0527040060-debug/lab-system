@@ -5,22 +5,28 @@ import {
   generateCustomerId, generateDeviceId, generateRepairId, generateEngravingNumber,
 } from '../../utils/idGenerators';
 import { findActiveWarrantyRepair } from '../../utils/warrantyHelpers';
-import { formatDate } from '../../utils/formatters';
+import { formatDate, toDateInputValue } from '../../utils/formatters';
 import { REPAIR_STATUSES, TERMINAL_STATUSES } from '../../constants/statuses';
 import { WARRANTY_TYPES } from '../../constants/warranty';
 import {
   SERVICE_LOCATIONS, SERVICE_LOCATION_LABELS,
-  TIMELINE_ACTIONS, buildTimelineEntry,
+  TIMELINE_ACTIONS, buildTimelineEntry, isAtExternalProvider,
 } from '../../constants/quickRepair';
 import PageHeader from '../../components/PageHeader';
 import SearchInput from '../../components/SearchInput';
 import EmptyState from '../../components/EmptyState';
 import ManufacturerModelPicker from '../../components/ManufacturerModelPicker';
 import QuickRepairCard from '../../components/QuickRepairCard';
-import { Zap, Plus, Home, MapPin, AlertTriangle, UserPlus, X } from 'lucide-react';
+import { Zap, Plus, Home, MapPin, Building2, AlertTriangle, UserPlus, X } from 'lucide-react';
 
 const EMPTY_NEW_CUSTOMER = { name: '', phone: '' };
 const EMPTY_NEW_DEVICE = { brand: '', model: '', type: '' };
+
+const LOCATION_ICONS = {
+  [SERVICE_LOCATIONS.LAB]: Home,
+  [SERVICE_LOCATIONS.ONSITE]: MapPin,
+  [SERVICE_LOCATIONS.EXTERNAL]: Building2,
+};
 
 export default function QuickRepair() {
   const { state, dispatch } = useAppContext();
@@ -40,6 +46,10 @@ export default function QuickRepair() {
   const [serviceLocation, setServiceLocation] = useState(SERVICE_LOCATIONS.LAB);
   const [onsiteContact, setOnsiteContact] = useState('');
   const [onsiteAddress, setOnsiteAddress] = useState('');
+  const [externalProvider, setExternalProvider] = useState('');
+  const [externalContact, setExternalContact] = useState('');
+  const [externalSentAt, setExternalSentAt] = useState(toDateInputValue());
+  const [externalExpectedReturn, setExternalExpectedReturn] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // --- רשימת התיקונים ---
@@ -61,6 +71,14 @@ export default function QuickRepair() {
     () => selectedCustomerId ? state.devices.filter(d => d.owner_customer_id === selectedCustomerId) : [],
     [state.devices, selectedCustomerId]
   );
+
+  // מעבדות חוץ שכבר עבדנו איתן — הצעות השלמה, כדי לא להקליד את אותו שם מחדש
+  const knownExternalProviders = useMemo(() => {
+    const names = state.repairs
+      .map(r => r.external_provider_name)
+      .filter(Boolean);
+    return [...new Set(names)].sort((a, b) => a.localeCompare(b, 'he'));
+  }, [state.repairs]);
 
   // אזהרת תיקון חוזר — מכשיר קיים שיש עליו תיקון קודם שהאחריות עדיין בתוקף
   const warrantyWarning = useMemo(() => {
@@ -90,7 +108,10 @@ export default function QuickRepair() {
     : !!(newDevice.brand && newDevice.model);
   const onsiteValid = serviceLocation !== SERVICE_LOCATIONS.ONSITE
     || !!(onsiteContact.trim() && onsiteAddress.trim());
-  const canSave = customerValid && deviceValid && !!complaint.trim() && onsiteValid && !isSubmitting;
+  const externalValid = serviceLocation !== SERVICE_LOCATIONS.EXTERNAL
+    || !!(externalProvider.trim() && externalSentAt);
+  const canSave = customerValid && deviceValid && !!complaint.trim()
+    && onsiteValid && externalValid && !isSubmitting;
 
   const resetForm = () => {
     setCustomerMode('select');
@@ -105,6 +126,10 @@ export default function QuickRepair() {
     setServiceLocation(SERVICE_LOCATIONS.LAB);
     setOnsiteContact('');
     setOnsiteAddress('');
+    setExternalProvider('');
+    setExternalContact('');
+    setExternalSentAt(toDateInputValue());
+    setExternalExpectedReturn('');
   };
 
   const handleSave = () => {
@@ -147,6 +172,7 @@ export default function QuickRepair() {
     const freshRepairs = loadFromStorage(storageKeys.REPAIRS, state.repairs);
     const repairId = generateRepairId(freshRepairs.map(r => r.id));
     const isOnsite = serviceLocation === SERVICE_LOCATIONS.ONSITE;
+    const isExternal = serviceLocation === SERVICE_LOCATIONS.EXTERNAL;
 
     const repair = {
       id: repairId,
@@ -162,11 +188,23 @@ export default function QuickRepair() {
       service_location: serviceLocation,
       onsite_contact_name: isOnsite ? onsiteContact.trim() : '',
       onsite_address: isOnsite ? onsiteAddress.trim() : '',
+      external_provider_name: isExternal ? externalProvider.trim() : '',
+      external_contact: isExternal ? externalContact.trim() : '',
+      external_sent_at: isExternal ? externalSentAt : '',
+      external_expected_return: isExternal ? externalExpectedReturn : '',
+      external_returned_at: '',
+      external_cost: null,
       work_notes: [],
       next_actions: [],
       timeline: [],
     };
     repair.timeline = [buildTimelineEntry(TIMELINE_ACTIONS.OPENED, state.currentUser, repair)];
+    // יציאה לגורם חיצוני היא אירוע בפני עצמו — נרשם כבר בפתיחה
+    if (isExternal) {
+      repair.timeline.push(
+        buildTimelineEntry(TIMELINE_ACTIONS.SENT_EXTERNAL, state.currentUser, repair, externalProvider.trim())
+      );
+    }
 
     dispatch({ type: 'ADD_REPAIR', payload: repair });
     setLastCreatedId(repairId);
@@ -182,6 +220,7 @@ export default function QuickRepair() {
       .filter(r => {
         if (listFilter === 'open') return !TERMINAL_STATUSES.has(r.status);
         if (listFilter === 'closed') return TERMINAL_STATUSES.has(r.status);
+        if (listFilter === 'external') return isAtExternalProvider(r);
         return true;
       })
       .filter(r => {
@@ -199,6 +238,8 @@ export default function QuickRepair() {
   }, [state.repairs, state.customers, state.devices, listFilter, listSearch]);
 
   const openCount = state.repairs.filter(r => r.is_quick && !TERMINAL_STATUSES.has(r.status)).length;
+  // מכשירים שנמצאים כרגע פיזית אצל גורם חיצוני — השאלה שהכי חשוב לענות עליה מהר
+  const atExternalCount = state.repairs.filter(r => r.is_quick && isAtExternalProvider(r)).length;
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -362,21 +403,24 @@ export default function QuickRepair() {
           {/* מיקום ביצוע */}
           <div>
             <label className="block text-xs font-bold text-slate-600 mb-1.5">מיקום ביצוע *</label>
-            <div className="grid grid-cols-2 gap-2">
-              {[SERVICE_LOCATIONS.LAB, SERVICE_LOCATIONS.ONSITE].map(loc => (
-                <button
-                  key={loc}
-                  onClick={() => setServiceLocation(loc)}
-                  className={`flex items-center justify-center gap-1.5 py-2 rounded-lg border-2 text-sm font-semibold transition-colors ${
-                    serviceLocation === loc
-                      ? 'border-orange-500 bg-orange-50 text-orange-900'
-                      : 'border-slate-200 text-slate-600 hover:border-slate-300'
-                  }`}
-                >
-                  {loc === SERVICE_LOCATIONS.LAB ? <Home size={15} /> : <MapPin size={15} />}
-                  {SERVICE_LOCATION_LABELS[loc]}
-                </button>
-              ))}
+            <div className="grid grid-cols-3 gap-2">
+              {[SERVICE_LOCATIONS.LAB, SERVICE_LOCATIONS.ONSITE, SERVICE_LOCATIONS.EXTERNAL].map(loc => {
+                const Icon = LOCATION_ICONS[loc];
+                return (
+                  <button
+                    key={loc}
+                    onClick={() => setServiceLocation(loc)}
+                    className={`flex items-center justify-center gap-1.5 py-2 px-1 rounded-lg border-2 text-xs sm:text-sm font-semibold transition-colors ${
+                      serviceLocation === loc
+                        ? 'border-orange-500 bg-orange-50 text-orange-900'
+                        : 'border-slate-200 text-slate-600 hover:border-slate-300'
+                    }`}
+                  >
+                    <Icon size={15} className="shrink-0" />
+                    {SERVICE_LOCATION_LABELS[loc]}
+                  </button>
+                );
+              })}
             </div>
 
             {serviceLocation === SERVICE_LOCATIONS.ONSITE && (
@@ -395,6 +439,54 @@ export default function QuickRepair() {
                   placeholder="כתובת האתר *"
                   className="border border-slate-300 rounded-lg px-2.5 py-2 text-sm focus:outline-none focus:border-orange-400"
                 />
+              </div>
+            )}
+
+            {serviceLocation === SERVICE_LOCATIONS.EXTERNAL && (
+              <div className="mt-2 bg-indigo-50 border border-indigo-200 rounded-lg p-2.5 space-y-2">
+                <p className="text-xs text-indigo-900">
+                  המכשיר יוצא מאיתנו לגורם חיצוני. נעקוב מתי נשלח, מתי אמור לחזור ומתי חזר בפועל.
+                </p>
+                <div className="grid sm:grid-cols-2 gap-2">
+                  <input
+                    type="text"
+                    value={externalProvider}
+                    onChange={e => setExternalProvider(e.target.value)}
+                    list="external-providers"
+                    placeholder="שם מעבדת החוץ / בית המלאכה *"
+                    className="border border-slate-300 rounded-lg px-2.5 py-2 text-sm focus:outline-none focus:border-orange-400"
+                  />
+                  <datalist id="external-providers">
+                    {knownExternalProviders.map(name => <option key={name} value={name} />)}
+                  </datalist>
+                  <input
+                    type="text"
+                    value={externalContact}
+                    onChange={e => setExternalContact(e.target.value)}
+                    placeholder="איש קשר / טלפון"
+                    className="border border-slate-300 rounded-lg px-2.5 py-2 text-sm focus:outline-none focus:border-orange-400"
+                  />
+                </div>
+                <div className="grid sm:grid-cols-2 gap-2">
+                  <label className="text-xs text-slate-600">
+                    נשלח בתאריך *
+                    <input
+                      type="date"
+                      value={externalSentAt}
+                      onChange={e => setExternalSentAt(e.target.value)}
+                      className="w-full mt-0.5 border border-slate-300 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:border-orange-400"
+                    />
+                  </label>
+                  <label className="text-xs text-slate-600">
+                    צפוי לחזור
+                    <input
+                      type="date"
+                      value={externalExpectedReturn}
+                      onChange={e => setExternalExpectedReturn(e.target.value)}
+                      className="w-full mt-0.5 border border-slate-300 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:border-orange-400"
+                    />
+                  </label>
+                </div>
               </div>
             )}
           </div>
@@ -416,9 +508,10 @@ export default function QuickRepair() {
           <h2 className="font-bold text-slate-900">
             תיקונים מהירים <span className="text-sm font-normal text-slate-400">({openCount} פתוחים)</span>
           </h2>
-          <div className="flex gap-1">
+          <div className="flex gap-1 flex-wrap">
             {[
               { key: 'open', label: 'פתוחים' },
+              { key: 'external', label: `במעבדת חוץ${atExternalCount > 0 ? ` (${atExternalCount})` : ''}` },
               { key: 'closed', label: 'סגורים' },
               { key: 'all', label: 'הכל' },
             ].map(f => (
