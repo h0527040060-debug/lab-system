@@ -24,6 +24,15 @@ export const formatDate = (dateInput) => {
   });
 };
 
+// ערך ל-<input type="date"> — YYYY-MM-DD לפי השעון המקומי ולא UTC,
+// אחרת בשעות הלילה בישראל היה מתקבל תאריך של יום קודם.
+export const toDateInputValue = (dateInput = new Date()) => {
+  const date = new Date(dateInput);
+  if (isNaN(date.getTime())) return '';
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 10);
+};
+
 // פורמט כסף: "1500₪"
 export const formatMoney = (amount) => {
   if (amount === null || amount === undefined || isNaN(amount)) return '0₪';

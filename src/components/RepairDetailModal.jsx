@@ -4,7 +4,7 @@ import { uploadToStorage } from '../store/supabaseStorage';
 import ConfirmDialog from './ConfirmDialog';
 import { useAppContext } from '../store/AppContext';
 import { getStatusDisplay } from '../utils/statusConfig';
-import { formatDateTime } from '../utils/formatters';
+import { formatDateTime, formatDate } from '../utils/formatters';
 import WhatsAppButton from './WhatsAppButton';
 import { RepairEditModal } from './RepairEditModal';
 import { CustomerEditModal } from './CustomerEditModal';
@@ -12,8 +12,12 @@ import { DeviceEditModal } from './DeviceEditModal';
 import ImageGalleryModal from './ImageGalleryModal';
 import PartQuickModal from './PartQuickModal';
 import { isDeviceMissingPhoto } from '../utils/devicePhoto';
-import { buildMisuseConversionPayload } from '../utils/warrantyHelpers';
+import { buildMisuseConversionPayload, getWarrantyStatus } from '../utils/warrantyHelpers';
 import { TERMINAL_STATUSES } from '../constants/statuses';
+import WorkNotes from './WorkNotes';
+import NextActionsList from './NextActionsList';
+import { TIMELINE_ACTION_LABELS, SERVICE_LOCATION_LABELS } from '../constants/quickRepair';
+import { PAYMENT_METHOD_LABELS } from '../constants/payment';
 
 const WARRANTY_LABELS = {
   paid: 'תשלום רגיל',
@@ -27,17 +31,6 @@ function formatSeconds(sec) {
   const m = Math.floor((sec % 3600) / 60);
   if (h > 0) return `${h}ש׳ ${m > 0 ? m + 'ד׳' : ''}`.trim();
   return `${m} דקות`;
-}
-
-function getWarrantyStatus(repair) {
-  if (!repair?.warranty_months) return null;
-  const start = new Date(repair.date_intake);
-  const expiry = new Date(start);
-  expiry.setMonth(expiry.getMonth() + repair.warranty_months);
-  const daysLeft = Math.ceil((expiry - new Date()) / (1000 * 60 * 60 * 24));
-  if (daysLeft <= 0) return { expired: true };
-  if (daysLeft > 30) return { expired: false, months: Math.floor(daysLeft / 30) };
-  return { expired: false, days: daysLeft };
 }
 
 const MAX_DEVICE_PHOTOS = 4;
@@ -387,6 +380,64 @@ export default function RepairDetailModal({ repair, customer, device, onClose, o
                       <span>סה״כ לתשלום</span><span>{finalPrice}₪</span>
                     </div>
                   )}
+                </div>
+              </div>
+            )}
+
+            {/* סיכום סגירה מהירה */}
+            {(repair.actual_fault || repair.work_summary || repair.parts_note) && (
+              <div className="bg-slate-50 rounded-xl p-3 border border-slate-200 space-y-1.5">
+                <p className="text-xs font-bold text-slate-700">סיכום התיקון</p>
+                {repair.actual_fault && (
+                  <p className="text-xs text-slate-700"><span className="font-semibold">התקלה בפועל:</span> {repair.actual_fault}</p>
+                )}
+                {repair.work_summary && (
+                  <p className="text-xs text-slate-700"><span className="font-semibold">מה בוצע:</span> {repair.work_summary}</p>
+                )}
+                {repair.parts_note && (
+                  <p className="text-xs text-slate-700"><span className="font-semibold">חלקים:</span> {repair.parts_note}</p>
+                )}
+                {repair.payment_method && (
+                  <p className="text-xs text-slate-500">
+                    שולם ב{PAYMENT_METHOD_LABELS[repair.payment_method] || repair.payment_method}
+                    {repair.payment_date && ` · ${formatDate(repair.payment_date)}`}
+                  </p>
+                )}
+                {repair.closed_by_name && (
+                  <p className="text-xs text-slate-400">נסגר ע"י {repair.closed_by_name} · {formatDateTime(repair.closed_at)}</p>
+                )}
+              </div>
+            )}
+
+            {/* עדכוני עבודה ורשימת פעולות */}
+            <div className="border-t border-slate-100 pt-3">
+              <WorkNotes repair={repair} />
+            </div>
+            <div>
+              <NextActionsList repair={repair} />
+            </div>
+
+            {/* תיעוד: מי / מתי / איפה */}
+            {(repair.timeline || []).length > 0 && (
+              <div className="border-t border-slate-100 pt-3">
+                <p className="text-xs font-bold text-slate-600 mb-2">תיעוד פעולות</p>
+                <div className="space-y-1">
+                  {repair.timeline.map((entry, idx) => (
+                    <div key={idx} className="flex items-center gap-1.5 text-xs text-slate-500 flex-wrap">
+                      <span className="text-slate-400">{formatDateTime(entry.at)}</span>
+                      <span>·</span>
+                      <span className="font-semibold text-slate-700">{entry.user_name}</span>
+                      <span>·</span>
+                      <span>{TIMELINE_ACTION_LABELS[entry.action] || entry.action}</span>
+                      {entry.detail && <span className="text-slate-400">({entry.detail})</span>}
+                      {entry.location && (
+                        <>
+                          <span>·</span>
+                          <span>{SERVICE_LOCATION_LABELS[entry.location] || entry.location}</span>
+                        </>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </div>
             )}

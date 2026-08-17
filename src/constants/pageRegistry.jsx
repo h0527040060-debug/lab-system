@@ -4,6 +4,7 @@ import OfficeDashboard from '../pages/office/OfficeDashboard';
 import LabDashboard from '../pages/lab/LabDashboard';
 import OfficeIntake from '../pages/office/OfficeIntake';
 import OfficeIntakeInternal from '../pages/office/OfficeIntakeInternal';
+import QuickRepair from '../pages/office/QuickRepair';
 import OfficeApproval from '../pages/office/OfficeApproval';
 import OfficeAppeals from '../pages/office/OfficeAppeals';
 import OfficePayment from '../pages/office/OfficePayment';
@@ -27,6 +28,7 @@ export const TAB_CATALOG = [
   { id: 'dashboard',        label: 'דשבורד',             icon: '📊' },
   { id: 'lab-dashboard',    label: 'דשבורד מעבדה',       icon: '🏠' },
   { id: 'intake',           label: 'קליטה',              icon: '🔴' },
+  { id: 'quick-repair',     label: 'תיקון מהיר',         icon: '⚡' },
   { id: 'intake-internal',  label: 'יד שנייה',           icon: '🛒' },
   { id: 'approval',         label: 'אישור תמחור',        icon: '💰' },
   { id: 'appeals',          label: 'ערעורי אחריות',      icon: '⚠️' },
@@ -53,6 +55,7 @@ export const PAGE_COMPONENTS = {
   dashboard:        (props) => <OfficeDashboard {...props} />,
   'lab-dashboard':  (props) => <LabDashboard {...props} />,
   intake:           (props) => <OfficeIntake {...props} />,
+  'quick-repair':   (props) => <QuickRepair {...props} />,
   'intake-internal':(props) => <OfficeIntakeInternal {...props} />,
   approval:         (props) => <OfficeApproval {...props} />,
   appeals:          (props) => <OfficeAppeals {...props} />,

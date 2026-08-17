@@ -16,7 +16,8 @@ import CustomerQuickModal from '../../components/CustomerQuickModal';
 import DeviceQuickModal from '../../components/DeviceQuickModal';
 import StatusPickerPopover from '../../components/StatusPickerPopover';
 import WhatsAppButton from '../../components/WhatsAppButton';
-import { Stethoscope, Wrench, Camera, Printer, Edit2, MoreVertical, Trash2, DollarSign, Receipt, CheckCircle2 } from 'lucide-react';
+import { NextActionSummary } from '../../components/NextActionsList';
+import { Stethoscope, Wrench, Camera, Printer, Edit2, MoreVertical, Trash2, DollarSign, Receipt, CheckCircle2, Zap } from 'lucide-react';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { RepairEditModal } from '../../components/RepairEditModal';
 import DataTable from '../../components/DataTable';
@@ -103,7 +104,12 @@ export default function OfficeRepairsList({ onNavigate }) {
       key: 'id',
       label: 'קוד תיקון',
       sortable: true,
-      render: r => <span className="font-mono text-xs font-bold text-orange-600">{r.id}</span>,
+      render: r => (
+        <span className="flex items-center gap-1">
+          {r.is_quick && <Zap size={11} className="text-orange-500 shrink-0" aria-label="תיקון מהיר" />}
+          <span className="font-mono text-xs font-bold text-orange-600">{r.id}</span>
+        </span>
+      ),
     },
     {
       key: 'date_intake',
@@ -143,7 +149,12 @@ export default function OfficeRepairsList({ onNavigate }) {
     {
       key: 'complaint',
       label: 'תלונה',
-      render: r => <span className="text-xs text-slate-700 line-clamp-2 max-w-[180px]">{r.complaint || '—'}</span>,
+      render: r => (
+        <div className="max-w-[180px]">
+          <span className="text-xs text-slate-700 line-clamp-2">{r.complaint || '—'}</span>
+          <NextActionSummary repair={r} />
+        </div>
+      ),
       hideMobile: false,
     },
     {
