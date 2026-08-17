@@ -178,6 +178,12 @@ export default function OfficeDashboard() {
               <p className="text-2xl font-bold text-purple-700">{formatMoney(warrantyInvestment.laborCost)}</p>
               <p className="text-xs text-slate-500 mt-1">עלות עבודה</p>
             </div>
+            {warrantyInvestment.externalCost > 0 && (
+              <div className="bg-white rounded-lg border border-blue-200 p-3 text-center">
+                <p className="text-2xl font-bold text-indigo-700">{formatMoney(warrantyInvestment.externalCost)}</p>
+                <p className="text-xs text-slate-500 mt-1">עלות מעבדות חוץ</p>
+              </div>
+            )}
             <div className="bg-white rounded-lg border border-blue-200 p-3 text-center">
               <p className="text-2xl font-bold text-red-700">{formatMoney(warrantyInvestment.total)}</p>
               <p className="text-xs text-slate-500 mt-1">סה"כ השקעה</p>

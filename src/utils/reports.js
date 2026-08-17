@@ -110,9 +110,13 @@ export const calculateFinancialSummary = (repairs, generalExpenses, technicians)
     return sum + ((r.actual_hours || 0) * hourlyRate);
   }, 0);
 
+  // עלות מעבדות חוץ — מה ששילמנו לגורם חיצוני שביצע את התיקון עבורנו.
+  // עלות ישירה של התיקון, בדיוק כמו חלקים ועבודה.
+  const totalExternalCost = completed.reduce((sum, r) => sum + (r.external_cost || 0), 0);
+
   const totalGeneralExpenses = generalExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
 
-  const grossProfit = totalRevenue - totalPartsCost - totalLaborCost;
+  const grossProfit = totalRevenue - totalPartsCost - totalLaborCost - totalExternalCost;
   const netProfit = grossProfit - totalGeneralExpenses;
   const grossMargin = totalRevenue > 0 ? (grossProfit / totalRevenue * 100) : 0;
   const netMargin = totalRevenue > 0 ? (netProfit / totalRevenue * 100) : 0;
@@ -121,6 +125,7 @@ export const calculateFinancialSummary = (repairs, generalExpenses, technicians)
     totalRevenue,
     totalPartsCost,
     totalLaborCost,
+    totalExternalCost,
     totalGeneralExpenses,
     grossProfit,
     netProfit,
@@ -145,10 +150,14 @@ export const calculateWarrantyInvestment = (repairs, technicians) => {
     return s + ((r.actual_hours || 0) * hourlyRate);
   }, 0);
 
+  // תיקון אחריות שיצא למעבדת חוץ — שילמנו בפועל, בלי הכנסה נגדית
+  const externalCost = warrantyRepairs.reduce((s, r) => s + (r.external_cost || 0), 0);
+
   return {
     count: warrantyRepairs.length,
     partsCost,
     laborCost,
-    total: partsCost + laborCost,
+    externalCost,
+    total: partsCost + laborCost + externalCost,
   };
 };
