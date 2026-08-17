@@ -31,10 +31,11 @@ import ApprovalModal from '../../components/ApprovalModal';
 import PaymentModal from '../../components/PaymentModal';
 import RepairDetailModal from '../../components/RepairDetailModal';
 import FloatingScrollbar from '../../components/FloatingScrollbar';
+import { NextActionSummary } from '../../components/NextActionsList';
 import {
   Stethoscope, Wrench, Camera, RotateCcw, Search,
   ChevronLeft, ChevronRight, GripVertical, MoreVertical,
-  DollarSign, Receipt, CheckCircle2,
+  DollarSign, Receipt, CheckCircle2, Zap,
 } from 'lucide-react';
 
 const DEFAULT_COLUMNS = {
@@ -212,7 +213,10 @@ function KanbanCard({ repair, customer, device, isDragging, onAction, onOpenDeta
       <div className={`h-1 ${statusDisplay.bg.replace('-100', '-400')}`} />
       <div className="p-3">
         <div className="flex items-center justify-between mb-1.5">
-          <span className="font-mono text-xs font-bold text-orange-600">{repair.id}</span>
+          <span className="flex items-center gap-1 min-w-0">
+            {repair.is_quick && <Zap size={11} className="text-orange-500 shrink-0" aria-label="תיקון מהיר" />}
+            <span className="font-mono text-xs font-bold text-orange-600 truncate">{repair.id}</span>
+          </span>
           <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
             <span className="text-xs text-slate-400">{formatDateTime(repair.date_intake).slice(0, 10)}</span>
             <CardMenu repair={repair} customer={customer} device={device} onAction={onAction} onOpenDetail={onOpenDetail} />
@@ -220,6 +224,7 @@ function KanbanCard({ repair, customer, device, isDragging, onAction, onOpenDeta
         </div>
         <p className="font-semibold text-sm text-slate-800 truncate">{customer?.name || '—'}</p>
         <p className="text-sm font-bold text-slate-800 truncate">{device?.type || `${device?.brand} ${device?.model}`}</p>
+        <div className="mt-1"><NextActionSummary repair={repair} /></div>
         <div className="flex gap-1 mt-2 flex-wrap" onClick={e => e.stopPropagation()}>
           {needsPhoto ? (
             <span className="flex items-center gap-1 text-xs bg-red-100 text-red-700 px-2 py-1 rounded-lg font-semibold">

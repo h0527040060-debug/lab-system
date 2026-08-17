@@ -21,14 +21,14 @@ export const DEFAULT_ROLE_CONFIG = {
       'pending_payment','paid_waiting_pickup',
     ],
     visible_tabs: [
-      'kanban','dashboard','intake','intake-internal','approval','appeals',
+      'kanban','dashboard','intake','quick-repair','intake-internal','approval','appeals',
       'payment','pickup','repairs','customers','devices','parts',
       'work-catalog','general-expenses','reports','settings','users',
     ],
   },
   lab: {
     visible_statuses: ['yellow_ready_to_work','in_work','pending_release_docs'],
-    visible_tabs: ['kanban','lab-dashboard','search','devices'],
+    visible_tabs: ['kanban','lab-dashboard','search','devices','quick-repair'],
   },
 };
 
@@ -913,6 +913,12 @@ export const AppProvider = ({ children }) => {
 
   const loggedDispatch = useCallback((action) => {
     dispatch(action);
+
+    // action.quiet — שמירה אוטומטית תכופה (עדכוני עבודה, רשימת פעולות): ללא טוסט וללא
+    // רשומת לוג. אחרת כל יציאה מתיבת טקסט הייתה מקפיצה טוסט ומציפה את יומן הפעולות,
+    // שממילא מוגבל ל-2000 רשומות. התיעוד נשמר ברשומה עצמה (שם הכותב + חותמת זמן).
+    if (action.quiet) return;
+
     const entry = buildLogEntry(action, state.currentUser, state);
     // dispatch גולמי (לא loggedDispatch) — כדי לא ליצור רקורסיה של רישום-לוג-של-רישום-לוג
     if (entry) dispatch({ type: 'ADD_LOG_ENTRY', payload: entry });

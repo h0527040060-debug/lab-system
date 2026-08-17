@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { useAppContext } from '../store/AppContext';
 import { REPAIR_STATUSES } from '../constants/statuses';
 import { WARRANTY_TYPES, WARRANTY_LABELS } from '../constants/warranty';
+import {
+  PAYMENT_METHODS, SELECTABLE_PAYMENT_METHODS, PAYMENT_METHOD_LABELS, PAYMENT_METHOD_EMOJI,
+} from '../constants/payment';
 import { formatDateTime, formatMoney, formatHours } from '../utils/formatters';
 import { calculateInvoiceBreakdown } from '../utils/pricing';
 import Modal from './Modal';
@@ -31,7 +34,7 @@ export default function PaymentModal({ repair, onClose }) {
   const [feeWaived, setFeeWaived] = useState(false);
   const [waiverNote, setWaiverNote] = useState('');
   const [signature, setSignature] = useState(null);
-  const [paymentMethod, setPaymentMethod] = useState('cash');
+  const [paymentMethod, setPaymentMethod] = useState(PAYMENT_METHODS.CASH);
   const [confirmAction, setConfirmAction] = useState(null);
   const [lightbox, setLightbox] = useState(null);
   const isDirty = useDirtyForm({ signature, feeWaived, waiverNote, paymentMethod });
@@ -51,7 +54,7 @@ export default function PaymentModal({ repair, onClose }) {
         id: repair.id,
         status: REPAIR_STATUSES.PAID_WAITING_PICKUP,
         customer_signature: signature,
-        payment_method: noCharge ? 'waived' : paymentMethod,
+        payment_method: noCharge ? PAYMENT_METHODS.WAIVED : paymentMethod,
         // אחריות מלאה → final_price = 0 (לא מנפחים הכנסות)
         final_price: noCharge ? 0 : chargedAmount,
         payment_at: new Date().toISOString(),
@@ -186,22 +189,18 @@ export default function PaymentModal({ repair, onClose }) {
           {!noCharge && (
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-2">שיטת תשלום:</label>
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  { key: 'cash', label: '💵 מזומן' },
-                  { key: 'credit', label: '💳 אשראי' },
-                  { key: 'transfer', label: '🏦 העברה' },
-                ].map(opt => (
+              <div className="grid grid-cols-4 gap-2">
+                {SELECTABLE_PAYMENT_METHODS.map(method => (
                   <button
-                    key={opt.key}
-                    onClick={() => setPaymentMethod(opt.key)}
+                    key={method}
+                    onClick={() => setPaymentMethod(method)}
                     className={`p-2 rounded-lg border-2 text-sm font-semibold ${
-                      paymentMethod === opt.key
+                      paymentMethod === method
                         ? 'border-orange-500 bg-orange-50 text-orange-900'
                         : 'border-slate-200 hover:border-slate-300'
                     }`}
                   >
-                    {opt.label}
+                    {PAYMENT_METHOD_EMOJI[method]} {PAYMENT_METHOD_LABELS[method]}
                   </button>
                 ))}
               </div>
