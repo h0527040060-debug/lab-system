@@ -102,9 +102,13 @@ export default function OfficeReports() {
               <span>עלות עבודה (שעות × מחיר שעה)</span>
               <span className="font-bold">{formatMoney(summary.totalLaborCost)}</span>
             </div>
+            <div className="flex justify-between text-sm">
+              <span>עלות מעבדות חוץ</span>
+              <span className="font-bold">{formatMoney(summary.totalExternalCost)}</span>
+            </div>
             <div className="border-t border-orange-200 pt-2 flex justify-between font-bold text-orange-800">
               <span>סך עלויות תיקונים:</span>
-              <span>{formatMoney(summary.totalPartsCost + summary.totalLaborCost)}</span>
+              <span>{formatMoney(summary.totalPartsCost + summary.totalLaborCost + summary.totalExternalCost)}</span>
             </div>
           </div>
         </div>
@@ -187,6 +191,12 @@ export default function OfficeReports() {
               <span>עלות עבודה (שעות × מחיר שעה)</span>
               <span className="font-bold">{formatMoney(warrantyInvestment.laborCost)}</span>
             </div>
+            {warrantyInvestment.externalCost > 0 && (
+              <div className="flex justify-between text-sm">
+                <span>עלות מעבדות חוץ</span>
+                <span className="font-bold">{formatMoney(warrantyInvestment.externalCost)}</span>
+              </div>
+            )}
             <div className="border-t border-blue-200 pt-2 flex justify-between font-bold text-blue-900">
               <span>סה"כ השקעה בתיקוני אחריות:</span>
               <span>{formatMoney(warrantyInvestment.total)}</span>
