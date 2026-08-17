@@ -38,14 +38,19 @@ export const QUICK_CLOSED_STATUSES = [
 // ============================================================
 // מיקום ביצוע התיקון ("איפה")
 // ============================================================
+// EXTERNAL — "במעבדת חוץ": המכשיר יוצא מאיתנו לגורם חיצוני (מעבדה חיצונית או בית מלאכה)
+// שמבצע את התיקון עבורנו. בניגוד לשני האחרים, המכשיר פיזית לא אצלנו — ולכן נדרש
+// מעקב שליחה/חזרה ועלות הגורם החיצוני.
 export const SERVICE_LOCATIONS = {
   LAB: 'lab',
   ONSITE: 'onsite',
+  EXTERNAL: 'external',
 };
 
 export const SERVICE_LOCATION_LABELS = {
   [SERVICE_LOCATIONS.LAB]: 'במעבדה',
   [SERVICE_LOCATIONS.ONSITE]: 'באתר הלקוח',
+  [SERVICE_LOCATIONS.EXTERNAL]: 'במעבדת חוץ',
 };
 
 // ============================================================
@@ -54,6 +59,8 @@ export const SERVICE_LOCATION_LABELS = {
 export const TIMELINE_ACTIONS = {
   OPENED: 'opened',
   STATUS: 'status',
+  SENT_EXTERNAL: 'sent_external',
+  RETURNED_EXTERNAL: 'returned_external',
   CLOSED: 'closed',
   PAYMENT: 'payment',
 };
@@ -61,6 +68,8 @@ export const TIMELINE_ACTIONS = {
 export const TIMELINE_ACTION_LABELS = {
   [TIMELINE_ACTIONS.OPENED]: 'נפתח',
   [TIMELINE_ACTIONS.STATUS]: 'שינוי סטטוס',
+  [TIMELINE_ACTIONS.SENT_EXTERNAL]: 'נשלח למעבדת חוץ',
+  [TIMELINE_ACTIONS.RETURNED_EXTERNAL]: 'חזר ממעבדת חוץ',
   [TIMELINE_ACTIONS.CLOSED]: 'נסגר',
   [TIMELINE_ACTIONS.PAYMENT]: 'נרשם תשלום',
 };
@@ -87,3 +96,19 @@ export const appendTimeline = (repair, action, currentUser, detail = '') => [
 // מזהה ייחודי קצר לרשומות פנימיות (עדכונים / פעולות) בתוך תיקון
 export const generateEntryId = (prefix) =>
   `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+
+// ============================================================
+// מעבדת חוץ — מצב השהייה אצל הגורם החיצוני
+// ============================================================
+
+// המכשיר נמצא כרגע אצל הגורם החיצוני: נשלח וטרם חזר
+export const isAtExternalProvider = (repair) =>
+  repair?.service_location === SERVICE_LOCATIONS.EXTERNAL &&
+  !!repair?.external_sent_at &&
+  !repair?.external_returned_at;
+
+// חרג מתאריך החזרה הצפוי (todayDate בפורמט YYYY-MM-DD)
+export const isExternalOverdue = (repair, todayDate) =>
+  isAtExternalProvider(repair) &&
+  !!repair?.external_expected_return &&
+  repair.external_expected_return < todayDate;

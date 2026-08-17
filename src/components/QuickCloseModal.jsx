@@ -4,7 +4,7 @@ import { REPAIR_STATUSES } from '../constants/statuses';
 import { formatMoney, toDateInputValue } from '../utils/formatters';
 import {
   TIMELINE_ACTIONS, buildTimelineEntry, appendTimeline,
-  DEFAULT_QUICK_WARRANTY_MONTHS,
+  DEFAULT_QUICK_WARRANTY_MONTHS, SERVICE_LOCATIONS,
 } from '../constants/quickRepair';
 import {
   SELECTABLE_PAYMENT_METHODS, PAYMENT_METHOD_LABELS, PAYMENT_METHOD_EMOJI, PAYMENT_METHODS,
@@ -12,7 +12,7 @@ import {
 import Modal from './Modal';
 import { useDirtyForm } from '../hooks/useDirtyForm';
 import { useUnsavedGuard } from '../hooks/useUnsavedGuard';
-import { Check, Wrench, Package, Banknote, ShieldCheck } from 'lucide-react';
+import { Check, Wrench, Package, Banknote, ShieldCheck, Building2 } from 'lucide-react';
 
 const WARRANTY_PRESETS = [3, 6, 12];
 
@@ -30,15 +30,23 @@ export default function QuickCloseModal({ repair, mode = 'close', onClose }) {
   const [warrantyMonths, setWarrantyMonths] = useState(
     repair.warranty_months ?? DEFAULT_QUICK_WARRANTY_MONTHS
   );
+  const [externalCost, setExternalCost] = useState(
+    repair.external_cost != null ? String(repair.external_cost) : ''
+  );
   const [isPaid, setIsPaid] = useState(isPaymentOnly);
   const [paymentMethod, setPaymentMethod] = useState(repair.payment_method || PAYMENT_METHODS.CASH);
   const [paymentDate, setPaymentDate] = useState(repair.payment_date || toDateInputValue());
 
-  const isDirty = useDirtyForm({ actualFault, workSummary, partsNote, price, warrantyMonths, isPaid, paymentMethod, paymentDate });
+  const isDirty = useDirtyForm({ actualFault, workSummary, partsNote, price, warrantyMonths, externalCost, isPaid, paymentMethod, paymentDate });
   const { requestClose, confirmDialog } = useUnsavedGuard(isDirty, onClose);
 
   const numericPrice = Number(price);
   const priceValid = price !== '' && !isNaN(numericPrice) && numericPrice >= 0;
+
+  // עלות מעבדת החוץ — מה שהגורם החיצוני גובה מאיתנו, לחישוב הרווח על התיקון
+  const isExternal = repair.service_location === SERVICE_LOCATIONS.EXTERNAL;
+  const numericExternalCost = Number(externalCost);
+  const externalCostValid = externalCost === '' || (!isNaN(numericExternalCost) && numericExternalCost >= 0);
 
   // מע"מ לתצוגה בלבד — הסכום הנשמר הוא תמיד ללא מע"מ
   const vatPercent = state.settings.vat_percent_display || 17;
@@ -47,7 +55,8 @@ export default function QuickCloseModal({ repair, mode = 'close', onClose }) {
 
   const canSave = isPaymentOnly
     ? !!paymentMethod && !!paymentDate
-    : !!actualFault.trim() && !!workSummary.trim() && priceValid && (!isPaid || (!!paymentMethod && !!paymentDate));
+    : !!actualFault.trim() && !!workSummary.trim() && priceValid && externalCostValid
+      && (!isPaid || (!!paymentMethod && !!paymentDate));
 
   const handleSave = () => {
     if (!canSave) return;
@@ -84,6 +93,7 @@ export default function QuickCloseModal({ repair, mode = 'close', onClose }) {
         parts_note: partsNote.trim(),
         final_price: numericPrice,
         warranty_months: Number(warrantyMonths) || null,
+        ...(isExternal && { external_cost: externalCost === '' ? null : numericExternalCost }),
         closed_at: now,
         closed_by_user_id: user?.id || '',
         closed_by_name: user?.name || 'מערכת',
@@ -260,6 +270,31 @@ export default function QuickCloseModal({ repair, mode = 'close', onClose }) {
                   </div>
                 </div>
               </div>
+
+              {isExternal && (
+                <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-2.5">
+                  <label className="flex items-center gap-1.5 text-xs font-bold text-indigo-900 mb-1">
+                    <Building2 size={13} /> עלות מעבדת החוץ (ללא מע"מ)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={externalCost}
+                    onChange={e => setExternalCost(e.target.value)}
+                    placeholder="כמה גבתה מאיתנו מעבדת החוץ"
+                    className="w-full border border-slate-300 rounded-lg px-2.5 py-2 text-sm focus:outline-none focus:border-orange-400"
+                  />
+                  {externalCost !== '' && externalCostValid && priceValid && (
+                    <p className="text-xs mt-1 font-semibold text-indigo-900">
+                      רווח על התיקון: {formatMoney(numericPrice - numericExternalCost)}
+                      {numericPrice - numericExternalCost < 0 && <span className="text-red-600"> — הפסד!</span>}
+                    </p>
+                  )}
+                  {repair.external_provider_name && (
+                    <p className="text-xs text-indigo-700 mt-1">{repair.external_provider_name}</p>
+                  )}
+                </div>
+              )}
 
               <div className="border-t border-slate-200 pt-3">
                 <label className="flex items-center gap-2 cursor-pointer text-sm font-bold text-slate-700 mb-2.5">
