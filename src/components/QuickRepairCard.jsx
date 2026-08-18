@@ -13,9 +13,10 @@ import StatusBadge from './StatusBadge';
 import WorkNotes from './WorkNotes';
 import NextActionsList, { NextActionSummary } from './NextActionsList';
 import QuickCloseModal from './QuickCloseModal';
+import ConfirmDialog from './ConfirmDialog';
 import {
   ChevronDown, ChevronUp, MapPin, Home, Building2, Phone, History,
-  CheckCircle2, Banknote, Zap, PackageCheck,
+  CheckCircle2, Banknote, Zap, PackageCheck, Trash2,
 } from 'lucide-react';
 
 const LOCATION_ICONS = {
@@ -35,6 +36,7 @@ export default function QuickRepairCard({ repair, defaultOpen = false }) {
   const { state, dispatch } = useAppContext();
   const [expanded, setExpanded] = useState(defaultOpen);
   const [closeMode, setCloseMode] = useState(null); // 'close' | 'payment' | null
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const customer = state.customers.find(c => c.id === repair.customer_id);
   const device = state.devices.find(d => d.id === repair.device_id);
@@ -266,6 +268,13 @@ export default function QuickRepairCard({ repair, defaultOpen = false }) {
                   רשום תשלום
                 </button>
               )}
+              <button
+                onClick={() => setShowDeleteConfirm(true)}
+                className="flex items-center gap-1.5 bg-white hover:bg-red-50 text-red-600 border border-red-200 px-3 py-1.5 rounded-lg text-sm font-semibold mr-auto"
+              >
+                <Trash2 size={15} />
+                מחק תיקון
+              </button>
             </div>
           </div>
         )}
@@ -278,6 +287,16 @@ export default function QuickRepairCard({ repair, defaultOpen = false }) {
           onClose={() => setCloseMode(null)}
         />
       )}
+
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        title="מחיקת קריאה"
+        message={`האם אתה בטוח שאתה רוצה למחוק את הקריאה ${repair.id}? פעולה זו אינה ניתנת לביטול.`}
+        confirmLabel="מחק לצמיתות"
+        variant="danger"
+        onConfirm={() => { dispatch({ type: 'DELETE_REPAIR', payload: repair.id }); setShowDeleteConfirm(false); }}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
     </>
   );
 }
