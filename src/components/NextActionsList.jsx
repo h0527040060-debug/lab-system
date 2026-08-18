@@ -13,13 +13,22 @@ import { ListChecks, Check, Trash2, RotateCcw } from 'lucide-react';
 const isOverdue = (action) =>
   !action.done && !!action.due_date && action.due_date < toDateInputValue();
 
+// גובה התיבה מתאים את עצמו לכמות הטקסט — בלי גלילה ובלי ידית שינוי גודל
+const autoResizeTextarea = (el) => {
+  if (!el) return;
+  el.style.height = 'auto';
+  el.style.height = `${el.scrollHeight}px`;
+};
+
 // שורת פעולה קיימת — state מקומי לטקסט כדי שההקלדה תהיה חלקה
 function ActionRow({ action, onPatch, onToggleDone, onDelete }) {
   const [text, setText] = useState(action.text);
   const [note, setNote] = useState(action.done_note || '');
+  const textAreaRef = useRef(null);
 
   useEffect(() => { setText(action.text); }, [action.text]);
   useEffect(() => { setNote(action.done_note || ''); }, [action.done_note]);
+  useEffect(() => { autoResizeTextarea(textAreaRef.current); }, [text]);
 
   const overdue = isOverdue(action);
 
@@ -57,12 +66,13 @@ function ActionRow({ action, onPatch, onToggleDone, onDelete }) {
 
         <div className="flex-1 min-w-0 space-y-1.5">
           <textarea
+            ref={textAreaRef}
             value={text}
             onChange={e => setText(e.target.value)}
             onBlur={handleTextBlur}
             rows={1}
             className={`w-full text-sm bg-transparent border border-transparent hover:border-slate-200
-              focus:border-orange-400 rounded px-1.5 py-1 resize-y focus:outline-none
+              focus:border-orange-400 rounded px-1.5 py-1 resize-none overflow-hidden focus:outline-none
               ${action.done ? 'text-slate-500 line-through' : 'text-slate-800'}`}
           />
 
@@ -114,6 +124,8 @@ export default function NextActionsList({ repair }) {
   const [draft, setDraft] = useState({ text: '', due_date: '' });
   const [confirmDelete, setConfirmDelete] = useState(null);
   const draftTextRef = useRef(null);
+
+  useEffect(() => { autoResizeTextarea(draftTextRef.current); }, [draft.text]);
 
   // quiet — שמירה אוטומטית ביציאה מהתיבה, בלי טוסט ובלי להציף את יומן הפעולות.
   // התיעוד נשמר ברשומת הפעולה עצמה (created_by_name / done_by_name + חותמות זמן).
@@ -205,7 +217,7 @@ export default function NextActionsList({ repair }) {
             onChange={e => setDraft(d => ({ ...d, text: e.target.value }))}
             rows={1}
             placeholder="הפעולה הבאה..."
-            className="w-full text-sm bg-transparent border-0 px-1.5 py-1 resize-y focus:outline-none placeholder:text-slate-400"
+            className="w-full text-sm bg-transparent border-0 px-1.5 py-1 resize-none overflow-hidden focus:outline-none placeholder:text-slate-400"
           />
           <label className="flex items-center gap-1 text-xs text-slate-500">
             לביצוע עד:

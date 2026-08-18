@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAppContext } from '../store/AppContext';
 import { formatDateTime } from '../utils/formatters';
 import { generateEntryId } from '../constants/quickRepair';
@@ -8,12 +8,21 @@ import { MessageSquarePlus, Trash2, Pencil } from 'lucide-react';
 // WorkNotes — תיבת עדכונים חופשית: כל מי שעובד על התיקון כותב כאן מה היה.
 // כל עדכון נחתם בשם הכותב ובזמן, ונשאר פתוח לעריכה. השמירה אוטומטית ביציאה מהתיבה.
 
+// גובה התיבה מתאים את עצמו לכמות הטקסט — בלי גלילה ובלי ידית שינוי גודל
+const autoResizeTextarea = (el) => {
+  if (!el) return;
+  el.style.height = 'auto';
+  el.style.height = `${el.scrollHeight}px`;
+};
+
 // שורת עדכון קיים — state מקומי כדי שההקלדה תהיה חלקה, שמירה ב-onBlur בלבד
 function NoteRow({ note, onSave, onDelete }) {
   const [text, setText] = useState(note.text);
+  const textAreaRef = useRef(null);
 
   // סנכרון כשהעדכון משתנה מבחוץ (משתמש אחר / realtime)
   useEffect(() => { setText(note.text); }, [note.text]);
+  useEffect(() => { autoResizeTextarea(textAreaRef.current); }, [text]);
 
   const handleBlur = () => {
     const trimmed = text.trim();
@@ -44,11 +53,12 @@ function NoteRow({ note, onSave, onDelete }) {
         </button>
       </div>
       <textarea
+        ref={textAreaRef}
         value={text}
         onChange={e => setText(e.target.value)}
         onBlur={handleBlur}
         rows={2}
-        className="w-full text-sm text-slate-700 bg-transparent border border-transparent hover:border-slate-200 focus:border-orange-400 rounded px-1.5 py-1 resize-y focus:outline-none"
+        className="w-full text-sm text-slate-700 bg-transparent border border-transparent hover:border-slate-200 focus:border-orange-400 rounded px-1.5 py-1 resize-none overflow-hidden focus:outline-none"
       />
     </div>
   );
@@ -59,6 +69,9 @@ export default function WorkNotes({ repair }) {
   const notes = repair.work_notes || [];
   const [draft, setDraft] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const draftTextRef = useRef(null);
+
+  useEffect(() => { autoResizeTextarea(draftTextRef.current); }, [draft]);
 
   // quiet — שמירה אוטומטית ביציאה מהתיבה, בלי טוסט ובלי להציף את יומן הפעולות.
   // התיעוד נשמר ברשומת העדכון עצמה (user_name + at).
@@ -116,12 +129,13 @@ export default function WorkNotes({ repair }) {
         ))}
 
         <textarea
+          ref={draftTextRef}
           value={draft}
           onChange={e => setDraft(e.target.value)}
           onBlur={handleDraftBlur}
           rows={2}
           placeholder={notes.length === 0 ? 'מה היה? כתוב כאן עדכון — נשמר אוטומטית ביציאה מהתיבה' : 'הוסף עדכון...'}
-          className="w-full text-sm border border-dashed border-slate-300 rounded-lg px-2.5 py-2 resize-y
+          className="w-full text-sm border border-dashed border-slate-300 rounded-lg px-2.5 py-2 resize-none overflow-hidden
             focus:outline-none focus:border-solid focus:border-orange-400 placeholder:text-slate-400"
         />
       </div>
