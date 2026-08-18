@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import FloatingScrollbar from './FloatingScrollbar';
 import { useAppContext } from '../store/AppContext';
 import { ROLE_LABELS } from '../constants/userRoles';
-import { LogOut, Menu, X, Search, Plus } from 'lucide-react';
+import { LogOut, Menu, X, Search, Plus, Zap } from 'lucide-react';
 import NotificationBell from './NotificationBell';
 import SyncIndicator from './SyncIndicator';
 import { Button } from './Button';
@@ -174,6 +174,18 @@ export default function Layout({ children, currentTab, onTabChange, tabs }) {
                 תיקון חדש
               </Button>
             )}
+            {(role === 'admin' || role === 'office') && (
+              <Button
+                onClick={() => handleTabChange('quick-repair')}
+                icon={<Zap size={16} />}
+                size="sm"
+                variant="secondary"
+                className="hidden sm:inline-flex"
+                title="פתיחת תיקון מהיר"
+              >
+                תיקון מהיר
+              </Button>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
@@ -185,6 +197,17 @@ export default function Layout({ children, currentTab, onTabChange, tabs }) {
                 size="sm"
                 className="sm:hidden !px-2"
                 title="קליטת תיקון חדש"
+              />
+            )}
+            {/* כפתור "תיקון מהיר" — מובייל בלבד (אייקון בלבד) */}
+            {(role === 'admin' || role === 'office') && (
+              <Button
+                onClick={() => handleTabChange('quick-repair')}
+                icon={<Zap size={18} />}
+                size="sm"
+                variant="secondary"
+                className="sm:hidden !px-2"
+                title="פתיחת תיקון מהיר"
               />
             )}
             <button
