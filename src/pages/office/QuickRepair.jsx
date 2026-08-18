@@ -60,7 +60,7 @@ export default function QuickRepair() {
   const selectedCustomer = state.customers.find(c => c.id === selectedCustomerId);
 
   const filteredCustomers = useMemo(() => {
-    if (!customerSearch) return state.customers.slice(0, 8);
+    if (!customerSearch.trim()) return [];
     const q = customerSearch.toLowerCase();
     return state.customers
       .filter(c => c.name.toLowerCase().includes(q) || (c.phone || '').includes(customerSearch))
@@ -242,20 +242,22 @@ export default function QuickRepair() {
   const atExternalCount = state.repairs.filter(r => r.is_quick && isAtExternalProvider(r)).length;
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="w-full">
       <PageHeader
         title="תיקון מהיר"
         subtitle="פתיחה בשדות בודדים — הפרטים המלאים נרשמים בסגירה"
       />
 
       {/* ============ טופס פתיחה ============ */}
-      <div className="bg-white rounded-xl shadow-sm p-4 mb-5">
+      <div className="bg-white rounded-xl shadow-sm p-4 mb-5 max-w-4xl">
         <div className="flex items-center gap-1.5 mb-3">
           <Zap size={16} className="text-orange-500" />
           <h2 className="font-bold text-slate-900">פתיחת תיקון חדש</h2>
         </div>
 
         <div className="space-y-3">
+          {/* לקוח + מכשיר — זה לצד זה במסכים רחבים */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
           {/* לקוח */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
@@ -370,6 +372,7 @@ export default function QuickRepair() {
               />
             )}
           </div>
+          </div>
 
           {/* אזהרת תיקון חוזר באחריות */}
           {warrantyWarning && (
@@ -388,6 +391,8 @@ export default function QuickRepair() {
             </div>
           )}
 
+          {/* תלונה + מיקום ביצוע — זה לצד זה במסכים רחבים */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
           {/* תלונה */}
           <div>
             <label className="block text-xs font-bold text-slate-600 mb-1.5">מה הבעיה? *</label>
@@ -490,6 +495,7 @@ export default function QuickRepair() {
               </div>
             )}
           </div>
+          </div>
 
           <button
             onClick={handleSave}
@@ -544,7 +550,7 @@ export default function QuickRepair() {
             description={listSearch ? 'לא נמצאו תוצאות בחיפוש' : 'פתח תיקון מהיר בטופס שלמעלה'}
           />
         ) : (
-          <div className="space-y-2.5">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2.5 items-start">
             {quickRepairs.map(repair => (
               <QuickRepairCard
                 key={repair.id}
